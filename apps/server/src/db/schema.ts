@@ -272,3 +272,11 @@ export const auditLog = sqliteTable(
   },
   (t) => [index('audit_log_entity_idx').on(t.entityType, t.entityId)],
 );
+
+/** Codes printed on blank labels ahead of time; claimed when a place is created with one. */
+export const codeReservations = sqliteTable('code_reservations', {
+  code: text('code').primaryKey(),
+  createdBy: text('created_by').references(() => users.id),
+  createdAt: createdAt(),
+  claimedAt: text('claimed_at'),
+});

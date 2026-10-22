@@ -13,7 +13,7 @@ import type { Db, Executor } from '../db/client.js';
 import { locationMoves, locations, locationTypes } from '../db/schema.js';
 import { AppError, invalid, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
-import { allocateCode } from './codes.js';
+import { allocateCode, claimCode } from './codes.js';
 import { audit, requireScope, type Actor } from './context.js';
 
 export type LocationRow = typeof locations.$inferSelect;
@@ -74,6 +74,7 @@ export class LocationService {
         typeKey: input.type,
         kind: 'normal',
         description: input.description ?? null,
+        code: input.code ?? null,
       });
       await audit(tx, who, 'create', 'location', row.id, {
         name: row.name,
@@ -247,6 +248,7 @@ export class LocationService {
       kind: LocationKind;
       description: string | null;
       ownerUserId?: string;
+      code?: string | null;
     },
   ): Promise<LocationRow> {
     const type = await this.typeByKey(ex, input.typeKey);
@@ -257,7 +259,7 @@ export class LocationService {
     const id = newId();
     const row = {
       id,
-      code: await allocateCode(ex),
+      code: input.code ? await claimCode(ex, input.code) : await allocateCode(ex),
       parentId: parent?.id ?? null,
       typeId: type.id,
       kind: input.kind,

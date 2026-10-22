@@ -17,6 +17,12 @@ export const CreateLocationInput = z.object({
     .default('box')
     .describe('Location type key, e.g. room, cabinet, shelf, box'),
   description: z.string().trim().max(2000).nullish(),
+  code: z
+    .string()
+    .trim()
+    .max(16)
+    .nullish()
+    .describe('Use this code (e.g. from a pre-printed blank label) instead of a new one'),
 });
 export type CreateLocationInput = z.infer<typeof CreateLocationInput>;
 
