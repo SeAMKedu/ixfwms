@@ -2,7 +2,7 @@
 
 Parts inventory for the robotics lab: pneumatics, electrical parts, fasteners, filament. It tracks how much of each part we have and exactly where it is (lab › cabinet › shelf › box), uses QR labels, and lets AI assistants work with it over MCP.
 
-Status: **0.2 in progress**. It has a REST API, an MCP server for AI assistants, and a responsive web app (search, part and place pages, Inbox review, editing, login). Camera scanning and QR label printing come in 0.3. See [PLAN.md](PLAN.md) for the full plan and roadmap.
+Status: **0.3 in progress**. It has a REST API, an MCP server for AI assistants, and a responsive web app: search, part and place pages, Inbox review, editing, login, a camera QR scanner, moving things by scanning (scan, carry, scan), quick-add inventory sessions, and QR labels for the P-touch and laser marking. See [PLAN.md](PLAN.md) for the full plan and roadmap, and [docs/labels.md](docs/labels.md) for printing labels.
 
 ## Run it
 
@@ -66,17 +66,20 @@ Give assistants a token with the `inventory` scope. They can then create places,
 
 Reads are open on the lab network; writes need `Authorization: Bearer <token>`.
 
-|                                                                                                                                         |                                                          |
-| --------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| `GET /api/parts?q=&category=&tag=&status=&location=&inStock=`                                                                           | search                                                   |
-| `GET /api/parts/:code` · `POST /api/parts` · `PATCH /api/parts/:code` · `POST /api/parts/similar`                                       | parts                                                    |
-| `GET /api/locations?parent=&tree=1` · `GET /api/locations/:code?recursive=1` · `POST /api/locations` · `POST /api/locations/:code/move` | places                                                   |
-| `POST /api/stock` · `POST /api/stock/:lotId/take` · `/stocktake` · `/move`                                                              | stock                                                    |
-| `POST /api/files` (multipart `file`) · `GET /api/files/:id` · `POST /api/attachments`                                                   | files                                                    |
-| `GET /api/export`                                                                                                                       | everything as JSON                                       |
-| `POST /api/session` · `GET /api/session` · `DELETE /api/session`                                                                        | web login (name + password)                              |
-| `POST /api/parts/:code/merge`                                                                                                           | merge a duplicate into another part                      |
-| `GET /l/:code`, `GET /p/:code`                                                                                                          | the web app's place and part pages (what QR labels open) |
+|                                                                                                                                                                         |                                                          |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `GET /api/parts?q=&category=&tag=&status=&location=&inStock=`                                                                                                           | search                                                   |
+| `GET /api/parts/:code` · `POST /api/parts` · `PATCH /api/parts/:code` · `POST /api/parts/similar`                                                                       | parts                                                    |
+| `GET /api/locations?parent=&tree=1` · `GET /api/locations/:code?recursive=1` · `POST /api/locations` · `POST /api/locations/:code/move`                                 | places                                                   |
+| `POST /api/stock` · `POST /api/stock/:lotId/take` · `/stocktake` · `/move`                                                                                              | stock                                                    |
+| `POST /api/files` (multipart `file`) · `GET /api/files/:id` · `POST /api/attachments`                                                                                   | files                                                    |
+| `GET /api/export`                                                                                                                                                       | everything as JSON                                       |
+| `GET /api/labels?codes=…` · `GET /api/labels.csv?location=…&recursive=1` · `GET /api/labels/:code/label.svg?tape=12` · `/qr.svg` · `/qr.dxf` · `POST /api/labels/blank` | labels                                                   |
+| `GET /api/codes/:code`                                                                                                                                                  | what a code is (place, part, blank label)                |
+| `GET /api/carry` · `POST /api/carry/pick` · `POST /api/carry/drop`                                                                                                      | scan, carry, scan                                        |
+| `POST /api/session` · `GET /api/session` · `DELETE /api/session`                                                                                                        | web login (name + password)                              |
+| `POST /api/parts/:code/merge`                                                                                                                                           | merge a duplicate into another part                      |
+| `GET /l/:code`, `GET /p/:code`                                                                                                                                          | the web app's place and part pages (what QR labels open) |
 
 Token scopes: `read` < `inventory` (create and move things, drafts only) < `write` (confirm drafts, archive) < `admin`.
 
