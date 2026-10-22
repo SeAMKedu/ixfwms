@@ -17,7 +17,8 @@
     "carrying_other": "Carrying {{count}} things",
     "putDown": "Put down",
     "categories": "Categories",
-    "import": "Import"
+    "import": "Import",
+    "bom": "Can we build it?"
   },
   "common": {
     "save": "Save",
@@ -396,6 +397,46 @@
       "level": "Level",
       "location": "Place",
       "unitMassG": "Mass per piece (g)"
+    }
+  },
+  "bom": {
+    "title": "Can we build it?",
+    "intro": "Check a parts list against stock: paste rows from a spreadsheet, or load a parts list exported from Solid Edge, NX, Inventor, EPLAN or TIA Portal.",
+    "paste": "Paste a parts list",
+    "pasteHint": "Copy rows from Excel including the header row. Columns can be in any order.",
+    "usePasted": "Use pasted rows",
+    "chooseFile": "Or choose a CSV/Excel file",
+    "columns": "Columns",
+    "sets": "How many sets",
+    "check_one": "Check {{count}} line",
+    "check_other": "Check {{count}} lines",
+    "result": "Result",
+    "buildable_one": "We can build {{count}} complete set from stock.",
+    "buildable_other": "We can build {{count}} complete sets from stock.",
+    "buildableNone": "Not from stock: {{missing}} missing, {{short}} short.",
+    "buildableUnknown": "Probably, but some parts are tracked only as a level or a length, so check those lines.",
+    "need": "Need",
+    "status": "Status",
+    "part": "Our part",
+    "have": "Have",
+    "where": "Where",
+    "byName": "matched by name, check it",
+    "maybe": "Maybe:",
+    "tagLabel": "Tag the matched parts with a project",
+    "tagPlaceholder": "e.g. Gripper v3",
+    "tag": "Tag parts",
+    "tagged_one": "Tagged {{count}} part: show them",
+    "tagged_other": "Tagged {{count}} parts: show them",
+    "fields": {
+      "ref": "Code / order number",
+      "name": "Name",
+      "quantity": "Quantity"
+    },
+    "statuses": {
+      "ok": "have",
+      "unknown": "probably",
+      "short": "short",
+      "missing": "missing"
     }
   }
 }

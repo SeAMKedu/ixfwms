@@ -2,6 +2,7 @@ import {
   FileSpreadsheet,
   Hand,
   Inbox,
+  ListChecks,
   LogIn,
   LogOut,
   MapPin,
@@ -130,6 +131,15 @@ export function Layout() {
         >
           <Tags className="size-4" aria-hidden />
           {t('nav.categories')}
+        </NavLink>
+        <NavLink
+          to="/bom"
+          className={({ isActive }) =>
+            `flex items-center gap-2 rounded-md px-2 py-1.5 text-[14px] ${isActive ? 'bg-link-soft font-semibold text-link' : 'text-ink hover:bg-surface-2'}`
+          }
+        >
+          <ListChecks className="size-4" aria-hidden />
+          {t('nav.bom')}
         </NavLink>
         <NavLink
           to="/import"

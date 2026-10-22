@@ -3,6 +3,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router';
 import { ApiError } from './api/client';
 import { SessionProvider } from './auth/session';
 import { Layout } from './components/layout';
+import { BomPage } from './pages/bom';
 import { CarryPage } from './pages/carry';
 import { CategoriesPage } from './pages/categories';
 import { ImportPage } from './pages/import';
@@ -34,6 +35,7 @@ const routes = [
       { path: '/labels', element: <LabelsPage /> },
       { path: '/categories', element: <CategoriesPage /> },
       { path: '/import', element: <ImportPage /> },
+      { path: '/bom', element: <BomPage /> },
       { path: '/inbox', element: <InboxPage /> },
       { path: '/scan', element: <ScanPage /> },
       { path: '/login', element: <LoginPage /> },
