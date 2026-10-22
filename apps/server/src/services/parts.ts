@@ -1,5 +1,11 @@
 import {
+  effectiveFields,
   formatAmount,
+  STARTER_CATEGORIES,
+  type AttributeField,
+  type AttributeFilter,
+  type CategoryFields,
+  type CategoryInfo,
   isValidCode,
   normalizeCode,
   normalizeIdentifier,
@@ -282,6 +288,7 @@ export class PartService {
       updatedAt: part.updatedAt,
       lots: await this.stock.lotsOfPart(part.id),
       attachments: await this.files.attachmentsOf('part', part.id),
+      fields: summary!.category ? (await this.categoryFields(summary!.category)).effective : [],
       history: history.map((m) => ({
         at: m.at,
         reason: m.reason,
@@ -369,6 +376,11 @@ export class PartService {
         ),
       );
     }
+    if (input.lowStock) {
+      where.push(sql`((${parts.minStock} is not null and coalesce((select sum(${stockLots.quantity}) from ${stockLots} where ${stockLots.partId} = ${parts.id} and ${stockLots.mode} = 'count'), 0) < ${parts.minStock})
+        or exists (select 1 from ${stockLots} where ${stockLots.partId} = ${parts.id} and ${stockLots.level} in ('low', 'empty')))`);
+    }
+    for (const filter of input.attributes ?? []) where.push(attributeCondition(filter));
     if (input.inStock !== undefined) {
       const inStock = exists(
         this.db
@@ -529,15 +541,83 @@ export class PartService {
     return parentId;
   }
 
-  async listCategories(): Promise<{ path: string; parts: number }[]> {
+  async listCategories(): Promise<CategoryInfo[]> {
     const rows = await this.db
-      .select({ path: categories.path, parts: sql<number>`count(${parts.id})` })
+      .select({
+        path: categories.path,
+        template: categories.attributeTemplate,
+        parts: sql<number>`count(${parts.id})`,
+      })
       .from(categories)
       .leftJoin(parts, eq(parts.categoryId, categories.id))
       .groupBy(categories.id)
       .orderBy(asc(categories.path))
       .all();
-    return rows.map((r) => ({ path: r.path, parts: Number(r.parts) }));
+    return rows.map((r) => ({
+      path: r.path,
+      parts: Number(r.parts),
+      fields: r.template?.length ?? 0,
+    }));
+  }
+
+  /** A category's fields, own and inherited. Unknown paths have none. */
+  async categoryFields(path: string, ex: Executor = this.db): Promise<CategoryFields> {
+    const names = path
+      .split('/')
+      .map((n) => n.trim())
+      .filter(Boolean);
+    const chain: (AttributeField[] | null)[] = [];
+    let own: AttributeField[] = [];
+    let current = '';
+    let canonical = names.join('/');
+    for (const name of names) {
+      current = current ? `${current}/${name}` : name;
+      const row = await ex
+        .select()
+        .from(categories)
+        .where(eq(sql`lower(${categories.path})`, current.toLowerCase()))
+        .get();
+      chain.push(row?.attributeTemplate ?? null);
+      if (row && current.length === canonical.length) {
+        own = row.attributeTemplate ?? [];
+        canonical = row.path;
+      }
+    }
+    return { path: canonical, own, effective: effectiveFields(chain) };
+  }
+
+  /** Replaces a category's own fields (creating the category if needed). */
+  async setCategoryFields(
+    path: string,
+    fields: AttributeField[],
+    actor: Actor | null,
+  ): Promise<CategoryFields> {
+    const who = requireScope(actor, 'write');
+    const keys = new Set<string>();
+    for (const f of fields) {
+      if (keys.has(f.key)) throw new AppError('invalid', `Field key "${f.key}" is used twice`);
+      keys.add(f.key);
+    }
+    await this.db.transaction(async (tx) => {
+      const id = await this.ensureCategory(tx, path);
+      await tx.update(categories).set({ attributeTemplate: fields }).where(eq(categories.id, id));
+      await audit(tx, who, 'fields', 'category', id, { path, fields: fields.map((f) => f.key) });
+    });
+    return this.categoryFields(path);
+  }
+
+  /** Adds the starter categories and their fields; existing fields are left alone. Returns the categories changed. */
+  async seedStarterCategories(actor: Actor | null): Promise<string[]> {
+    requireScope(actor, 'write');
+    const changed: string[] = [];
+    for (const [path, fields] of Object.entries(STARTER_CATEGORIES)) {
+      const current = await this.categoryFields(path);
+      if (current.own.length === 0) {
+        await this.setCategoryFields(path, fields, actor);
+        changed.push(path);
+      }
+    }
+    return changed;
   }
 
   async listTags(): Promise<{ name: string; parts: number }[]> {
@@ -584,5 +664,23 @@ export class PartService {
       }
       await ex.insert(partTags).values({ partId, tagId: tag.id }).onConflictDoNothing();
     }
+  }
+}
+
+/** SQL for one category-field filter on parts.attributes (keys are validated, so the JSON path is safe). */
+function attributeCondition(filter: AttributeFilter): SQL {
+  const value = sql`json_extract(${parts.attributes}, ${`$.${filter.key}`})`;
+  const text = sql`lower(cast(${value} as text))`;
+  switch (filter.op) {
+    case 'gte':
+      return sql`cast(${value} as real) >= ${Number(filter.value)}`;
+    case 'lte':
+      return sql`cast(${value} as real) <= ${Number(filter.value)}`;
+    case 'contains':
+      return like(text, `%${String(filter.value).toLowerCase()}%`);
+    case 'eq':
+      return typeof filter.value === 'number'
+        ? sql`cast(${value} as real) = ${filter.value}`
+        : eq(text, String(filter.value).toLowerCase());
   }
 }

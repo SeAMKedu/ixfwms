@@ -1,5 +1,6 @@
 import {
   AmountInput,
+  AttributeFilter,
   ATTACHMENT_KINDS,
   CreatePartInput,
   IdentifierInput,
@@ -89,6 +90,13 @@ export function createMcpServer(
         status: z.enum(PART_STATUSES).optional(),
         location: z.string().optional().describe('Only parts stored in this place or below it'),
         inStock: z.boolean().optional(),
+        lowStock: z.boolean().optional().describe('Below minimum stock, or marked low/empty'),
+        attributes: z
+          .array(AttributeFilter)
+          .optional()
+          .describe(
+            'Filters on category fields (see get_category_fields), e.g. {key:"thread",op:"eq",value:"M4"}',
+          ),
         limit: z.number().int().min(1).max(200).optional(),
         offset: z.number().int().min(0).optional(),
       },
@@ -172,6 +180,18 @@ export function createMcpServer(
       annotations: read,
     },
     tool(async () => parts.listCategories()),
+  );
+
+  server.registerTool(
+    'get_category_fields',
+    {
+      title: 'Get category fields',
+      description:
+        'The fields a category defines for its parts (with inherited ones), e.g. thread and length for screws. Fill them in as part attributes using the field keys.',
+      inputSchema: { path: z.string().describe('Category path, e.g. "Fasteners/Screws"') },
+      annotations: read,
+    },
+    tool(async ({ path }) => parts.categoryFields(path)),
   );
 
   server.registerTool(

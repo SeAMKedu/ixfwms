@@ -15,6 +15,7 @@ const HELP = `ixfwms admin CLI
   user:password --name <n> [--password <p>]   Set a web login password (reads stdin if omitted)
   token:create --user <n> [--name <label>] [--scopes inventory,write]
   token:revoke --id <token id>
+  seed:categories --user <admin>         Add starter categories with fields (screws, fittings, filament…)
   backup                                 Snapshot the database into <data>/backups
 
 Environment: IXF_DATA_DIR (default ./data), IXF_DB_URL.
@@ -89,6 +90,23 @@ async function main(): Promise<void> {
         await services.auth.revokeToken(values.id);
         console.log('Revoked');
         break;
+      case 'seed:categories': {
+        if (!values.user) throw new AppError('invalid', '--user is required');
+        const user = (await services.auth.listUsers()).find((u) => u.name === values.user);
+        if (!user) throw new AppError('invalid', `No user ${values.user}`);
+        const added = await services.parts.seedStarterCategories({
+          userId: user.id,
+          name: user.name,
+          role: user.role,
+          scopes: ['admin'],
+        });
+        console.log(
+          added.length
+            ? `Added fields to: ${added.join(', ')}`
+            : 'All starter categories already have fields',
+        );
+        break;
+      }
       case 'backup':
         console.log(await services.backup.backup('manual'));
         break;

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { IDENTIFIER_KINDS } from './identifiers.js';
 import { MEASURE_UNITS, STOCK_LEVELS, STOCK_MODES } from './quantity.js';
 import { ATTACHMENT_KINDS, PART_STATUSES } from './enums.js';
+import { AttributeFilter } from './attributes.js';
 
 /** A location or part reference: internal id or short code. */
 export const RefSchema = z.string().trim().min(1).max(64);
@@ -120,6 +121,12 @@ export const PartSearchInput = z.object({
   status: z.enum(PART_STATUSES).optional(),
   location: RefSchema.optional().describe('Only parts stored in this location or below it'),
   inStock: z.boolean().optional(),
+  lowStock: z.boolean().optional().describe('Below minimum stock, or marked low/empty'),
+  attributes: z
+    .array(AttributeFilter)
+    .max(10)
+    .optional()
+    .describe('Filters on category fields, e.g. thread = M4, lengthMm >= 10'),
   limit: z.number().int().min(1).max(200).default(50),
   offset: z.number().int().min(0).default(0),
 });

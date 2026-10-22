@@ -1,12 +1,34 @@
-import { CreatePartInput, PART_STATUSES, PartSearchInput, UpdatePartInput } from '@ixfwms/domain';
+import {
+  AttributeFields,
+  CreatePartInput,
+  PART_STATUSES,
+  PartSearchInput,
+  UpdatePartInput,
+  parseAttributeFilter,
+} from '@ixfwms/domain';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { parse, QueryBool, type AppDeps } from '../context.js';
 
 const RefParams = z.object({ ref: z.string() });
 
-const SearchQuery = PartSearchInput.extend({
+/** `?attr=thread:M4&attr=lengthMm>=10`: repeated query parameters become attribute filters. */
+const AttrQuery = z.union([z.string(), z.array(z.string())]).transform((v, ctx) =>
+  (Array.isArray(v) ? v : [v]).map((text) => {
+    const filter = parseAttributeFilter(text);
+    if (!filter)
+      ctx.addIssue({
+        code: 'custom',
+        message: `Can't read attribute filter "${text}" (use key:value, key>=n, key<=n or key~text)`,
+      });
+    return filter!;
+  }),
+);
+
+const SearchQuery = PartSearchInput.omit({ attributes: true }).extend({
   inStock: QueryBool.optional(),
+  lowStock: QueryBool.optional(),
+  attr: AttrQuery.optional(),
   limit: z.coerce.number().int().min(1).max(200).default(50),
   offset: z.coerce.number().int().min(0).default(0),
 });
@@ -14,7 +36,10 @@ const SearchQuery = PartSearchInput.extend({
 export function registerPartRoutes(app: FastifyInstance, { services }: AppDeps): void {
   const { parts } = services;
 
-  app.get('/api/parts', async (request) => parts.search(parse(SearchQuery, request.query)));
+  app.get('/api/parts', async (request) => {
+    const { attr, ...q } = parse(SearchQuery, request.query);
+    return parts.search({ ...q, attributes: attr });
+  });
 
   app.get('/api/parts/:ref', async (request) => parts.get(parse(RefParams, request.params).ref));
 
@@ -49,5 +74,22 @@ export function registerPartRoutes(app: FastifyInstance, { services }: AppDeps):
   });
 
   app.get('/api/categories', () => parts.listCategories());
+
+  app.get('/api/categories/fields', async (request) => {
+    const { path } = parse(z.object({ path: z.string().min(1) }), request.query);
+    return parts.categoryFields(path);
+  });
+
+  app.put('/api/categories/fields', async (request) => {
+    const body = parse(
+      z.object({ path: z.string().trim().min(1), fields: AttributeFields }),
+      request.body,
+    );
+    return parts.setCategoryFields(body.path, body.fields, request.actor);
+  });
+
+  app.post('/api/categories/starter', async (request) => ({
+    added: await parts.seedStarterCategories(request.actor),
+  }));
   app.get('/api/tags', () => parts.listTags());
 }

@@ -2,6 +2,7 @@
  * Shapes the REST API returns. Shared by the server (which produces them)
  * and the web app (which consumes them), so both sides stay in sync.
  */
+import type { AttributeField } from './attributes.js';
 import type { AttachmentKind, LocationKind, PartStatus, Scope, UserRole } from './enums.js';
 import type { StockAmount } from './quantity.js';
 
@@ -71,6 +72,8 @@ export interface PartDetail extends PartSummary {
   lots: LotView[];
   attachments: AttachmentView[];
   history: MovementView[];
+  /** The category's fields (inherited ones included), to label the values in `attributes`. */
+  fields: AttributeField[];
 }
 
 export interface SimilarPart extends PartSummary {
@@ -177,4 +180,18 @@ export interface PlaceOption extends LocationSummary {
   path: string[];
   /** Codes along the same path, so a picker can leave out a place and everything inside it. */
   pathCodes: string[];
+}
+
+export interface CategoryInfo {
+  path: string;
+  parts: number;
+  /** Number of the category's own fields. */
+  fields: number;
+}
+
+export interface CategoryFields {
+  path: string;
+  own: AttributeField[];
+  /** Own fields plus those inherited from parent categories. */
+  effective: AttributeField[];
 }

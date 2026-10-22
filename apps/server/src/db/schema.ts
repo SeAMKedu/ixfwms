@@ -10,6 +10,7 @@ import {
 } from 'drizzle-orm/sqlite-core';
 import type {
   AttachmentKind,
+  AttributeField,
   IdentifierKind,
   LocationKind,
   MeasureUnit,
@@ -98,9 +99,8 @@ export const categories = sqliteTable(
     name: text('name').notNull(),
     /** Full path like "Pneumatics/Vacuum/Suction cups", unique. */
     path: text('path').notNull().unique(),
-    attributeTemplate: text('attribute_template', { mode: 'json' }).$type<
-      Record<string, unknown>
-    >(),
+    /** This category's own fields; sub-categories inherit them (see effectiveFields). */
+    attributeTemplate: text('attribute_template', { mode: 'json' }).$type<AttributeField[]>(),
     eclassCode: text('eclass_code'),
     etimClass: text('etim_class'),
   },
@@ -279,4 +279,12 @@ export const codeReservations = sqliteTable('code_reservations', {
   createdBy: text('created_by').references(() => users.id),
   createdAt: createdAt(),
   claimedAt: text('claimed_at'),
+});
+
+/** Saved spreadsheet column mappings, so the same export format imports with one click next time. */
+export const importMappings = sqliteTable('import_mappings', {
+  name: text('name').primaryKey(),
+  mapping: text('mapping', { mode: 'json' }).$type<Record<string, unknown>>().notNull(),
+  updatedBy: text('updated_by').references(() => users.id),
+  updatedAt: updatedAt(),
 });
