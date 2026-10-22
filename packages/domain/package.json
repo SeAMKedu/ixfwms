@@ -1,0 +1,20 @@
+{
+  "name": "@ixfwms/domain",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Pure domain logic and shared schemas for ixfwms (no I/O)",
+  "type": "module",
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
+  }
+}
