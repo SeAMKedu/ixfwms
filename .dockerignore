@@ -1,0 +1,9 @@
+node_modules
+**/node_modules
+**/dist
+**/*.tsbuildinfo
+data
+coverage
+.git
+*.md
+!apps/server/drizzle/**

@@ -1,0 +1,8 @@
+# HTTPS with Caddy's own certificate authority (works offline on the lab network).
+# IXF_SITE_ADDRESSES lists every name/IP the server is reached by, comma-separated,
+# e.g. "ixf.local, ixf.internal, 192.168.10.20". Devices trust Caddy's root certificate once:
+#   docker compose cp caddy:/data/caddy/pki/authorities/local/root.crt ./ixfwms-root.crt
+{$IXF_SITE_ADDRESSES} {
+	tls internal
+	reverse_proxy ixfwms:3000
+}

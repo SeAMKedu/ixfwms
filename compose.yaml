@@ -1,0 +1,36 @@
+# Plain HTTP on port 3000:        docker compose up -d
+# With HTTPS (needed for the in-app camera scanner, from 0.3):
+#                                 docker compose --profile https up -d
+# Settings come from .env (see .env.example), so the same file works on a laptop,
+# a test server and the lab box.
+services:
+  ixfwms:
+    build: .
+    image: ixfwms:latest
+    restart: unless-stopped
+    ports:
+      - '${IXF_HTTP_PORT:-3000}:3000'
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ixfwms-data:/data
+
+  caddy:
+    image: caddy:2
+    profiles: [https]
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      IXF_SITE_ADDRESSES: ${IXF_SITE_ADDRESSES:-localhost}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on:
+      - ixfwms
+
+volumes:
+  ixfwms-data:
+  caddy-data:
