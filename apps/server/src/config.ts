@@ -17,6 +17,8 @@ export interface Config {
   backupKeep: number;
   /** Hour (0-23, local time) for the nightly backup; -1 disables it. */
   backupHour: number;
+  /** Built web app to serve; null means apps/web/dist next to the server. */
+  webDir: string | null;
 }
 
 function int(value: string | undefined, fallback: number): number {
@@ -38,5 +40,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     maxUploadMb: int(env.IXF_MAX_UPLOAD_MB, 100),
     backupKeep: int(env.IXF_BACKUP_KEEP, 14),
     backupHour: int(env.IXF_BACKUP_HOUR, 3),
+    webDir: env.IXF_WEB_DIR ? resolve(env.IXF_WEB_DIR) : null,
   };
 }

@@ -8,8 +8,10 @@ import { registerFileRoutes } from './routes/files.js';
 import { registerLocationRoutes } from './routes/locations.js';
 import { registerPageRoutes } from './routes/pages.js';
 import { registerPartRoutes } from './routes/parts.js';
+import { registerSessionRoutes } from './routes/session.js';
 import { registerStockRoutes } from './routes/stock.js';
 import { registerSystemRoutes } from './routes/system.js';
+import { defaultWebDir, registerWebApp } from './web.js';
 
 export async function buildApp(
   deps: AppDeps,
@@ -54,11 +56,13 @@ export async function buildApp(
   });
 
   registerSystemRoutes(app, deps);
+  registerSessionRoutes(app, deps);
   registerLocationRoutes(app, deps);
   registerPartRoutes(app, deps);
   registerStockRoutes(app, deps);
   registerFileRoutes(app, deps);
-  registerPageRoutes(app, deps);
   registerMcp(app, deps);
+  // The built web app takes over the HTML routes; without a build, minimal server pages stand in.
+  if (!(await registerWebApp(app, config.webDir ?? defaultWebDir()))) registerPageRoutes(app, deps);
   return app;
 }

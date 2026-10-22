@@ -20,7 +20,13 @@ export interface TestEnv {
 
 export async function createTestEnv(env: Record<string, string> = {}): Promise<TestEnv> {
   const dataDir = await mkdtemp(join(tmpdir(), 'ixfwms-test-'));
-  const config = loadConfig({ IXF_DATA_DIR: dataDir, IXF_BACKUP_KEEP: '2', ...env });
+  // No web build by default, so tests see the server's own pages whether or not apps/web was built.
+  const config = loadConfig({
+    IXF_DATA_DIR: dataDir,
+    IXF_BACKUP_KEEP: '2',
+    IXF_WEB_DIR: join(dataDir, 'no-web'),
+    ...env,
+  });
   const database = await openDatabase(config.dbUrl);
   const services = createServices(database, config);
   await prepareDatabase(database, services, () => {});

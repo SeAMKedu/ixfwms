@@ -1,3 +1,6 @@
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createTestEnv, type TestEnv } from '../test/harness.js';
 
@@ -115,5 +118,30 @@ describe('configured public URL', () => {
       baseUrl: 'https://ixf.internal',
       mcpUrl: 'https://ixf.internal/mcp',
     });
+  });
+});
+
+describe('serving the web app', () => {
+  let webDir: string;
+  beforeEach(async () => {
+    webDir = await mkdtemp(join(tmpdir(), 'ixfwms-web-'));
+    await mkdir(join(webDir, 'assets'));
+    await writeFile(join(webDir, 'index.html'), '<!doctype html><title>ixfwms app</title>');
+    await writeFile(join(webDir, 'assets', 'app-123.js'), 'console.log(1)');
+    env = await createTestEnv({ IXF_WEB_DIR: webDir });
+  });
+  afterEach(async () => rm(webDir, { recursive: true, force: true }));
+
+  it('serves index.html for app routes, assets with long caching, and keeps API 404s as JSON', async () => {
+    for (const url of ['/', '/L/A3F9', '/p/K7Q2/edit', '/inbox']) {
+      const res = await env.app.inject({ url });
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toContain('ixfwms app');
+    }
+    const asset = await env.app.inject({ url: '/assets/app-123.js' });
+    expect(asset.headers['cache-control']).toContain('immutable');
+    const api = await env.app.inject({ url: '/api/nope' });
+    expect(api.statusCode).toBe(404);
+    expect(api.json()).toMatchObject({ error: 'not_found' });
   });
 });
