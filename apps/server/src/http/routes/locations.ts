@@ -13,10 +13,12 @@ export function registerLocationRoutes(app: FastifyInstance, { config, services 
       z.object({
         parent: z.string().optional(),
         tree: QueryBool.optional(),
+        flat: QueryBool.optional(),
         depth: z.coerce.number().int().min(1).max(20).optional(),
       }),
       request.query,
     );
+    if (q.flat) return locations.allWithPaths();
     if (q.tree) return locations.tree(q.parent ?? null, q.depth ?? 10);
     return locations.children(q.parent ?? null);
   });

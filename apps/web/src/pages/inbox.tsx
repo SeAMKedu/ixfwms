@@ -4,16 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { useInfo, useLocation, useMoveStock, useParts, useSetStatus } from '../api/queries';
 import { useSession } from '../auth/session';
-import {
-  AmountPill,
-  Button,
-  Card,
-  Empty,
-  ErrorBox,
-  Loading,
-  PageHeader,
-  TextInput,
-} from '../components/ui';
+import { PlacePicker } from '../components/place-picker';
+import { AmountPill, Button, Card, Empty, ErrorBox, Loading, PageHeader } from '../components/ui';
 
 function PutAway({ item }: { item: LocationContentItem }) {
   const { t } = useTranslation();
@@ -32,16 +24,13 @@ function PutAway({ item }: { item: LocationContentItem }) {
         <AmountPill display={item.display} />
       </div>
       <form onSubmit={(e) => void submit(e)} className="flex gap-2">
-        <TextInput
-          aria-label={t('inbox.putAwayTo')}
-          placeholder={t('inbox.putAwayTo')}
-          autoCapitalize="characters"
-          required
+        <PlacePicker
           value={to}
-          onChange={(e) => setTo(e.target.value)}
-          className="!py-1.5 font-mono"
+          onChange={setTo}
+          label={t('inbox.putAwayTo')}
+          placeholder={t('inbox.putAwayTo')}
         />
-        <Button type="submit" variant="dark" small busy={move.isPending}>
+        <Button type="submit" variant="dark" small busy={move.isPending} disabled={!to}>
           {t('inbox.putAway')}
         </Button>
       </form>

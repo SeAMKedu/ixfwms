@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { download } from '../api/client';
 import { qs } from '../api/client';
 import { useSession } from '../auth/session';
+import { PlacePicker } from '../components/place-picker';
 import { Button, Card, ErrorBox, Field, PageHeader, Select, TextInput } from '../components/ui';
 
 export function LabelsPage() {
@@ -64,15 +65,7 @@ export function LabelsPage() {
         <Card title={t('labels.placeTitle')}>
           <p className="text-sm text-muted">{t('labels.placeIntro')}</p>
           <Field label={t('labels.placeCode')}>
-            {(id) => (
-              <TextInput
-                id={id}
-                autoCapitalize="characters"
-                value={place}
-                onChange={(e) => setPlace(e.target.value)}
-                className="font-mono"
-              />
-            )}
+            {(id) => <PlacePicker id={id} value={place} onChange={setPlace} />}
           </Field>
           <Field label={t('labels.include')}>
             {(id) => (

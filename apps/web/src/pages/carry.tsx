@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
 import { useCarry, useDrop, useLocation } from '../api/queries';
 import { useSession } from '../auth/session';
+import { PlacePicker } from '../components/place-picker';
 import {
   AmountPill,
   Button,
@@ -17,7 +18,6 @@ import {
   Loading,
   LocationPath,
   PageHeader,
-  TextInput,
 } from '../components/ui';
 import { formatDate } from '../lib/format';
 
@@ -151,15 +151,7 @@ export function CarryPage() {
             </ButtonLink>
             <form onSubmit={setDest} className="flex items-end gap-2">
               <Field label={t('carry.destination')}>
-                {(id) => (
-                  <TextInput
-                    id={id}
-                    autoCapitalize="characters"
-                    value={typed}
-                    onChange={(e) => setTyped(e.target.value)}
-                    className="font-mono"
-                  />
-                )}
+                {(id) => <PlacePicker id={id} value={typed} onChange={setTyped} />}
               </Field>
               <Button type="submit">{t('common.open')}</Button>
             </form>

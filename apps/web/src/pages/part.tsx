@@ -24,6 +24,7 @@ import {
   useUpload,
 } from '../api/queries';
 import { useSession } from '../auth/session';
+import { PlacePicker } from '../components/place-picker';
 import { LabelPanel } from '../components/label-panel';
 import { AmountFields, toAmountInput, useAmountState } from '../components/amount-fields';
 import {
@@ -31,6 +32,7 @@ import {
   Button,
   ButtonLink,
   Card,
+  CategoryPath,
   CodeLabel,
   Empty,
   ErrorBox,
@@ -190,17 +192,7 @@ function LotRow({ lot, canEdit }: { lot: LotView; canEdit: boolean }) {
           {action === 'move' && (
             <>
               <Field label={t('part.moveTo')}>
-                {(id) => (
-                  <TextInput
-                    id={id}
-                    autoFocus
-                    autoCapitalize="characters"
-                    value={dest}
-                    onChange={(e) => setDest(e.target.value)}
-                    required
-                    className="font-mono"
-                  />
-                )}
+                {(id) => <PlacePicker id={id} value={dest} onChange={setDest} autoFocus />}
               </Field>
               {!isLevel && (
                 <Field label={t('part.moveQuantity')}>
@@ -274,15 +266,7 @@ function AddStock({ part }: { part: PartDetail }) {
       className="flex flex-col gap-2 rounded-lg bg-surface-2 p-3"
     >
       <Field label={t('part.location')} hint={t('part.initialStockHint')}>
-        {(id) => (
-          <TextInput
-            id={id}
-            autoCapitalize="characters"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            className="font-mono"
-          />
-        )}
+        {(id) => <PlacePicker id={id} value={location} onChange={setLocation} />}
       </Field>
       <AmountFields value={amount} onChange={setAmount} />
       <ErrorBox error={add.error} />
@@ -517,7 +501,7 @@ export function PartPage() {
   return (
     <>
       <PageHeader
-        eyebrow={p.category}
+        eyebrow={p.category && <CategoryPath path={p.category} />}
         title={p.name}
         meta={
           <>

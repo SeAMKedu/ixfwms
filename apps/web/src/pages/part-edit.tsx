@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router';
 import { useCategories, useCreatePart, usePart, useTags, useUpdatePart } from '../api/queries';
 import { useSession } from '../auth/session';
+import { PlacePicker } from '../components/place-picker';
 import { AmountFields, toAmountInput, useAmountState } from '../components/amount-fields';
 import {
   Button,
@@ -288,15 +289,7 @@ function PartForm({ part }: { part?: PartDetail }) {
       {!part && (
         <Card title={t('part.initialStock')}>
           <Field label={t('part.location')} hint={t('part.initialStockHint')}>
-            {(id) => (
-              <TextInput
-                id={id}
-                autoCapitalize="characters"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="font-mono"
-              />
-            )}
+            {(id) => <PlacePicker id={id} value={location} onChange={setLocation} />}
           </Field>
           <AmountFields value={amount} onChange={setAmount} />
           {can('write') && (

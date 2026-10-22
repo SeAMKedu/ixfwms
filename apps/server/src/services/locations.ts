@@ -6,6 +6,7 @@ import {
   type LocationKind,
   type LocationNode,
   type LocationSummary,
+  type PlaceOption,
   type UpdateLocationInput,
 } from '@ixfwms/domain';
 import { and, asc, eq, inArray, isNull, like, sql } from 'drizzle-orm';
@@ -210,6 +211,23 @@ export class LocationService {
       }
     }
     return top;
+  }
+
+  /** Every place with its path of names, so a client can search "cab a › shelf 3" without more requests. */
+  async allWithPaths(): Promise<PlaceOption[]> {
+    const rows = await this.db.select().from(locations).all();
+    const summaries = await this.summaries(this.db, rows);
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    return rows
+      .map((row, i) => {
+        const ids = row.path.split('/').filter(Boolean);
+        return {
+          ...summaries[i]!,
+          path: ids.map((id) => byId.get(id)?.name ?? '?'),
+          pathCodes: ids.map((id) => byId.get(id)?.code ?? '?'),
+        };
+      })
+      .sort((a, b) => a.path.join('/').localeCompare(b.path.join('/')));
   }
 
   async summarize(ex: Executor, row: LocationRow): Promise<LocationSummary> {

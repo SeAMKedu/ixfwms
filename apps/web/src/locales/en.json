@@ -115,8 +115,8 @@
     "mergeDone": "Merged into {{code}}",
     "archive": "Archive",
     "addStock": "Add stock",
-    "location": "Place code",
-    "moveTo": "Move to (place code)",
+    "location": "Place",
+    "moveTo": "Move to",
     "moveQuantity": "How much (empty = all of it)",
     "takeQuantity": "How many were taken",
     "takeAmount": "How much was taken ({{unit}})",
@@ -135,7 +135,7 @@
     "identifierValue": "Value",
     "addIdentifier": "Add identifier",
     "initialStock": "Initial stock",
-    "initialStockHint": "Place code where it is; leave empty for the Inbox.",
+    "initialStockHint": "Where it is. Leave empty for the Inbox.",
     "markReviewed": "Mark as reviewed right away",
     "createTitle": "New part",
     "editTitle": "Edit part",
@@ -178,7 +178,7 @@
     "nothingHere": "Nothing stored here yet.",
     "addItem": "Add item here",
     "moveHint": "Move this place, with everything in it, under another place.",
-    "newParent": "New parent code (empty = top level)",
+    "newParent": "Move under (empty = top level)",
     "parts_one": "{{count}} part",
     "parts_other": "{{count}} parts",
     "inSub": "in {{name}}",
@@ -199,7 +199,7 @@
     },
     "unassignedTitle": "New place with code {{code}}",
     "unassignedText": "This code isn't used yet (maybe from a blank label). Register the place it's stuck on.",
-    "parentCode": "Inside (place code)",
+    "parentCode": "Inside",
     "create": "Create place",
     "addItems": "Add items"
   },
@@ -211,7 +211,7 @@
     "noDrafts": "No drafts waiting.",
     "noUnplaced": "Everything has a place.",
     "putAway": "Put away",
-    "putAwayTo": "Place code"
+    "putAwayTo": "Put away to"
   },
   "scan": {
     "title": "Scan",
@@ -250,7 +250,7 @@
     "since": "since {{date}}",
     "box": "whole box",
     "scanDestination": "Scan destination",
-    "destination": "Destination code",
+    "destination": "Destination",
     "putHere_one": "Put {{count}} thing here",
     "putHere_other": "Put {{count}} things here",
     "moved_one": "Moved {{count}} thing",
@@ -275,7 +275,7 @@
     "blankDownload": "Reserve codes and download CSV",
     "placeTitle": "Labels for a place",
     "placeIntro": "Download a CSV with the place and, optionally, everything inside it.",
-    "placeCode": "Place code",
+    "placeCode": "Place",
     "include": "Include",
     "includeLocations": "Places",
     "includeParts": "Parts stored there",
@@ -301,5 +301,10 @@
     "similar": "Already in the inventory?",
     "addHere": "Add here instead",
     "addedHere": "Added to {{name}}"
+  },
+  "picker": {
+    "placeholder": "Type a place name or code…",
+    "noMatch": "No matching place. A known code works too.",
+    "clear": "Clear"
   }
 }

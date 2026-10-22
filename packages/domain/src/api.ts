@@ -170,3 +170,11 @@ export interface CarryState {
   /** When the oldest item was picked up; old ones are probably forgotten. */
   since: string | null;
 }
+
+/** A place with its full path of names, for pickers that search by name. */
+export interface PlaceOption extends LocationSummary {
+  /** Names from the top level down to this place, e.g. ["Robotics lab", "Cabinet A", "Shelf 3"]. */
+  path: string[];
+  /** Codes along the same path, so a picker can leave out a place and everything inside it. */
+  pathCodes: string[];
+}

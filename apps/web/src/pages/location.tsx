@@ -12,6 +12,7 @@ import {
   useUpdateLocation,
 } from '../api/queries';
 import { useSession } from '../auth/session';
+import { PlacePicker } from '../components/place-picker';
 import { LabelPanel } from '../components/label-panel';
 import {
   AmountPill,
@@ -148,15 +149,7 @@ function NewPlaceWithCode({ code }: { code: string }) {
           </Field>
         </div>
         <Field label={t('places.parentCode')} hint={t('common.optional')}>
-          {(id) => (
-            <TextInput
-              id={id}
-              autoCapitalize="characters"
-              value={parent}
-              onChange={(e) => setParent(e.target.value)}
-              className="font-mono"
-            />
-          )}
+          {(id) => <PlacePicker id={id} value={parent} onChange={setParent} />}
         </Field>
         <ErrorBox error={create.error} />
         <Button type="submit" variant="primary" busy={create.isPending} className="self-start">
@@ -304,12 +297,11 @@ export function LocationPage() {
           <p className="text-sm text-muted">{t('places.moveHint')}</p>
           <Field label={t('places.newParent')}>
             {(id) => (
-              <TextInput
+              <PlacePicker
                 id={id}
-                autoCapitalize="characters"
                 value={parent}
-                onChange={(e) => setParent(e.target.value)}
-                className="font-mono"
+                onChange={setParent}
+                exclude={(p) => p.pathCodes.includes(d.code)}
               />
             )}
           </Field>

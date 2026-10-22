@@ -15,6 +15,7 @@ import type {
   PartDetail,
   PartStatus,
   PartSummary,
+  PlaceOption,
   SearchResult,
   ServerInfo,
   StockLevel,
@@ -63,6 +64,13 @@ export const useLocationTree = () =>
   useQuery({
     queryKey: ['locations', 'tree'],
     queryFn: () => api<LocationNode[]>('/api/locations?tree=1&depth=20'),
+  });
+
+export const usePlaces = () =>
+  useQuery({
+    queryKey: ['locations', 'flat'],
+    queryFn: () => api<PlaceOption[]>('/api/locations?flat=1'),
+    staleTime: 30_000,
   });
 
 export const useCategories = () =>
