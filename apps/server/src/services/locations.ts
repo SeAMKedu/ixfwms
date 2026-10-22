@@ -4,6 +4,8 @@ import {
   normalizeCode,
   type CreateLocationInput,
   type LocationKind,
+  type LocationNode,
+  type LocationSummary,
   type UpdateLocationInput,
 } from '@ixfwms/domain';
 import { and, asc, eq, inArray, isNull, like, sql } from 'drizzle-orm';
@@ -15,18 +17,7 @@ import { allocateCode } from './codes.js';
 import { audit, requireScope, type Actor } from './context.js';
 
 export type LocationRow = typeof locations.$inferSelect;
-
-export interface LocationSummary {
-  id: string;
-  code: string;
-  name: string;
-  type: string;
-  kind: LocationKind;
-}
-
-export interface LocationNode extends LocationSummary {
-  children: LocationNode[];
-}
+export type { LocationNode, LocationSummary };
 
 const INBOX_NAME = 'Inbox';
 

@@ -4,7 +4,7 @@ import { mkdir, rename, rm, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { Readable, Transform } from 'node:stream';
-import type { AttachInput, AttachmentKind } from '@ixfwms/domain';
+import type { AttachInput, AttachmentView } from '@ixfwms/domain';
 import { and, asc, eq } from 'drizzle-orm';
 import type { Db, Executor } from '../db/client.js';
 import { attachments, files } from '../db/schema.js';
@@ -15,15 +15,6 @@ import type { LocationService } from './locations.js';
 import type { PartResolver } from './parts.js';
 
 export type FileRow = typeof files.$inferSelect;
-
-export interface AttachmentView {
-  id: string;
-  kind: AttachmentKind;
-  title: string | null;
-  /** External URL, or a server-relative download path for uploaded files. */
-  href: string;
-  file: { id: string; filename: string; mime: string; size: number } | null;
-}
 
 /** Stores uploaded files content-addressed (by SHA-256) under `<dataDir>/files`. */
 export class FileService {

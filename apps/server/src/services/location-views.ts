@@ -1,26 +1,10 @@
-import { formatAmount } from '@ixfwms/domain';
+import { formatAmount, type LocationDetail } from '@ixfwms/domain';
 import { eq, inArray, like, sql } from 'drizzle-orm';
 import type { Db } from '../db/client.js';
 import { locations, parts, stockLots } from '../db/schema.js';
-import type { AttachmentView, FileService } from './files.js';
-import type { LocationService, LocationSummary } from './locations.js';
+import type { FileService } from './files.js';
+import type { LocationService } from './locations.js';
 import type { PartService } from './parts.js';
-
-interface LocationContentItem {
-  lotId: string;
-  part: { id: string; code: string; name: string; status: string; manufacturer: string | null };
-  display: string;
-  /** Set when the part is in a sub-location rather than directly here. */
-  in: LocationSummary | null;
-}
-
-export interface LocationDetail extends LocationSummary {
-  description: string | null;
-  path: LocationSummary[];
-  children: (LocationSummary & { partCount: number })[];
-  contents: LocationContentItem[];
-  attachments: AttachmentView[];
-}
 
 /** Read model for a location page: path, sub-locations and what's stored there. */
 export class LocationViews {
