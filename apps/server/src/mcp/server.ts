@@ -20,7 +20,7 @@ Stock is tracked per place as a count (pcs), a measure (g, kg, m, mm, ml, l) or 
 
 Doing the initial inventory:
 1. Order confirmations: extract each line (manufacturer, order number, description, quantity) and call create_part_drafts. Without a location, stock goes to the Inbox.
-2. Box by box: create_location for the box (parent = shelf code), tell the person the new code so they can mark the box.
+2. Box by box: create_location for the box (parent = shelf code). If the box already has a blank QR label, pass its code; otherwise tell the person the new code so they can mark the box.
 3. For each part found: first find_similar_parts (by order number, then name). If it matches an Inbox draft, move_stock its Inbox lot into the box. Otherwise create a draft with your best identification; put uncertainty in "notes" and the photo name in "source".
 4. Photos: upload with the curl command from get_upload_info, then attach_file with the returned file id.
 
@@ -215,6 +215,10 @@ export function createMcpServer(
           .optional()
           .describe('building, floor, room, zone, cabinet, shelf, drawer, box, bin, device'),
         description: z.string().optional(),
+        code: z
+          .string()
+          .optional()
+          .describe('Code from a pre-printed blank QR label on the box, if it has one'),
       },
       annotations: write,
     },
@@ -225,6 +229,7 @@ export function createMcpServer(
           parent: a.parent ?? null,
           type: a.type ?? 'box',
           description: a.description ?? null,
+          code: a.code ?? null,
         },
         actor,
       );
