@@ -263,3 +263,27 @@ describe('import over HTTP', () => {
     ]);
   });
 });
+
+describe('BOM over HTTP', () => {
+  it('checks a list without a token and tags with one', async () => {
+    const part = await req<{ code: string }>('POST', '/api/parts', {
+      name: 'Cup',
+      stock: { amount: { mode: 'count', quantity: 2 } },
+    });
+    const res = await env.app.inject({
+      method: 'POST',
+      url: '/api/bom/check',
+      payload: { lines: [{ ref: part.code, quantity: 1 }] },
+    });
+    expect(res.json()).toMatchObject({ buildable: 2 });
+    expect(await req('POST', '/api/bom/tag', { codes: [part.code], tag: 'Demo' })).toEqual({
+      tagged: 1,
+    });
+    const bad = await env.app.inject({
+      method: 'POST',
+      url: '/api/bom/check',
+      payload: { lines: [{ quantity: 1 }] },
+    });
+    expect(bad.statusCode).toBe(400);
+  });
+});

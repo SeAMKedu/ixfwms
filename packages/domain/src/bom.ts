@@ -1,0 +1,40 @@
+import { z } from 'zod';
+
+/** One line of a parts list (BOM) from CAD, EPLAN, TIA Portal or a hand-written list. */
+export const BomLine = z
+  .object({
+    /** A part code, order number or MPN. */
+    ref: z.string().trim().max(200).nullish(),
+    name: z.string().trim().max(300).nullish(),
+    quantity: z.number().positive().default(1),
+  })
+  .refine((l) => !!(l.ref || l.name), { message: 'Each line needs a code/order number or a name' });
+export type BomLine = z.infer<typeof BomLine>;
+
+export type BomStatus = 'ok' | 'short' | 'unknown' | 'missing';
+
+export interface BomLineResult {
+  line: number;
+  ref: string | null;
+  name: string | null;
+  quantity: number;
+  /** How the part was found: by code/order number, by a similar name (check it), or not at all. */
+  match: 'exact' | 'similar' | 'none';
+  part: { code: string; name: string; manufacturer: string | null } | null;
+  /** Other possible parts when the match is only by name. */
+  candidates: { code: string; name: string; score: number }[];
+  /** Pieces we can count (weighed stock included when the piece mass is known). */
+  available: number;
+  /** Some stock is only tracked as a level ("plenty"/"low") or as a length without a piece count. */
+  uncounted: boolean;
+  status: BomStatus;
+  where: { code: string; path: string; display: string }[];
+}
+
+export interface BomCheck {
+  lines: BomLineResult[];
+  /** Complete sets we can build from counted stock; null when the list can't be judged from counts alone. */
+  buildable: number | null;
+  missing: number;
+  short: number;
+}

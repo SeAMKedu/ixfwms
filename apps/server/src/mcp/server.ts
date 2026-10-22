@@ -1,5 +1,6 @@
 import {
   AmountInput,
+  BomLine,
   AttributeFilter,
   ATTACHMENT_KINDS,
   CreatePartInput,
@@ -180,6 +181,26 @@ export function createMcpServer(
       annotations: read,
     },
     tool(async () => parts.listCategories()),
+  );
+
+  server.registerTool(
+    'check_availability',
+    {
+      title: 'Check a parts list',
+      description:
+        'Can we build this? Matches a parts list (order numbers, part codes or names, with quantities) against stock: what we have, where it is, and what is missing. Also returns how many complete sets can be built.',
+      inputSchema: {
+        lines: z
+          .array(BomLine)
+          .min(1)
+          .max(500)
+          .describe(
+            'e.g. [{ref:"SPB1 30 NBR-60 G1/4-IG", quantity:4}, {name:"vacuum generator", quantity:1}]',
+          ),
+      },
+      annotations: read,
+    },
+    tool(async ({ lines }) => services.bom.check(lines)),
   );
 
   server.registerTool(

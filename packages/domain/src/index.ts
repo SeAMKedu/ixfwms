@@ -7,3 +7,4 @@ export * from './schemas.js';
 export * from './api.js';
 export * from './attributes.js';
 export * from './import.js';
+export * from './bom.js';

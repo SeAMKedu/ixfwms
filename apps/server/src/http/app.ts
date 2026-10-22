@@ -4,6 +4,7 @@ import { ZodError } from 'zod';
 import { AppError } from '../lib/errors.js';
 import { registerMcp } from '../mcp/http.js';
 import type { AppDeps } from './context.js';
+import { registerBomRoutes } from './routes/bom.js';
 import { registerCarryRoutes } from './routes/carry.js';
 import { registerFileRoutes } from './routes/files.js';
 import { registerImportRoutes } from './routes/import.js';
@@ -67,6 +68,7 @@ export async function buildApp(
   registerLabelRoutes(app, deps);
   registerCarryRoutes(app, deps);
   registerImportRoutes(app, deps);
+  registerBomRoutes(app, deps);
   registerMcp(app, deps);
   // The built web app takes over the HTML routes; without a build, minimal server pages stand in.
   if (!(await registerWebApp(app, config.webDir ?? defaultWebDir()))) registerPageRoutes(app, deps);
