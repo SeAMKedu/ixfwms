@@ -134,3 +134,39 @@ export interface ApiError {
   message: string;
   details?: unknown;
 }
+
+export interface LabelData {
+  code: string;
+  kind: 'location' | 'part' | 'blank';
+  name: string;
+  /** "Robotics lab › Cabinet A › Shelf 3" (places) or the category (parts). */
+  path: string;
+  type: string;
+  /** What the QR code encodes. */
+  qr: string;
+}
+
+export interface CodeInfo {
+  code: string;
+  assigned: 'location' | 'part' | null;
+  /** Printed on a blank label but not used yet. */
+  reserved: boolean;
+  free: boolean;
+}
+
+export type CarriedItem =
+  | {
+      kind: 'lot';
+      id: string;
+      part: { code: string; name: string };
+      display: string;
+      since: string;
+    }
+  | { kind: 'location'; id: string; code: string; name: string; since: string };
+
+export interface CarryState {
+  location: LocationSummary;
+  items: CarriedItem[];
+  /** When the oldest item was picked up; old ones are probably forgotten. */
+  since: string | null;
+}

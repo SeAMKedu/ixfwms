@@ -170,3 +170,40 @@ describe('REST routes, end to end', () => {
     expect(readVersion()).toMatch(/^\d+\.\d+\.\d+/);
   });
 });
+
+describe('label and carry endpoints', () => {
+  it('serves label files and the carry flow over HTTP', async () => {
+    const box = await req<{ code: string }>('POST', '/api/locations', { name: 'Box' });
+    const cell = await req<{ code: string }>('POST', '/api/locations', {
+      name: 'Cell',
+      type: 'zone',
+    });
+    const svg = await env.app.inject({
+      url: `/api/labels/${box.code}/label.svg?tape=24`,
+      headers: { host: 'ixf.local' },
+    });
+    expect(svg.headers['content-type']).toContain('image/svg+xml');
+    expect(svg.body).toContain('18mm');
+    expect(
+      (await env.app.inject({ url: `/api/labels/${box.code}/qr.svg?size=20` })).body,
+    ).toContain('20mm');
+    expect((await env.app.inject({ url: `/api/labels/${box.code}/qr.dxf?card=1` })).body).toContain(
+      'POLYLINE',
+    );
+    const csv = await env.app.inject({ url: `/api/labels.csv?codes=${box.code},${cell.code}` });
+    expect(csv.body.split('\r\n').filter(Boolean)).toHaveLength(3);
+    expect((await req<unknown[]>('GET', `/api/labels?location=${box.code}`)).length).toBe(1);
+    const blank = await env.app.inject({
+      method: 'POST',
+      url: '/api/labels/blank',
+      payload: { count: 2, format: 'csv' },
+      headers: { authorization: `Bearer ${env.adminToken}` },
+    });
+    expect(blank.headers['content-type']).toContain('text/csv');
+    expect(await req('GET', `/api/codes/${box.code}`)).toMatchObject({ assigned: 'location' });
+
+    await req('POST', '/api/carry/pick', { location: box.code });
+    expect((await req<{ items: unknown[] }>('GET', '/api/carry')).items).toHaveLength(1);
+    expect(await req('POST', '/api/carry/drop', { to: cell.code })).toMatchObject({ moved: 1 });
+  });
+});

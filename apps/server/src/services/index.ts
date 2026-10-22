@@ -4,8 +4,10 @@ import type { Database } from '../db/client.js';
 import { pendingMigrations, runMigrations } from '../db/migrate.js';
 import { AuthService } from './auth.js';
 import { BackupService } from './backup.js';
+import { CarryService } from './carry.js';
 import { ExportService } from './export.js';
 import { FileService } from './files.js';
+import { LabelService } from './labels.js';
 import { LocationViews } from './location-views.js';
 import { LocationService } from './locations.js';
 import { PartResolver, PartService } from './parts.js';
@@ -16,8 +18,10 @@ export type { Actor } from './context.js';
 export interface Services {
   auth: AuthService;
   backup: BackupService;
+  carry: CarryService;
   export: ExportService;
   files: FileService;
+  labels: LabelService;
   locations: LocationService;
   locationViews: LocationViews;
   parts: PartService;
@@ -37,8 +41,10 @@ export function createServices(
   return {
     auth: new AuthService(db),
     backup: new BackupService(database.client, join(config.dataDir, 'backups'), config.backupKeep),
+    carry: new CarryService(db, locations, stock),
     export: new ExportService(db),
     files,
+    labels: new LabelService(db, locations),
     locations,
     locationViews: new LocationViews(db, locations, parts, files),
     parts,
