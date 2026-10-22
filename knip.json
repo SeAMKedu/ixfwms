@@ -1,0 +1,9 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    ".": { "entry": ["scripts/*.mjs"] },
+    "packages/domain": { "project": ["src/**/*.ts"] },
+    "apps/server": { "project": ["src/**/*.ts"] }
+  },
+  "ignoreDependencies": ["git-cliff"]
+}

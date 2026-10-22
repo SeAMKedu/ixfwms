@@ -1,0 +1,7 @@
+node_modules
+dist
+coverage
+data
+apps/server/drizzle
+CHANGELOG.md
+package-lock.json
