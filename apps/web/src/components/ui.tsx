@@ -198,6 +198,30 @@ export function LocationPath({
   );
 }
 
+/** "Pneumatics/Vacuum/Suction cups" as links: each level opens the parts list for that category and below. */
+export function CategoryPath({ path }: { path: string }) {
+  const levels = path.split('/');
+  return (
+    <span className="inline-flex flex-wrap items-center gap-x-1 text-sm">
+      {levels.map((name, i) => (
+        <span key={i} className="inline-flex items-center gap-1">
+          <Link
+            to={`/?category=${encodeURIComponent(levels.slice(0, i + 1).join('/'))}`}
+            className="text-muted hover:text-link hover:underline"
+          >
+            {name}
+          </Link>
+          {i < levels.length - 1 && (
+            <span aria-hidden className="text-muted">
+              ›
+            </span>
+          )}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 export function Field({
   label,
   hint,
