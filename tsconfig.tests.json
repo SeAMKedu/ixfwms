@@ -6,5 +6,10 @@
     "declaration": false,
     "declarationMap": false
   },
-  "include": ["packages/*/src", "apps/*/src", "vitest.config.ts", "apps/server/drizzle.config.ts"]
+  "include": [
+    "packages/*/src",
+    "apps/server/src",
+    "vitest.config.ts",
+    "apps/server/drizzle.config.ts"
+  ]
 }

@@ -3,7 +3,8 @@
   "workspaces": {
     ".": { "entry": ["scripts/*.mjs"] },
     "packages/domain": { "project": ["src/**/*.ts"] },
-    "apps/server": { "project": ["src/**/*.ts"] }
+    "apps/server": { "project": ["src/**/*.ts"] },
+    "apps/web": { "project": ["src/**/*.{ts,tsx,css}"] }
   },
   "ignoreDependencies": ["git-cliff"]
 }

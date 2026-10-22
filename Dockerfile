@@ -4,10 +4,12 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY packages/domain/package.json packages/domain/
 COPY apps/server/package.json apps/server/
+COPY apps/web/package.json apps/web/
 RUN npm ci --ignore-scripts --no-audit --no-fund
 COPY tsconfig.base.json tsconfig.json ./
 COPY packages/domain packages/domain
 COPY apps/server apps/server
+COPY apps/web apps/web
 RUN npm run build && npm prune --omit=dev --ignore-scripts
 
 FROM node:24-bookworm-slim
@@ -23,6 +25,7 @@ COPY --from=build /app/packages/domain/dist packages/domain/dist
 COPY --from=build /app/apps/server/package.json apps/server/
 COPY --from=build /app/apps/server/dist apps/server/dist
 COPY --from=build /app/apps/server/drizzle apps/server/drizzle
+COPY --from=build /app/apps/web/dist apps/web/dist
 RUN mkdir -p /data && chown node:node /data
 USER node
 VOLUME /data

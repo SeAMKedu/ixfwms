@@ -1,0 +1,308 @@
+import type { LocationSummary, PartStatus } from '@ixfwms/domain';
+import { Loader2 } from 'lucide-react';
+import type {
+  ButtonHTMLAttributes,
+  InputHTMLAttributes,
+  ReactNode,
+  SelectHTMLAttributes,
+  TextareaHTMLAttributes,
+} from 'react';
+import { useId } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Link, type LinkProps } from 'react-router';
+import { ApiError } from '../api/client';
+
+const cx = (...classes: (string | false | null | undefined)[]) => classes.filter(Boolean).join(' ');
+
+type Variant = 'primary' | 'secondary' | 'ghost' | 'dark';
+const VARIANTS: Record<Variant, string> = {
+  primary: 'bg-link text-surface border-link hover:opacity-90',
+  secondary: 'bg-surface text-ink border-line hover:bg-surface-2',
+  ghost: 'bg-transparent text-link border-transparent hover:bg-link-soft',
+  dark: 'bg-ink text-bg border-ink hover:opacity-90',
+};
+const buttonClass = (variant: Variant, small?: boolean) =>
+  cx(
+    'inline-flex items-center justify-center gap-1.5 rounded-lg border font-semibold whitespace-nowrap transition disabled:opacity-50 disabled:pointer-events-none',
+    small ? 'px-2.5 py-1 text-[13px]' : 'px-3.5 py-2 text-sm',
+    VARIANTS[variant],
+  );
+
+export function Button({
+  variant = 'secondary',
+  small,
+  busy,
+  className,
+  children,
+  ...props
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: Variant;
+  small?: boolean;
+  busy?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      {...props}
+      disabled={props.disabled || busy}
+      className={cx(buttonClass(variant, small), className)}
+    >
+      {busy && <Loader2 className="size-4 animate-spin" aria-hidden />}
+      {children}
+    </button>
+  );
+}
+
+export function ButtonLink({
+  variant = 'secondary',
+  small,
+  className,
+  ...props
+}: LinkProps & { variant?: Variant; small?: boolean }) {
+  return <Link {...props} className={cx(buttonClass(variant, small), className)} />;
+}
+
+export function Card({
+  title,
+  actions,
+  children,
+  className,
+}: {
+  title?: ReactNode;
+  actions?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section
+      className={cx(
+        'rounded-xl border border-line bg-surface p-4 flex flex-col gap-3 min-w-0',
+        className,
+      )}
+    >
+      {(title || actions) && (
+        <div className="flex items-center justify-between gap-2">
+          {title && (
+            <h2 className="font-mono text-[11px] tracking-[0.08em] uppercase text-muted font-normal">
+              {title}
+            </h2>
+          )}
+          {actions}
+        </div>
+      )}
+      {children}
+    </section>
+  );
+}
+
+export function PageHeader({
+  title,
+  eyebrow,
+  meta,
+  actions,
+}: {
+  title: ReactNode;
+  eyebrow?: ReactNode;
+  meta?: ReactNode;
+  actions?: ReactNode;
+}) {
+  return (
+    <header className="flex flex-wrap items-end justify-between gap-3">
+      <div className="flex flex-col gap-1 min-w-0">
+        {eyebrow && <div className="text-sm text-muted min-w-0">{eyebrow}</div>}
+        <h1 className="text-[28px] leading-tight font-semibold">{title}</h1>
+        {meta && <div className="flex flex-wrap items-center gap-2 text-sm text-muted">{meta}</div>}
+      </div>
+      {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
+    </header>
+  );
+}
+
+type Tone = 'ok' | 'warn' | 'crit' | 'info' | 'muted';
+const TONES: Record<Tone, string> = {
+  ok: 'bg-ok-soft text-ok',
+  warn: 'bg-warn-soft text-warn',
+  crit: 'bg-crit-soft text-crit',
+  info: 'bg-link-soft text-link',
+  muted: 'bg-surface-2 text-muted',
+};
+
+export function Pill({ tone = 'muted', children }: { tone?: Tone; children: ReactNode }) {
+  return (
+    <span
+      className={cx(
+        'tabular rounded px-1.5 py-0.5 text-[12px] font-semibold whitespace-nowrap',
+        TONES[tone],
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+export function StatusPill({ status }: { status: PartStatus }) {
+  const { t } = useTranslation();
+  if (status === 'active') return null;
+  return <Pill tone={status === 'draft' ? 'info' : 'muted'}>{t(`status.${status}`)}</Pill>;
+}
+
+/** Stock amount with a colour hint: empty/zero is red, "low" is amber. */
+export function AmountPill({ display }: { display: string }) {
+  const tone: Tone =
+    display === 'empty' || /^0(\s|$)/.test(display) ? 'crit' : display === 'low' ? 'warn' : 'ok';
+  return <Pill tone={tone}>{display}</Pill>;
+}
+
+/** A location or part code drawn like the white P-touch label it is printed on. */
+export function CodeLabel({ code, className }: { code: string; className?: string }) {
+  return (
+    <span
+      className={cx(
+        'inline-flex items-center rounded-[2px] border border-tape-edge bg-tape px-1.5 font-mono text-[12px] font-semibold tracking-wide text-tape-ink whitespace-nowrap',
+        className,
+      )}
+    >
+      {code}
+    </span>
+  );
+}
+
+export function LocationPath({
+  path,
+  linkLast = true,
+}: {
+  path: LocationSummary[];
+  linkLast?: boolean;
+}) {
+  return (
+    <span className="inline-flex flex-wrap items-center gap-x-1 gap-y-0.5 text-[13px] text-muted min-w-0">
+      {path.map((p, i) => {
+        const last = i === path.length - 1;
+        return (
+          <span key={p.id} className="inline-flex items-center gap-1">
+            {last && linkLast ? (
+              <Link to={`/l/${p.code}`} className="inline-flex items-center gap-1 hover:underline">
+                <span className="text-ink">{p.name}</span>
+                <CodeLabel code={p.code} />
+              </Link>
+            ) : (
+              <Link to={`/l/${p.code}`} className="text-ink hover:underline">
+                {p.name}
+              </Link>
+            )}
+            {!last && <span aria-hidden>›</span>}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
+export function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: ReactNode;
+  hint?: ReactNode;
+  children: (id: string) => ReactNode;
+}) {
+  const id = useId();
+  return (
+    <div className="flex flex-col gap-1 min-w-0">
+      <label htmlFor={id} className="text-[13px] font-medium">
+        {label}
+      </label>
+      {children(id)}
+      {hint && <span className="text-[12px] text-muted">{hint}</span>}
+    </div>
+  );
+}
+
+const inputClass =
+  'w-full min-w-0 rounded-lg border border-line bg-surface px-3 py-2 text-[15px] text-ink placeholder:text-muted';
+
+export function TextInput(props: InputHTMLAttributes<HTMLInputElement>) {
+  return <input {...props} className={cx(inputClass, props.className)} />;
+}
+
+export function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
+  return <select {...props} className={cx(inputClass, 'pr-8', props.className)} />;
+}
+
+export function TextArea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return <textarea rows={3} {...props} className={cx(inputClass, props.className)} />;
+}
+
+export function Loading() {
+  const { t } = useTranslation();
+  return (
+    <div className="flex items-center gap-2 py-8 text-muted" role="status">
+      <Loader2 className="size-4 animate-spin" aria-hidden />
+      {t('common.loading')}
+    </div>
+  );
+}
+
+export function ErrorBox({ error }: { error: unknown }) {
+  const { t } = useTranslation();
+  if (!error) return null;
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === 'string'
+        ? error
+        : JSON.stringify(error);
+  return (
+    <div
+      role="alert"
+      className="rounded-lg border border-crit/30 bg-crit-soft px-3 py-2 text-sm text-crit"
+    >
+      {t('errors.generic', { message })}
+    </div>
+  );
+}
+
+export function isNotFound(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 404;
+}
+
+export function Empty({ children }: { children: ReactNode }) {
+  return <p className="py-6 text-center text-sm text-muted">{children}</p>;
+}
+
+export function Segmented<T extends string>({
+  value,
+  options,
+  onChange,
+  label,
+}: {
+  value: T;
+  options: { value: T; label: ReactNode }[];
+  onChange: (value: T) => void;
+  label: string;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label={label}
+      className="grid auto-cols-fr grid-flow-col rounded-lg border border-line bg-surface-2 p-0.5"
+    >
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          role="radio"
+          aria-checked={value === o.value}
+          onClick={() => onChange(o.value)}
+          className={cx(
+            'rounded-md px-2 py-1 text-[13px]',
+            value === o.value ? 'bg-surface font-semibold shadow-sm' : 'text-muted',
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}

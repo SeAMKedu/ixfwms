@@ -1,0 +1,99 @@
+@import 'tailwindcss';
+@import '@fontsource/ibm-plex-sans/400.css';
+@import '@fontsource/ibm-plex-sans/500.css';
+@import '@fontsource/ibm-plex-sans/600.css';
+@import '@fontsource/ibm-plex-mono/500.css';
+@import '@fontsource/ibm-plex-mono/600.css';
+@import '@fontsource/barlow-semi-condensed/600.css';
+@import '@fontsource/barlow-semi-condensed/700.css';
+
+/* Palette from the plan's UI sketch: cool slate neutrals, blue for actions, white label tape for codes. */
+:root {
+  --bg: #eef1f2;
+  --surface: #ffffff;
+  --surface-2: #f6f8f8;
+  --ink: #15202a;
+  --muted: #586672;
+  --line: #d5dce0;
+  --link: #1d5ea8;
+  --link-soft: #e3edf8;
+  --ok: #2b7a4b;
+  --ok-soft: #e1f1e7;
+  --warn: #9a6512;
+  --warn-soft: #f8edd8;
+  --crit: #b42318;
+  --crit-soft: #fbe4e1;
+  --tape: #ffffff;
+  --tape-ink: #111111;
+  --tape-edge: #aeb8bf;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1317;
+    --surface: #161e25;
+    --surface-2: #1b252d;
+    --ink: #e4e9ec;
+    --muted: #94a3ad;
+    --line: #2a3640;
+    --link: #7cb2ee;
+    --link-soft: #1b2e44;
+    --ok: #6cc690;
+    --ok-soft: #173325;
+    --warn: #e2b05a;
+    --warn-soft: #3a2c13;
+    --crit: #f08a7e;
+    --crit-soft: #3d1d1a;
+    --tape: #f7f7f5;
+    --tape-edge: #f7f7f5;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-link: var(--link);
+  --color-link-soft: var(--link-soft);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-crit: var(--crit);
+  --color-crit-soft: var(--crit-soft);
+  --color-tape: var(--tape);
+  --color-tape-ink: var(--tape-ink);
+  --color-tape-edge: var(--tape-edge);
+  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+  --font-display: 'Barlow Semi Condensed', 'Arial Narrow', system-ui, sans-serif;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--ink);
+}
+body {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-tap-highlight-color: transparent;
+}
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  text-wrap: balance;
+}
+:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+.tabular {
+  font-variant-numeric: tabular-nums;
+}

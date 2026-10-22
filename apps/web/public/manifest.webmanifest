@@ -1,0 +1,11 @@
+{
+  "name": "ixfwms lab inventory",
+  "short_name": "ixfwms",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#eef1f2",
+  "theme_color": "#15202a",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

@@ -1,3 +1,4 @@
+import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
@@ -13,14 +14,24 @@ export default defineConfig({
         extends: true,
         test: {
           name: 'integration',
-          include: ['apps/*/src/**/*.test.ts'],
+          include: ['apps/server/src/**/*.test.ts'],
           testTimeout: 20000,
+        },
+      },
+      {
+        plugins: [react()],
+        resolve: { conditions: ['development'] },
+        test: {
+          name: 'web',
+          environment: 'jsdom',
+          include: ['apps/web/src/**/*.test.tsx'],
+          setupFiles: ['apps/web/src/test/setup.ts'],
         },
       },
     ],
     coverage: {
       provider: 'v8',
-      include: ['packages/*/src/**', 'apps/*/src/**'],
+      include: ['packages/*/src/**', 'apps/server/src/**'],
       // cli/main are thin wiring; schema.ts is declarative table definitions
       exclude: [
         '**/*.test.ts',
