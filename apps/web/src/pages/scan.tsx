@@ -1,70 +1,124 @@
-import { parseScannedCode } from '@ixfwms/domain';
+import { parseScannedCode, type ScannedCode } from '@ixfwms/domain';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
-import { api, ApiError } from '../api/client';
-import { Button, Card, ErrorBox, Field, PageHeader, TextInput } from '../components/ui';
+import { useNavigate, useSearchParams } from 'react-router';
+import { lookupCode, usePick } from '../api/queries';
+import { useSession } from '../auth/session';
+import { QrScanner } from '../components/qr-scanner';
+import { Button, Card, ErrorBox, Field, PageHeader, Segmented, TextInput } from '../components/ui';
 
-/** Typed codes or pasted label links. Camera scanning arrives in 0.3. */
+type Mode = 'open' | 'pick' | 'drop';
+
+/**
+ * Look things up, pick things up, or say where they go: the same scanner, three modes.
+ * Typed codes work everywhere, for when there's no camera or no HTTPS.
+ */
 export function ScanPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { can } = useSession();
+  const [params, setParams] = useSearchParams();
+  const mode = (params.get('mode') as Mode | null) ?? 'open';
   const [text, setText] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const pick = usePick();
 
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    const scanned = parseScannedCode(text);
+  /** Bare typed codes can be a place or a part; codes are unique across both. */
+  const resolve = async (scanned: ScannedCode): Promise<'location' | 'part'> => {
+    if (scanned.target) return scanned.target;
+    const info = await lookupCode(scanned.code);
+    return info.assigned ?? 'location';
+  };
+
+  const handle = async (raw: string) => {
+    const scanned = parseScannedCode(raw);
+    setError(null);
+    setNotice(null);
     if (!scanned) {
       setError(t('scan.invalid'));
       return;
     }
-    if (scanned.target) {
-      void navigate(scanned.target === 'location' ? `/l/${scanned.code}` : `/p/${scanned.code}`);
-      return;
-    }
-    // A bare code can be either; codes are unique across places and parts.
     setBusy(true);
     try {
-      await api(`/api/locations/${scanned.code}`);
-      void navigate(`/l/${scanned.code}`);
+      const target = await resolve(scanned);
+      if (mode === 'drop') {
+        void navigate(`/carry?to=${scanned.code}`);
+      } else if (mode === 'pick' && target === 'location') {
+        const state = await pick.mutateAsync({ location: scanned.code });
+        const item = state.items.find((i) => i.kind === 'location' && i.code === scanned.code);
+        setNotice(t('scan.picked', { name: item?.kind === 'location' ? item.name : scanned.code }));
+      } else if (mode === 'pick') {
+        setNotice(t('scan.partNeedsLot'));
+        void navigate(`/p/${scanned.code}`);
+      } else {
+        void navigate(target === 'location' ? `/l/${scanned.code}` : `/p/${scanned.code}`);
+      }
+      setText('');
     } catch (err) {
-      if (err instanceof ApiError && err.status === 404) void navigate(`/p/${scanned.code}`);
-      else setError(err instanceof Error ? err.message : String(err));
+      setError(err);
     } finally {
       setBusy(false);
     }
   };
 
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    void handle(text);
+  };
+  const setMode = (m: Mode) => {
+    setNotice(null);
+    setParams(m === 'open' ? {} : { mode: m }, { replace: true });
+  };
+
   return (
     <>
       <PageHeader title={t('scan.title')} />
+      {can('inventory') && (
+        <Segmented<Mode>
+          label={t('scan.modeLabel')}
+          value={mode}
+          onChange={setMode}
+          options={[
+            { value: 'open', label: t('scan.modeOpen') },
+            { value: 'pick', label: t('scan.modePick') },
+            { value: 'drop', label: t('scan.modeDrop') },
+          ]}
+        />
+      )}
+      <p className="text-sm text-muted">
+        {mode === 'pick'
+          ? t('scan.pickHint')
+          : mode === 'drop'
+            ? t('scan.dropHint')
+            : t('scan.intro')}
+      </p>
+      <QrScanner onScan={(value) => void handle(value)} paused={busy} />
+      {notice && (
+        <p role="status" className="rounded-lg bg-ok-soft px-3 py-2 text-sm text-ok">
+          {notice}
+        </p>
+      )}
+      <ErrorBox error={error} />
       <Card>
-        <p className="text-sm text-muted">{t('scan.intro')}</p>
-        <form onSubmit={(e) => void submit(e)} className="flex flex-col gap-3">
+        <form onSubmit={submit} className="flex items-end gap-2">
           <Field label={t('scan.input')}>
             {(id) => (
               <TextInput
                 id={id}
-                autoFocus
                 autoCapitalize="characters"
                 autoComplete="off"
                 value={text}
-                onChange={(e) => {
-                  setText(e.target.value);
-                  setError(null);
-                }}
-                className="font-mono text-lg tracking-wider"
+                onChange={(e) => setText(e.target.value)}
+                className="font-mono tracking-wider"
               />
             )}
           </Field>
-          {error && <ErrorBox error={error} />}
-          <Button type="submit" variant="primary" busy={busy} className="self-start">
+          <Button type="submit" variant="primary" busy={busy}>
             {t('scan.go')}
           </Button>
         </form>
-        <p className="text-[13px] text-muted">{t('scan.cameraLater')}</p>
       </Card>
     </>
   );

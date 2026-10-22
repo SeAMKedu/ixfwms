@@ -17,12 +17,14 @@ import {
   useMergePart,
   useMoveStock,
   usePart,
+  usePick,
   useSetStatus,
   useStocktake,
   useTakeStock,
   useUpload,
 } from '../api/queries';
 import { useSession } from '../auth/session';
+import { LabelPanel } from '../components/label-panel';
 import { AmountFields, toAmountInput, useAmountState } from '../components/amount-fields';
 import {
   AmountPill,
@@ -45,7 +47,7 @@ import {
 import { formatBytes, formatDate, parseNumber } from '../lib/format';
 import { NotFoundPage } from './not-found';
 
-type LotAction = 'take' | 'move' | 'count' | null;
+type LotAction = 'take' | 'move' | 'count' | 'carry' | null;
 
 function LotRow({ lot, canEdit }: { lot: LotView; canEdit: boolean }) {
   const { t } = useTranslation();
@@ -57,8 +59,9 @@ function LotRow({ lot, canEdit }: { lot: LotView; canEdit: boolean }) {
   const take = useTakeStock();
   const move = useMoveStock();
   const count = useStocktake();
-  const busy = take.isPending || move.isPending || count.isPending;
-  const error = take.error ?? move.error ?? count.error;
+  const pick = usePick();
+  const busy = take.isPending || move.isPending || count.isPending || pick.isPending;
+  const error = take.error ?? move.error ?? count.error ?? pick.error;
   const isLevel = lot.amount.mode === 'level';
 
   const toggle = (a: LotAction) => {
@@ -66,6 +69,7 @@ function LotRow({ lot, canEdit }: { lot: LotView; canEdit: boolean }) {
     take.reset();
     move.reset();
     count.reset();
+    pick.reset();
   };
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -79,6 +83,7 @@ function LotRow({ lot, canEdit }: { lot: LotView; canEdit: boolean }) {
         to: normalizeCode(dest),
         quantity: parseNumber(qty),
       });
+    if (action === 'carry') await pick.mutateAsync({ lotId: lot.id, quantity: parseNumber(qty) });
     if (action === 'count') {
       const a = toAmountInput({ ...amount, unit: lot.amount.unit ?? amount.unit });
       if (a) await count.mutateAsync({ lotId: lot.id, amount: a });
@@ -129,6 +134,15 @@ function LotRow({ lot, canEdit }: { lot: LotView; canEdit: boolean }) {
           >
             {t('common.count')}
           </Button>
+          {lot.location.kind !== 'in_transit' && (
+            <Button
+              small
+              variant={action === 'carry' ? 'dark' : 'secondary'}
+              onClick={() => toggle('carry')}
+            >
+              {t('carry.carry')}
+            </Button>
+          )}
         </div>
       )}
       {action && (
@@ -203,6 +217,19 @@ function LotRow({ lot, canEdit }: { lot: LotView; canEdit: boolean }) {
             </>
           )}
           {action === 'count' && <AmountFields value={amount} onChange={setAmount} lockMode />}
+          {action === 'carry' && !isLevel && (
+            <Field label={t('carry.carryHow')}>
+              {(id) => (
+                <TextInput
+                  id={id}
+                  inputMode="decimal"
+                  autoFocus
+                  value={qty}
+                  onChange={(e) => setQty(e.target.value)}
+                />
+              )}
+            </Field>
+          )}
           <ErrorBox error={error} />
           <div className="flex gap-2">
             <Button type="submit" variant="primary" busy={busy}>
@@ -595,6 +622,7 @@ export function PartPage() {
         </Card>
         {can('write') && p.status === 'active' && <Review part={p} />}
       </div>
+      <LabelPanel code={p.code} />
     </>
   );
 }

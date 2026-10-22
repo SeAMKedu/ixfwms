@@ -1,8 +1,9 @@
-import type { LocationDetail, PartSummary } from '@ixfwms/domain';
-import { screen } from '@testing-library/react';
+import type { CarryState, LocationDetail, PartSummary } from '@ixfwms/domain';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { renderAt } from '../test/render';
+import { CarryPage } from './carry';
 import { LocationPage } from './location';
 import { ScanPage } from './scan';
 import { SearchPage } from './search';
@@ -105,5 +106,84 @@ describe('location page', () => {
     expect(await screen.findByRole('heading', { name: 'Box: vacuum parts' })).toBeTruthy();
     expect(screen.getByText('Cabinet A')).toBeTruthy();
     expect(screen.getByText('Bellows suction cup Ø30')).toBeTruthy();
+  });
+});
+
+describe('carry page', () => {
+  it('lists carried things and puts the ticked ones down at the scanned destination', async () => {
+    const carry: CarryState = {
+      location: {
+        id: 't',
+        code: 'T1T1',
+        name: 'Carried by demo',
+        type: 'in_transit',
+        kind: 'in_transit',
+      },
+      since: '2026-10-23T08:00:00.000Z',
+      items: [
+        {
+          kind: 'location',
+          id: 'box',
+          code: 'A3F9',
+          name: 'Box: vacuum parts',
+          since: '2026-10-23T08:00:00.000Z',
+        },
+        {
+          kind: 'lot',
+          id: 'lot',
+          part: { code: 'K7Q2', name: 'Suction cup' },
+          display: '4 pcs',
+          since: '2026-10-23T08:01:00.000Z',
+        },
+      ],
+    };
+    const dest: LocationDetail = {
+      id: 'c',
+      code: 'R2B4',
+      name: 'Robot cell 2',
+      type: 'zone',
+      kind: 'normal',
+      description: null,
+      path: [{ id: 'c', code: 'R2B4', name: 'Robot cell 2', type: 'zone', kind: 'normal' }],
+      children: [],
+      contents: [],
+      attachments: [],
+    };
+    localStorage.setItem('ixfwms.token', 'ixf_test');
+    const { fetchMock, router } = renderAt(
+      '/carry?to=R2B4',
+      [
+        { path: '/carry', element: <CarryPage /> },
+        { path: '/l/:code', element: <p>place</p> },
+      ],
+      {
+        '/api/session': { name: 'demo', role: 'member', scopes: ['write'] },
+        '/api/carry': carry,
+        '/api/locations/R2B4': dest,
+        '/api/carry/drop': { moved: 1, state: { ...carry, items: [] } },
+      },
+    );
+    expect(await screen.findByText('Box: vacuum parts')).toBeTruthy();
+    await userEvent.click(screen.getByLabelText('Suction cup'));
+    await userEvent.click(await screen.findByRole('button', { name: 'Put 1 thing here' }));
+    const drop = fetchMock.mock.calls.find(([input]) => input === '/api/carry/drop');
+    expect(JSON.parse(drop?.[1]?.body as string)).toEqual({
+      to: 'R2B4',
+      items: ['box'],
+    });
+    await waitFor(() => expect(router.state.location.pathname).toBe('/l/R2B4'));
+    localStorage.clear();
+  });
+});
+
+describe('unknown codes', () => {
+  it('offers to register a place for an unused code, such as a blank label', async () => {
+    localStorage.setItem('ixfwms.token', 'ixf_test');
+    renderAt('/l/ZZZ9', [{ path: '/l/:code', element: <LocationPage /> }], {
+      '/api/session': { name: 'demo', role: 'member', scopes: ['write'] },
+      '/api/codes/ZZZ9': { code: 'ZZZ9', assigned: null, reserved: true, free: false },
+    });
+    expect(await screen.findByRole('heading', { name: 'New place with code ZZZ9' })).toBeTruthy();
+    localStorage.clear();
   });
 });

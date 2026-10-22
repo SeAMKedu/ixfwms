@@ -12,7 +12,7 @@ export function renderAt(
   routes: { path: string; element: ReactNode }[],
   api: Record<string, unknown>,
 ) {
-  const fetchMock = vi.fn((input: RequestInfo | URL) => {
+  const fetchMock = vi.fn((input: RequestInfo | URL, _init?: RequestInit) => {
     const url =
       typeof input === 'string'
         ? input

@@ -78,3 +78,30 @@ export function qs(params: Record<string, string | number | boolean | undefined 
   const s = search.toString();
   return s ? `?${s}` : '';
 }
+
+/** Saves a response as a file (used for CSV downloads that need a POST or a token). */
+export async function download(path: string, filename: string, body?: unknown): Promise<void> {
+  const headers: Record<string, string> = {};
+  const token = getToken();
+  if (token) headers.authorization = `Bearer ${token}`;
+  if (body !== undefined) headers['content-type'] = 'application/json';
+  const res = await fetch(path, {
+    method: body === undefined ? 'GET' : 'POST',
+    headers,
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
+    throw new ApiError(res.status, err.error ?? 'error', err.message ?? res.statusText);
+  }
+  saveBlob(await res.blob(), filename);
+}
+
+export function saveBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}

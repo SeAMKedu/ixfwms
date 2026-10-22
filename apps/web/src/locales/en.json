@@ -11,7 +11,11 @@
     "login": "Log in",
     "logout": "Log out",
     "loggedInAs": "Logged in as {{name}}",
-    "mainNav": "Main navigation"
+    "mainNav": "Main navigation",
+    "labels": "Labels",
+    "carrying_one": "Carrying {{count}} thing",
+    "carrying_other": "Carrying {{count}} things",
+    "putDown": "Put down"
   },
   "common": {
     "save": "Save",
@@ -192,7 +196,12 @@
       "device": "Device",
       "system": "System",
       "in_transit": "Being carried"
-    }
+    },
+    "unassignedTitle": "New place with code {{code}}",
+    "unassignedText": "This code isn't used yet (maybe from a blank label). Register the place it's stuck on.",
+    "parentCode": "Inside (place code)",
+    "create": "Create place",
+    "addItems": "Add items"
   },
   "inbox": {
     "title": "Inbox",
@@ -205,12 +214,26 @@
     "putAwayTo": "Place code"
   },
   "scan": {
-    "title": "Scan or type a code",
-    "intro": "Type the code printed next to a QR label, or paste a scanned link.",
+    "title": "Scan",
+    "intro": "Point the camera at a QR label, or type the code printed next to it.",
     "input": "Code or link",
     "go": "Open",
-    "cameraLater": "Scanning with the phone camera comes in the next release. Until then, any phone camera app opens a label's link directly.",
-    "invalid": "That doesn't look like a code."
+    "invalid": "That doesn't look like a code.",
+    "modeOpen": "Look up",
+    "modePick": "Pick up",
+    "modeDrop": "Put down",
+    "modeLabel": "What scanning does",
+    "pickHint": "Scan boxes and places to pick them up. For parts, open the part and choose how many to carry.",
+    "dropHint": "Scan where you are putting things down.",
+    "picked": "Picked up {{name}}",
+    "partNeedsLot": "Opening the part: choose which stock and how many to carry.",
+    "camera": "Camera",
+    "cameraStart": "Start camera",
+    "cameraStop": "Stop camera",
+    "cameraInsecure": "The camera needs a secure (HTTPS) connection. Open ixfwms over https://, or type the code instead.",
+    "cameraDenied": "Camera access was refused. Allow it in the browser settings, or type the code instead.",
+    "cameraMissing": "No camera found on this device.",
+    "cameraError": "The camera could not start: {{message}}"
   },
   "login": {
     "title": "Log in",
@@ -219,5 +242,64 @@
     "submit": "Log in",
     "intro": "Anyone on the lab network can look things up. Log in to add, move or change things.",
     "noAccount": "No account? An admin can create one with: npm run cli -- user:create, then user:password."
+  },
+  "carry": {
+    "title": "Carrying",
+    "intro": "Things you picked up stay in the inventory as \"carried by you\" until you put them down, so nothing goes missing on the way.",
+    "empty": "You are not carrying anything. Scan a box with \"Pick up\", or use Carry on a part.",
+    "since": "since {{date}}",
+    "box": "whole box",
+    "scanDestination": "Scan destination",
+    "destination": "Destination code",
+    "putHere_one": "Put {{count}} thing here",
+    "putHere_other": "Put {{count}} things here",
+    "moved_one": "Moved {{count}} thing",
+    "moved_other": "Moved {{count}} things",
+    "carry": "Carry",
+    "carryHow": "How many to carry (empty = all)",
+    "pickUp": "Pick up",
+    "pickUpBox": "Carry this place"
+  },
+  "labels": {
+    "title": "Labels",
+    "label": "Label",
+    "tape": "Tape",
+    "tapeMm": "{{mm}} mm",
+    "png": "PNG for phone printing",
+    "svg": "SVG",
+    "dxf": "DXF for laser",
+    "csvInside": "CSV: this and everything inside",
+    "blankTitle": "Blank labels",
+    "blankIntro": "Print a batch of unused codes and stick them on boxes as you go. Scanning a blank label offers to register the box with that code.",
+    "blankCount": "How many",
+    "blankDownload": "Reserve codes and download CSV",
+    "placeTitle": "Labels for a place",
+    "placeIntro": "Download a CSV with the place and, optionally, everything inside it.",
+    "placeCode": "Place code",
+    "include": "Include",
+    "includeLocations": "Places",
+    "includeParts": "Parts stored there",
+    "includeAll": "Both",
+    "recursive": "Everything inside, too",
+    "download": "Download CSV",
+    "ptouchTitle": "Printing on the P-touch",
+    "ptouchSteps": "Make one template per tape width in P-touch Editor (once): a QR code object linked to the qr column and text objects for code, name and path. Then File › Database › Connect, choose the downloaded CSV, and print all records. For a single label from a phone, use the PNG with the Brother app.",
+    "laserTitle": "Laser marking",
+    "laserIntro": "DXF and SVG QR codes are vector shapes in millimetres, with extra error correction for scratched or dirty tags."
+  },
+  "session": {
+    "title": "Add items",
+    "intro": "Quick add, one kind of part at a time. Details can be completed later.",
+    "photo": "Photo",
+    "takePhoto": "Take or choose a photo",
+    "photoChosen": "Photo: {{name}}",
+    "orderNo": "Order number",
+    "saveNext": "Save & next",
+    "added_one": "{{count}} added",
+    "added_other": "{{count}} added",
+    "done": "Done",
+    "similar": "Already in the inventory?",
+    "addHere": "Add here instead",
+    "addedHere": "Added to {{name}}"
   }
 }

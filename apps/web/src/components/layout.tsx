@@ -1,8 +1,8 @@
-import { Inbox, LogIn, LogOut, MapPin, ScanLine, Search } from 'lucide-react';
+import { Hand, Inbox, LogIn, LogOut, MapPin, QrCode, ScanLine, Search } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
-import { useParts } from '../api/queries';
+import { useCarry, useParts } from '../api/queries';
 import { useSession } from '../auth/session';
 
 interface NavItem {
@@ -21,6 +21,25 @@ function useNavItems(): NavItem[] {
     { to: '/scan', label: t('nav.scan'), icon: ScanLine },
     { to: '/places', label: t('nav.places'), icon: MapPin },
   ];
+}
+
+/** A reminder that something is being carried, so nothing is forgotten "in transit". */
+function CarryIndicator({ className, compact }: { className?: string; compact?: boolean }) {
+  const { t } = useTranslation();
+  const { user } = useSession();
+  const carry = useCarry(!!user);
+  const count = carry.data?.items.length ?? 0;
+  if (!count) return null;
+  return (
+    <Link
+      to="/carry"
+      className={`inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-ink px-3 py-1.5 text-[13px] font-semibold text-bg shadow ${className ?? ''}`}
+    >
+      <Hand className="size-4" aria-hidden />
+      {t('nav.carrying', { count })}
+      {!compact && <span className="font-normal underline">{t('nav.putDown')}</span>}
+    </Link>
+  );
 }
 
 function UserBox() {
@@ -83,7 +102,17 @@ export function Layout() {
             </NavLink>
           ))}
         </nav>
-        <div className="mt-auto px-2">
+        <NavLink
+          to="/labels"
+          className={({ isActive }) =>
+            `mt-3 flex items-center gap-2 rounded-md px-2 py-1.5 text-[14px] ${isActive ? 'bg-link-soft font-semibold text-link' : 'text-ink hover:bg-surface-2'}`
+          }
+        >
+          <QrCode className="size-4" aria-hidden />
+          {t('nav.labels')}
+        </NavLink>
+        <div className="mt-auto flex flex-col gap-3 px-2">
+          <CarryIndicator className="self-start" compact />
           <UserBox />
         </div>
       </aside>
@@ -98,6 +127,7 @@ export function Layout() {
         <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 px-4 py-5 pb-28 md:px-8 md:py-8 md:pb-10">
           <Outlet />
         </main>
+        <CarryIndicator className="md:hidden fixed bottom-24 left-1/2 z-10 -translate-x-1/2" />
         <nav
           aria-label={t('nav.mainNav')}
           className="md:hidden fixed inset-x-0 bottom-0 z-10 grid grid-cols-4 border-t border-line bg-surface px-1 pt-1.5 pb-[max(0.75rem,env(safe-area-inset-bottom))]"

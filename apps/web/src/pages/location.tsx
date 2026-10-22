@@ -1,10 +1,18 @@
-import { DEFAULT_LOCATION_TYPES, normalizeCode } from '@ixfwms/domain';
-import { ChevronRight, Pencil, Plus } from 'lucide-react';
+import { DEFAULT_LOCATION_TYPES, isValidCode, normalizeCode } from '@ixfwms/domain';
+import { ChevronRight, Hand, Pencil, Plus } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useParams } from 'react-router';
-import { useCreateLocation, useLocation, useMoveLocation, useUpdateLocation } from '../api/queries';
+import { Link, useNavigate, useParams } from 'react-router';
+import {
+  useCodeInfo,
+  useCreateLocation,
+  useLocation,
+  useMoveLocation,
+  usePick,
+  useUpdateLocation,
+} from '../api/queries';
 import { useSession } from '../auth/session';
+import { LabelPanel } from '../components/label-panel';
 import {
   AmountPill,
   Button,
@@ -97,6 +105,77 @@ export function NewPlaceForm({
   );
 }
 
+/** A scanned code that isn't used yet (typically a pre-printed blank label): register the place it's stuck on. */
+function NewPlaceWithCode({ code }: { code: string }) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [name, setName] = useState('');
+  const [type, setType] = useState('box');
+  const [parent, setParent] = useState('');
+  const create = useCreateLocation();
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    const created = await create.mutateAsync({
+      name,
+      type,
+      code,
+      parent: parent ? normalizeCode(parent) : null,
+    });
+    void navigate(`/l/${created.code}`, { replace: true });
+  };
+  return (
+    <>
+      <PageHeader title={t('places.unassignedTitle', { code })} meta={<CodeLabel code={code} />} />
+      <p className="max-w-prose text-sm text-muted">{t('places.unassignedText')}</p>
+      <form
+        onSubmit={(e) => void submit(e)}
+        className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4"
+      >
+        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_12rem]">
+          <Field label={t('places.name')}>
+            {(id) => (
+              <TextInput
+                id={id}
+                required
+                autoFocus
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            )}
+          </Field>
+          <Field label={t('places.type')}>
+            {(id) => <TypeSelect id={id} value={type} onChange={setType} />}
+          </Field>
+        </div>
+        <Field label={t('places.parentCode')} hint={t('common.optional')}>
+          {(id) => (
+            <TextInput
+              id={id}
+              autoCapitalize="characters"
+              value={parent}
+              onChange={(e) => setParent(e.target.value)}
+              className="font-mono"
+            />
+          )}
+        </Field>
+        <ErrorBox error={create.error} />
+        <Button type="submit" variant="primary" busy={create.isPending} className="self-start">
+          {t('places.create')}
+        </Button>
+      </form>
+    </>
+  );
+}
+
+function Missing({ code }: { code: string }) {
+  const { can } = useSession();
+  const normalized = normalizeCode(code);
+  const info = useCodeInfo(normalized, isValidCode(normalized));
+  if (info.data && !info.data.assigned && can('inventory'))
+    return <NewPlaceWithCode code={info.data.code} />;
+  return <NotFoundPage code={code} />;
+}
+
 /** Children of a place get a sensible default type: inside a cabinet you usually add shelves, and so on. */
 const NEXT_TYPE: Record<string, string> = {
   building: 'floor',
@@ -120,12 +199,13 @@ export function LocationPage() {
   const loc = useLocation(code, recursive);
   const update = useUpdateLocation(code);
   const move = useMoveLocation(code);
+  const pick = usePick();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [parent, setParent] = useState('');
 
   if (loc.isPending) return <Loading />;
-  if (isNotFound(loc.error)) return <NotFoundPage code={code} />;
+  if (isNotFound(loc.error)) return <Missing code={code} />;
   if (!loc.data) return <ErrorBox error={loc.error} />;
   const d = loc.data;
   const canEdit = can('inventory') && d.kind === 'normal';
@@ -160,10 +240,14 @@ export function LocationPage() {
         actions={
           canEdit && (
             <>
-              <ButtonLink to={`/parts/new?location=${d.code}`} variant="primary">
+              <ButtonLink to={`/l/${d.code}/add`} variant="primary">
                 <Plus className="size-4" aria-hidden />
-                {t('places.addItem')}
+                {t('places.addItems')}
               </ButtonLink>
+              <Button onClick={() => pick.mutate({ location: d.code })} busy={pick.isPending}>
+                <Hand className="size-4" aria-hidden />
+                {t('carry.pickUpBox')}
+              </Button>
               <Button
                 onClick={() => open('edit')}
                 variant={panel === 'edit' ? 'dark' : 'secondary'}
@@ -182,6 +266,7 @@ export function LocationPage() {
         }
       />
       {d.description && <p className="max-w-prose whitespace-pre-wrap text-sm">{d.description}</p>}
+      <ErrorBox error={pick.error} />
 
       {panel === 'edit' && (
         <form
@@ -327,6 +412,9 @@ export function LocationPage() {
           )}
         </Card>
       </div>
+      {d.kind === 'normal' && (
+        <LabelPanel code={d.code} csvHref={`/api/labels.csv?location=${d.code}&recursive=1`} />
+      )}
     </>
   );
 }

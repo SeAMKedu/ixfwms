@@ -2,6 +2,8 @@ import type {
   AddStockInput,
   AmountInput,
   AttachInput,
+  CarryState,
+  CodeInfo,
   AttachmentView,
   CreateLocationInput,
   CreatePartInput,
@@ -133,3 +135,21 @@ export const useUpload = () =>
   });
 export const useAttach = () =>
   useChange((input: AttachInput) => api<AttachmentView>('/api/attachments', { body: input }));
+
+export const lookupCode = (code: string) => api<CodeInfo>(`/api/codes/${encodeURIComponent(code)}`);
+
+export const useCodeInfo = (code: string, enabled: boolean) =>
+  useQuery({ queryKey: ['code', code], queryFn: () => lookupCode(code), enabled });
+
+export const useCarry = (enabled: boolean) =>
+  useQuery({ queryKey: ['carry'], queryFn: () => api<CarryState>('/api/carry'), enabled });
+
+export const usePick = () =>
+  useChange((input: { location?: string; lotId?: string; quantity?: number }) =>
+    api<CarryState>('/api/carry/pick', { body: input }),
+  );
+
+export const useDrop = () =>
+  useChange((input: { to: string; items?: string[] }) =>
+    api<{ moved: number; state: CarryState }>('/api/carry/drop', { body: input }),
+  );
