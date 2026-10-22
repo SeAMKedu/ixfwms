@@ -1,4 +1,4 @@
-import type { Scope } from '@ixfwms/domain';
+import type { Scope, UserRole } from '@ixfwms/domain';
 import { hasScope } from '@ixfwms/domain';
 import type { Executor } from '../db/client.js';
 import { auditLog } from '../db/schema.js';
@@ -9,6 +9,7 @@ import { newId } from '../lib/ids.js';
 export interface Actor {
   userId: string;
   name: string;
+  role: UserRole;
   scopes: Scope[];
 }
 

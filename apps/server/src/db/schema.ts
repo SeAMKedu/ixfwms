@@ -41,6 +41,8 @@ export const users = sqliteTable('users', {
   id: id(),
   name: text('name').notNull().unique(),
   role: text('role').$type<UserRole>().notNull().default('member'),
+  /** scrypt hash for web login; null for users that only use API tokens. */
+  passwordHash: text('password_hash'),
   createdAt: createdAt(),
 });
 
@@ -52,6 +54,9 @@ export const apiTokens = sqliteTable('api_tokens', {
   name: text('name').notNull(),
   tokenHash: text('token_hash').notNull().unique(),
   scopes: text('scopes', { mode: 'json' }).$type<Scope[]>().notNull(),
+  /** `api` tokens are created by admins; `session` tokens come from web logins and expire. */
+  kind: text('kind').$type<'api' | 'session'>().notNull().default('api'),
+  expiresAt: text('expires_at'),
   createdAt: createdAt(),
   lastUsedAt: text('last_used_at'),
   revokedAt: text('revoked_at'),

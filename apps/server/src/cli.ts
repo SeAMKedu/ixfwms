@@ -1,4 +1,5 @@
 import { mkdir } from 'node:fs/promises';
+import { createInterface } from 'node:readline/promises';
 import { parseArgs } from 'node:util';
 import { SCOPES, USER_ROLES, type Scope, type UserRole } from '@ixfwms/domain';
 import { loadConfig } from './config.js';
@@ -11,6 +12,7 @@ const HELP = `ixfwms admin CLI
   init                                   Create/upgrade the database and seed defaults
   user:create --name <n> [--role member|admin|viewer]
   user:list
+  user:password --name <n> [--password <p>]   Set a web login password (reads stdin if omitted)
   token:create --user <n> [--name <label>] [--scopes inventory,write]
   token:revoke --id <token id>
   backup                                 Snapshot the database into <data>/backups
@@ -28,6 +30,7 @@ async function main(): Promise<void> {
       user: { type: 'string' },
       scopes: { type: 'string', default: 'inventory' },
       id: { type: 'string' },
+      password: { type: 'string' },
     },
   });
   if (!command || command === 'help' || command === '--help') {
@@ -51,6 +54,14 @@ async function main(): Promise<void> {
           throw new AppError('invalid', `--role must be one of ${USER_ROLES.join(', ')}`);
         const user = await services.auth.createUser(values.name, values.role as UserRole);
         console.log(`Created user ${user.name} (${user.role})`);
+        break;
+      }
+      case 'user:password': {
+        if (!values.name) throw new AppError('invalid', '--name is required');
+        const password =
+          values.password ?? process.env.IXF_PASSWORD ?? (await readLine('Password: '));
+        await services.auth.setPassword(values.name, password);
+        console.log(`Password set for ${values.name}`);
         break;
       }
       case 'user:list':
@@ -86,6 +97,15 @@ async function main(): Promise<void> {
     }
   } finally {
     database.close();
+  }
+}
+
+async function readLine(prompt: string): Promise<string> {
+  const rl = createInterface({ input: process.stdin, output: process.stderr });
+  try {
+    return (await rl.question(prompt)).trim();
+  } finally {
+    rl.close();
   }
 }
 
