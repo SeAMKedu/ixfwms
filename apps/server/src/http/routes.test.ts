@@ -11,7 +11,7 @@ afterEach(async () => env.cleanup());
 type Json = Record<string, unknown>;
 
 async function req<T = Json>(
-  method: 'GET' | 'POST' | 'PATCH',
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH',
   url: string,
   payload?: unknown,
   token = env.adminToken,
@@ -96,8 +96,8 @@ describe('REST routes, end to end', () => {
     ).toBe(1);
     expect((await req<{ total: number }>('GET', `/api/parts?location=${cell.code}`)).total).toBe(1);
     expect(await req('GET', '/api/categories')).toEqual([
-      { path: 'Pneumatics', parts: 0 },
-      { path: 'Pneumatics/Vacuum', parts: 1 },
+      { path: 'Pneumatics', parts: 0, fields: 0 },
+      { path: 'Pneumatics/Vacuum', parts: 1, fields: 0 },
     ]);
     expect(await req('GET', '/api/tags')).toEqual(
       expect.arrayContaining([{ name: 'spare', parts: 1 }]),
@@ -205,5 +205,61 @@ describe('label and carry endpoints', () => {
     await req('POST', '/api/carry/pick', { location: box.code });
     expect((await req<{ items: unknown[] }>('GET', '/api/carry')).items).toHaveLength(1);
     expect(await req('POST', '/api/carry/drop', { to: cell.code })).toMatchObject({ moved: 1 });
+  });
+});
+
+describe('category fields over HTTP', () => {
+  it('filters with ?attr= and edits fields', async () => {
+    await req('PUT', '/api/categories/fields', {
+      path: 'Fasteners/Screws',
+      fields: [{ key: 'lengthMm', label: 'Length', type: 'number', unit: 'mm' }],
+    });
+    await req('POST', '/api/parts', {
+      name: 'Long screw',
+      category: 'Fasteners/Screws',
+      attributes: { lengthMm: 40 },
+    });
+    await req('POST', '/api/parts', {
+      name: 'Short screw',
+      category: 'Fasteners/Screws',
+      attributes: { lengthMm: 8 },
+    });
+    const found = await req<{ items: { name: string }[] }>(
+      'GET',
+      `/api/parts?attr=${encodeURIComponent('lengthMm>=10')}`,
+    );
+    expect(found.items.map((p) => p.name)).toEqual(['Long screw']);
+    const bad = await env.app.inject({
+      url: `/api/parts?attr=${encodeURIComponent('lengthMm>=long')}`,
+    });
+    expect(bad.statusCode).toBe(400);
+    expect(
+      (await req<{ effective: unknown[] }>('GET', '/api/categories/fields?path=Fasteners/Screws'))
+        .effective,
+    ).toHaveLength(1);
+    expect((await req<{ added: string[] }>('POST', '/api/categories/starter')).added).toContain(
+      'Filament',
+    );
+  });
+});
+
+describe('import over HTTP', () => {
+  it('previews by default and imports on request', async () => {
+    const body = { rows: [{ name: 'Imported cup', quantity: 3 }] };
+    const preview = await req<{ action: string }[]>('POST', '/api/import/parts', body);
+    expect(preview[0]!.action).toBe('create');
+    expect((await req<{ total: number }>('GET', '/api/parts')).total).toBe(0);
+    await req('POST', '/api/import/parts', { ...body, dryRun: false });
+    expect((await req<{ total: number }>('GET', '/api/parts')).total).toBe(1);
+    const save = await env.app.inject({
+      method: 'PUT',
+      url: '/api/import/mappings',
+      payload: { name: 'List', mapping: { columns: { name: 'Item' } } },
+      headers: { authorization: `Bearer ${env.adminToken}` },
+    });
+    expect(save.statusCode).toBe(204);
+    expect(await req('GET', '/api/import/mappings')).toEqual([
+      { name: 'List', mapping: { columns: { name: 'Item' }, headerRow: 1 } },
+    ]);
   });
 });

@@ -6,6 +6,7 @@ import { registerMcp } from '../mcp/http.js';
 import type { AppDeps } from './context.js';
 import { registerCarryRoutes } from './routes/carry.js';
 import { registerFileRoutes } from './routes/files.js';
+import { registerImportRoutes } from './routes/import.js';
 import { registerLabelRoutes } from './routes/labels.js';
 import { registerLocationRoutes } from './routes/locations.js';
 import { registerPageRoutes } from './routes/pages.js';
@@ -65,6 +66,7 @@ export async function buildApp(
   registerFileRoutes(app, deps);
   registerLabelRoutes(app, deps);
   registerCarryRoutes(app, deps);
+  registerImportRoutes(app, deps);
   registerMcp(app, deps);
   // The built web app takes over the HTML routes; without a build, minimal server pages stand in.
   if (!(await registerWebApp(app, config.webDir ?? defaultWebDir()))) registerPageRoutes(app, deps);

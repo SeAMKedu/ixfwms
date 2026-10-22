@@ -7,6 +7,7 @@ import { BackupService } from './backup.js';
 import { CarryService } from './carry.js';
 import { ExportService } from './export.js';
 import { FileService } from './files.js';
+import { ImportService } from './import.js';
 import { LabelService } from './labels.js';
 import { LocationViews } from './location-views.js';
 import { LocationService } from './locations.js';
@@ -21,6 +22,7 @@ export interface Services {
   carry: CarryService;
   export: ExportService;
   files: FileService;
+  import: ImportService;
   labels: LabelService;
   locations: LocationService;
   locationViews: LocationViews;
@@ -44,6 +46,7 @@ export function createServices(
     carry: new CarryService(db, locations, stock),
     export: new ExportService(db),
     files,
+    import: new ImportService(db, locations, parts, stock),
     labels: new LabelService(db, locations),
     locations,
     locationViews: new LocationViews(db, locations, parts, files),
