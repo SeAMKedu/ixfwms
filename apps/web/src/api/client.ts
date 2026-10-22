@@ -33,7 +33,7 @@ export class ApiError extends Error {
 }
 
 interface RequestOptions {
-  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
   form?: FormData;
   signal?: AbortSignal;
@@ -69,11 +69,14 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
   return data as T;
 }
 
-/** Builds a query string, skipping empty values. */
-export function qs(params: Record<string, string | number | boolean | undefined | null>): string {
+/** Builds a query string, skipping empty values; arrays become repeated parameters. */
+export function qs(
+  params: Record<string, string | number | boolean | string[] | undefined | null>,
+): string {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== null && value !== '') search.set(key, String(value));
+    if (Array.isArray(value)) for (const v of value) search.append(key, v);
+    else if (value !== undefined && value !== null && value !== '') search.set(key, String(value));
   }
   const s = search.toString();
   return s ? `?${s}` : '';

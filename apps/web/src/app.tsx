@@ -4,6 +4,8 @@ import { ApiError } from './api/client';
 import { SessionProvider } from './auth/session';
 import { Layout } from './components/layout';
 import { CarryPage } from './pages/carry';
+import { CategoriesPage } from './pages/categories';
+import { ImportPage } from './pages/import';
 import { InboxPage } from './pages/inbox';
 import { LabelsPage } from './pages/labels';
 import { LocationPage } from './pages/location';
@@ -30,6 +32,8 @@ const routes = [
       { path: '/l/:code/add', element: <SessionPage /> },
       { path: '/carry', element: <CarryPage /> },
       { path: '/labels', element: <LabelsPage /> },
+      { path: '/categories', element: <CategoriesPage /> },
+      { path: '/import', element: <ImportPage /> },
       { path: '/inbox', element: <InboxPage /> },
       { path: '/scan', element: <ScanPage /> },
       { path: '/login', element: <LoginPage /> },

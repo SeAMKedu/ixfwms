@@ -2,6 +2,9 @@ import type {
   AddStockInput,
   AmountInput,
   AttachInput,
+  AttributeField,
+  CategoryFields,
+  CategoryInfo,
   CarryState,
   CodeInfo,
   AttachmentView,
@@ -32,6 +35,9 @@ export interface PartFilters {
   tag?: string;
   location?: string;
   inStock?: boolean;
+  lowStock?: boolean;
+  /** Category field filters as text, e.g. "thread:M4", "lengthMm>=10". */
+  attr?: string[];
   limit?: number;
   offset?: number;
 }
@@ -76,7 +82,7 @@ export const usePlaces = () =>
 export const useCategories = () =>
   useQuery({
     queryKey: ['categories'],
-    queryFn: () => api<{ path: string; parts: number }[]>('/api/categories'),
+    queryFn: () => api<CategoryInfo[]>('/api/categories'),
   });
 
 export const useTags = () =>
@@ -161,3 +167,18 @@ export const useDrop = () =>
   useChange((input: { to: string; items?: string[] }) =>
     api<{ moved: number; state: CarryState }>('/api/carry/drop', { body: input }),
   );
+
+export const useCategoryFields = (path: string) =>
+  useQuery({
+    queryKey: ['categoryFields', path.toLowerCase()],
+    queryFn: () => api<CategoryFields>(`/api/categories/fields${qs({ path })}`),
+    enabled: path.trim() !== '',
+  });
+
+export const useSetCategoryFields = () =>
+  useChange((input: { path: string; fields: AttributeField[] }) =>
+    api<CategoryFields>('/api/categories/fields', { method: 'PUT', body: input }),
+  );
+
+export const useSeedCategories = () =>
+  useChange(() => api<{ added: string[] }>('/api/categories/starter', { body: {} }));

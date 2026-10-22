@@ -25,6 +25,7 @@ import {
 } from '../api/queries';
 import { useSession } from '../auth/session';
 import { PlacePicker } from '../components/place-picker';
+import { AttributeList } from '../components/attribute-fields';
 import { LabelPanel } from '../components/label-panel';
 import { AmountFields, toAmountInput, useAmountState } from '../components/amount-fields';
 import {
@@ -556,6 +557,11 @@ export function PartPage() {
             </div>
           )}
         </Card>
+        {Object.values(p.attributes).some((v) => v !== null && v !== '') && (
+          <Card title={t('part.details')}>
+            <AttributeList fields={p.fields} attributes={p.attributes} />
+          </Card>
+        )}
         <Files part={p} canEdit={canEdit} />
         {(p.description || p.notes || p.source || p.unitMassG) && (
           <Card title={t('part.notes')}>

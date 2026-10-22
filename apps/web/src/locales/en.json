@@ -15,7 +15,9 @@
     "labels": "Labels",
     "carrying_one": "Carrying {{count}} thing",
     "carrying_other": "Carrying {{count}} things",
-    "putDown": "Put down"
+    "putDown": "Put down",
+    "categories": "Categories",
+    "import": "Import"
   },
   "common": {
     "save": "Save",
@@ -74,7 +76,8 @@
       "category": "Category",
       "tag": "Tag",
       "anyCategory": "Any category",
-      "anyTag": "Any tag"
+      "anyTag": "Any tag",
+      "lowStock": "Low stock"
     },
     "columns": {
       "part": "Part",
@@ -146,7 +149,8 @@
       "adjust": "adjusted",
       "stocktake": "counted",
       "move": "moved"
-    }
+    },
+    "details": "Details"
   },
   "identifierKinds": {
     "order_no": "Order no.",
@@ -306,5 +310,92 @@
     "placeholder": "Type a place name or code…",
     "noMatch": "No matching place. A known code works too.",
     "clear": "Clear"
+  },
+  "fields": {
+    "yes": "yes",
+    "no": "no",
+    "any": "Any",
+    "min": "{{field}} at least",
+    "max": "{{field}} at most",
+    "minShort": "min",
+    "maxShort": "max",
+    "clear": "Clear field filters"
+  },
+  "categories": {
+    "title": "Categories",
+    "empty": "No categories yet. They are created when parts get one, or add the starter set.",
+    "pick": "Pick a category to see and edit the fields its parts have.",
+    "showParts": "Show its parts",
+    "inherited": "Also has, from parent categories: {{fields}}",
+    "ownFields": "Fields",
+    "noFields": "No fields of its own yet.",
+    "label": "Field",
+    "type": "Type",
+    "unit": "Unit",
+    "options": "Choices",
+    "optionsHint": "Comma-separated, e.g. M3, M4, M5",
+    "key": "Stored as {{key}}",
+    "addField": "Add field",
+    "addStarter": "Add starter categories",
+    "starterAdded": "Added fields to: {{list}}",
+    "starterNone": "All starter categories already have fields.",
+    "fieldCount_one": "{{count}} field",
+    "fieldCount_other": "{{count}} fields",
+    "types": {
+      "text": "Text",
+      "number": "Number",
+      "enum": "Choice",
+      "bool": "Yes / no"
+    }
+  },
+  "import": {
+    "title": "Import from a spreadsheet",
+    "intro": "Bring in an existing parts list or an order export (CSV or Excel). Rows become drafts in the Inbox (or the place you choose), and rows with a known order number add stock to that part instead.",
+    "chooseFile": "Choose CSV or Excel file",
+    "fileInfo_one": "{{name}}: {{count}} row",
+    "fileInfo_other": "{{name}}: {{count}} rows",
+    "columns": "Columns",
+    "savedMapping": "Saved mapping",
+    "pickMapping": "Use a saved mapping…",
+    "headerRow": "Header row",
+    "notInFile": "— not in this file —",
+    "mappingName": "Save this mapping as",
+    "mappingPlaceholder": "e.g. Festo order export",
+    "saveMapping": "Save mapping",
+    "options": "Options",
+    "defaultLocation": "Put rows without a place in",
+    "defaultLocationHint": "Empty means the Inbox.",
+    "matchExisting": "Add stock to parts we already have (same order number or MPN) instead of creating duplicates",
+    "preview": "Preview",
+    "check": "Check rows",
+    "run_one": "Import {{count}} row",
+    "run_other": "Import {{count}} rows",
+    "done": "Review the new drafts in the Inbox",
+    "result": "Result",
+    "actions": {
+      "create_one": "{{count}} new draft",
+      "create_other": "{{count}} new drafts",
+      "add_stock_one": "{{count}} adds stock",
+      "add_stock_other": "{{count}} add stock",
+      "skip_one": "{{count}} skipped",
+      "skip_other": "{{count}} skipped",
+      "error_one": "{{count}} problem",
+      "error_other": "{{count}} problems"
+    },
+    "fields": {
+      "name": "Name",
+      "manufacturer": "Manufacturer",
+      "orderNo": "Order number",
+      "mpn": "MPN",
+      "category": "Category",
+      "description": "Description",
+      "notes": "Notes",
+      "tags": "Tags",
+      "quantity": "Amount",
+      "unit": "Unit",
+      "level": "Level",
+      "location": "Place",
+      "unitMassG": "Mass per piece (g)"
+    }
   }
 }

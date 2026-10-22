@@ -5,13 +5,26 @@ import {
   type PartDetail,
 } from '@ixfwms/domain';
 import { Trash2 } from 'lucide-react';
-import { useState, type FormEvent } from 'react';
+import { useDeferredValue, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router';
-import { useCategories, useCreatePart, usePart, useTags, useUpdatePart } from '../api/queries';
+import {
+  useCategories,
+  useCategoryFields,
+  useCreatePart,
+  usePart,
+  useTags,
+  useUpdatePart,
+} from '../api/queries';
 import { useSession } from '../auth/session';
 import { PlacePicker } from '../components/place-picker';
 import { AmountFields, toAmountInput, useAmountState } from '../components/amount-fields';
+import {
+  AttributeInputs,
+  fromDraft,
+  toDraft,
+  type AttributeDraft,
+} from '../components/attribute-fields';
 import {
   Button,
   Card,
@@ -77,6 +90,9 @@ function PartForm({ part }: { part?: PartDetail }) {
   const [location, setLocation] = useState(params.get('location') ?? '');
   const [amount, setAmount] = useAmountState();
   const [reviewed, setReviewed] = useState(false);
+  const [attrs, setAttrs] = useState<AttributeDraft>(() => toDraft(part?.attributes ?? {}));
+  const category = useDeferredValue(form.category);
+  const fields = useCategoryFields(category).data?.effective ?? [];
   const create = useCreatePart();
   const update = useUpdatePart(part?.code ?? '');
   const categories = useCategories().data ?? [];
@@ -106,6 +122,7 @@ function PartForm({ part }: { part?: PartDetail }) {
       minStock: parseNumber(form.minStock) ?? null,
       notes: form.notes || null,
       source: form.source || null,
+      attributes: fromDraft(attrs, fields),
     };
     if (part) {
       const before = new Set(part.identifiers.map((i) => `${i.kind}:${i.value}`));
@@ -130,7 +147,6 @@ function PartForm({ part }: { part?: PartDetail }) {
         ...common,
         identifiers: idents.map((i) => ({ kind: i.kind, value: i.value.trim() })),
         tags: splitList(form.tags),
-        attributes: {},
         status: reviewed && can('write') ? 'active' : 'draft',
         stock: a ? { location: location ? normalizeCode(location) : null, amount: a } : null,
       });
@@ -182,6 +198,7 @@ function PartForm({ part }: { part?: PartDetail }) {
             )}
           </Field>
         </div>
+        {fields.length > 0 && <AttributeInputs fields={fields} value={attrs} onChange={setAttrs} />}
         <div className="flex flex-col gap-2">
           <span className="text-[13px] font-medium">{t('part.identifiers')}</span>
           {form.identifiers.map((row, i) => (

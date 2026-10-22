@@ -1,4 +1,15 @@
-import { Hand, Inbox, LogIn, LogOut, MapPin, QrCode, ScanLine, Search } from 'lucide-react';
+import {
+  FileSpreadsheet,
+  Hand,
+  Inbox,
+  LogIn,
+  LogOut,
+  MapPin,
+  QrCode,
+  ScanLine,
+  Search,
+  Tags,
+} from 'lucide-react';
 import type { ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
@@ -110,6 +121,24 @@ export function Layout() {
         >
           <QrCode className="size-4" aria-hidden />
           {t('nav.labels')}
+        </NavLink>
+        <NavLink
+          to="/categories"
+          className={({ isActive }) =>
+            `flex items-center gap-2 rounded-md px-2 py-1.5 text-[14px] ${isActive ? 'bg-link-soft font-semibold text-link' : 'text-ink hover:bg-surface-2'}`
+          }
+        >
+          <Tags className="size-4" aria-hidden />
+          {t('nav.categories')}
+        </NavLink>
+        <NavLink
+          to="/import"
+          className={({ isActive }) =>
+            `flex items-center gap-2 rounded-md px-2 py-1.5 text-[14px] ${isActive ? 'bg-link-soft font-semibold text-link' : 'text-ink hover:bg-surface-2'}`
+          }
+        >
+          <FileSpreadsheet className="size-4" aria-hidden />
+          {t('nav.import')}
         </NavLink>
         <div className="mt-auto flex flex-col gap-3 px-2">
           <CarryIndicator className="self-start" compact />

@@ -3,7 +3,8 @@ import { Plus, Search } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router';
-import { useCategories, useParts, useTags } from '../api/queries';
+import { useCategories, useCategoryFields, useParts, useTags } from '../api/queries';
+import { FieldFilters } from '../components/field-filters';
 import { useSession } from '../auth/session';
 import {
   AmountPill,
@@ -45,6 +46,9 @@ export function SearchPage() {
   const category = params.get('category') ?? undefined;
   const tag = params.get('tag') ?? undefined;
   const inStock = params.get('inStock') === '1' ? true : undefined;
+  const lowStock = params.get('lowStock') === '1' ? true : undefined;
+  const attr = params.getAll('attr');
+  const fields = useCategoryFields(category ?? '').data?.effective ?? [];
   const [limit, setLimit] = useState(PAGE);
 
   const setParam = (key: string, value: string | undefined) => {
@@ -61,7 +65,23 @@ export function SearchPage() {
     typing.current = window.setTimeout(() => setParam('q', value.trim() || undefined), 250);
   };
 
-  const parts = useParts({ q: q || undefined, status, category, tag, inStock, limit });
+  const parts = useParts({
+    q: q || undefined,
+    status,
+    category,
+    tag,
+    inStock,
+    lowStock,
+    attr,
+    limit,
+  });
+  const setAttr = (next: string[]) => {
+    const p = new URLSearchParams(params);
+    p.delete('attr');
+    for (const a of next) p.append('attr', a);
+    setParams(p, { replace: true });
+    setLimit(PAGE);
+  };
   const categories = useCategories().data ?? [];
   const tags = useTags().data ?? [];
   const chip = (active: boolean) =>
@@ -121,10 +141,24 @@ export function SearchPage() {
         >
           {t('parts.filters.inStock')}
         </button>
+        <button
+          type="button"
+          className={chip(!!lowStock)}
+          onClick={() => setParam('lowStock', lowStock ? undefined : '1')}
+        >
+          {t('parts.filters.lowStock')}
+        </button>
         <Select
           aria-label={t('parts.filters.category')}
           value={category ?? ''}
-          onChange={(e) => setParam('category', e.target.value || undefined)}
+          onChange={(e) => {
+            const next = new URLSearchParams(params);
+            next.delete('attr');
+            if (e.target.value) next.set('category', e.target.value);
+            else next.delete('category');
+            setParams(next, { replace: true });
+            setLimit(PAGE);
+          }}
           className="!w-auto !py-1 text-[13px]"
         >
           <option value="">{t('parts.filters.anyCategory')}</option>
@@ -151,12 +185,15 @@ export function SearchPage() {
         )}
       </div>
 
+      {category && <FieldFilters fields={fields} value={attr} onChange={setAttr} />}
       <ErrorBox error={parts.error} />
       {parts.isPending ? (
         <Loading />
       ) : parts.data && parts.data.items.length === 0 ? (
         <Empty>
-          {q || status || category || tag || inStock ? t('parts.empty') : t('parts.emptyAll')}
+          {q || status || category || tag || inStock || lowStock
+            ? t('parts.empty')
+            : t('parts.emptyAll')}
         </Empty>
       ) : (
         parts.data && (
