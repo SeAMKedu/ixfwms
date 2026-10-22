@@ -97,6 +97,11 @@ export const UpdatePartInput = CreatePartInput.omit({
   .partial()
   .extend({
     addIdentifiers: z.array(IdentifierInput).max(20).optional(),
+    removeIdentifiers: z
+      .array(z.string().trim().min(1).max(200))
+      .max(20)
+      .optional()
+      .describe('Identifier values to remove'),
     addTags: z.array(z.string().trim().min(1).max(60)).max(20).optional(),
     removeTags: z.array(z.string().trim().min(1).max(60)).max(20).optional(),
   });

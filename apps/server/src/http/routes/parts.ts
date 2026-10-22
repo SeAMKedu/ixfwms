@@ -42,6 +42,12 @@ export function registerPartRoutes(app: FastifyInstance, { services }: AppDeps):
     return parts.setStatus(ref, status, request.actor);
   });
 
+  app.post('/api/parts/:ref/merge', async (request) => {
+    const { ref } = parse(RefParams, request.params);
+    const { into } = parse(z.object({ into: z.string() }), request.body);
+    return parts.mergeInto(ref, into, request.actor);
+  });
+
   app.get('/api/categories', () => parts.listCategories());
   app.get('/api/tags', () => parts.listTags());
 }

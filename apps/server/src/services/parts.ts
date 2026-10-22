@@ -5,6 +5,9 @@ import {
   normalizeIdentifier,
   type CreatePartInput,
   type IdentifierInput,
+  type PartDetail,
+  type PartSummary,
+  type SimilarPart,
   type PartSearchInput,
   type PartStatus,
   type UpdatePartInput,
@@ -12,6 +15,7 @@ import {
 import { and, asc, desc, eq, exists, inArray, like, or, sql, type SQL } from 'drizzle-orm';
 import type { Db, Executor } from '../db/client.js';
 import {
+  attachments,
   categories,
   locations,
   partIdentifiers,
@@ -25,9 +29,9 @@ import { AppError, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
 import { allocateCode } from './codes.js';
 import { audit, requireScope, type Actor } from './context.js';
-import type { AttachmentView, FileService } from './files.js';
+import type { FileService } from './files.js';
 import type { LocationService } from './locations.js';
-import type { LotView, StockService } from './stock.js';
+import type { StockService } from './stock.js';
 
 export type PartRow = typeof parts.$inferSelect;
 
@@ -44,46 +48,6 @@ export class PartResolver {
     if (!found) throw notFound('Part', ref);
     return found;
   }
-}
-
-export interface PartSummary {
-  id: string;
-  code: string;
-  name: string;
-  manufacturer: string | null;
-  status: PartStatus;
-  category: string | null;
-  identifiers: { kind: string; value: string }[];
-  tags: string[];
-  stock: { display: string; location: string; locationCode: string }[];
-}
-
-interface MovementView {
-  at: string;
-  reason: string;
-  delta: number | null;
-  fromLocationId: string | null;
-  toLocationId: string | null;
-  note: string | null;
-}
-
-export interface PartDetail extends PartSummary {
-  description: string | null;
-  unitMassG: number | null;
-  minStock: number | null;
-  attributes: Record<string, unknown>;
-  notes: string | null;
-  source: string | null;
-  createdAt: string;
-  updatedAt: string;
-  lots: LotView[];
-  attachments: AttachmentView[];
-  history: MovementView[];
-}
-
-export interface SimilarPart extends PartSummary {
-  score: number;
-  reason: string;
 }
 
 export type BatchResult<T> = { ok: true; value: T } | { ok: false; error: string; index: number };
@@ -184,6 +148,16 @@ export class PartService {
         patch.categoryId = input.category ? await this.ensureCategory(tx, input.category) : null;
       }
       await tx.update(parts).set(patch).where(eq(parts.id, part.id));
+      if (input.removeIdentifiers?.length) {
+        await tx
+          .delete(partIdentifiers)
+          .where(
+            and(
+              eq(partIdentifiers.partId, part.id),
+              inArray(partIdentifiers.value, input.removeIdentifiers),
+            ),
+          );
+      }
       await this.addIdentifiers(tx, part.id, input.addIdentifiers ?? []);
       await this.addTags(tx, part.id, input.addTags ?? []);
       if (input.removeTags?.length) {
@@ -208,6 +182,82 @@ export class PartService {
     await this.db.update(parts).set({ status, updatedAt: nowIso() }).where(eq(parts.id, part.id));
     await audit(this.db, who, 'status', 'part', part.id, { from: part.status, to: status });
     return this.get(part.id);
+  }
+
+  /**
+   * Merges a duplicate into another part: stock, identifiers, tags, files and history move over,
+   * empty fields are filled from the duplicate, and the duplicate is deleted.
+   */
+  async mergeInto(sourceRef: string, targetRef: string, actor: Actor | null): Promise<PartDetail> {
+    const who = requireScope(actor, 'write');
+    const targetId = await this.db.transaction(async (tx) => {
+      const source = await this.resolve(sourceRef, tx);
+      const target = await this.resolve(targetRef, tx);
+      if (source.id === target.id)
+        throw new AppError('invalid', 'A part cannot be merged into itself');
+
+      await tx.update(stockLots).set({ partId: target.id }).where(eq(stockLots.partId, source.id));
+      for (const lot of await tx
+        .select()
+        .from(stockLots)
+        .where(eq(stockLots.partId, target.id))
+        .all()) {
+        await this.stock.consolidate(tx, lot.id);
+      }
+      const idents = await tx
+        .select()
+        .from(partIdentifiers)
+        .where(eq(partIdentifiers.partId, source.id))
+        .all();
+      await this.addIdentifiers(
+        tx,
+        target.id,
+        idents.map((i) => ({ kind: i.kind, value: i.value, source: i.source })),
+      );
+      const tagNames = await tx
+        .select({ name: tags.name })
+        .from(partTags)
+        .innerJoin(tags, eq(tags.id, partTags.tagId))
+        .where(eq(partTags.partId, source.id))
+        .all();
+      await this.addTags(
+        tx,
+        target.id,
+        tagNames.map((t) => t.name),
+      );
+      await tx
+        .update(attachments)
+        .set({ ownerId: target.id })
+        .where(and(eq(attachments.ownerType, 'part'), eq(attachments.ownerId, source.id)));
+      await tx
+        .update(stockMovements)
+        .set({ partId: target.id })
+        .where(eq(stockMovements.partId, source.id));
+
+      const fill: Partial<PartRow> = { updatedAt: nowIso() };
+      for (const key of [
+        'description',
+        'manufacturer',
+        'categoryId',
+        'unitMassG',
+        'minStock',
+        'source',
+      ] as const) {
+        if (target[key] == null && source[key] != null) Object.assign(fill, { [key]: source[key] });
+      }
+      if (source.notes)
+        fill.notes = target.notes ? `${target.notes}\n${source.notes}` : source.notes;
+      fill.attributes = { ...source.attributes, ...target.attributes };
+      await tx.update(parts).set(fill).where(eq(parts.id, target.id));
+      await tx.delete(parts).where(eq(parts.id, source.id));
+      await audit(tx, who, 'merge', 'part', target.id, {
+        mergedPartId: source.id,
+        mergedCode: source.code,
+        mergedName: source.name,
+      });
+      return target.id;
+    });
+    return this.get(targetId);
   }
 
   async get(ref: string): Promise<PartDetail> {

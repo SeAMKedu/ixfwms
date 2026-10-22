@@ -4,6 +4,7 @@ import {
   isCompatible,
   type AddStockInput,
   type AmountInput,
+  type LotView,
   type MovementReason,
   type StockAmount,
   type StockLevel,
@@ -14,22 +15,10 @@ import { parts, stockLots, stockMovements } from '../db/schema.js';
 import { invalid, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
 import { requireScope, type Actor } from './context.js';
-import type { LocationService, LocationSummary } from './locations.js';
+import type { LocationService } from './locations.js';
 import type { PartResolver } from './parts.js';
 
 export type LotRow = typeof stockLots.$inferSelect;
-
-export interface LotView {
-  id: string;
-  partId: string;
-  amount: StockAmount;
-  display: string;
-  estimatedCount: number | null;
-  note: string | null;
-  lastCheckedAt: string | null;
-  location: LocationSummary;
-  path: LocationSummary[];
-}
 
 const LEVEL_RANK: Record<StockLevel, number> = { empty: 0, low: 1, plenty: 2 };
 
@@ -266,6 +255,30 @@ export class StockService {
       partId: lot.partId,
     });
     return destLotId;
+  }
+
+  /** Folds other compatible lots of the same part at the same place into this one. */
+  async consolidate(tx: Executor, lotId: string): Promise<void> {
+    const lot = await tx.select().from(stockLots).where(eq(stockLots.id, lotId)).get();
+    if (!lot) return;
+    const siblings = (
+      await tx
+        .select()
+        .from(stockLots)
+        .where(and(eq(stockLots.partId, lot.partId), eq(stockLots.locationId, lot.locationId)))
+        .all()
+    ).filter((l) => l.id !== lot.id && isCompatible(l, lot));
+    let amount = amountOf(lot);
+    for (const s of siblings) {
+      amount = { ...amount, ...merge(amount, amountOf(s)) };
+      await tx.delete(stockLots).where(eq(stockLots.id, s.id));
+    }
+    if (siblings.length) {
+      await tx
+        .update(stockLots)
+        .set({ quantity: amount.quantity, level: amount.level, updatedAt: nowIso() })
+        .where(eq(stockLots.id, lot.id));
+    }
   }
 
   async lotsOfPart(partId: string, ex: Executor = this.db): Promise<LotView[]> {
