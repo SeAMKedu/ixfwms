@@ -310,7 +310,12 @@
   "picker": {
     "placeholder": "Type a place name or code…",
     "noMatch": "No matching place. A known code works too.",
-    "clear": "Clear"
+    "clear": "Clear",
+    "insidePlaceholder": "Inside {{name}}…",
+    "stepOut": "Search everywhere again",
+    "stepInto": "Look inside {{name}}",
+    "hint": "Tab or → looks inside the highlighted place · Enter chooses",
+    "hintInside": "Enter chooses this place · Tab looks further in · Backspace goes back up"
   },
   "fields": {
     "yes": "yes",
