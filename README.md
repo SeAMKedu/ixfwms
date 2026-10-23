@@ -2,7 +2,7 @@
 
 Parts inventory for the robotics lab: pneumatics, electrical parts, fasteners, filament. It tracks how much of each part we have and exactly where it is (lab › cabinet › shelf › box), uses QR labels, and lets AI assistants work with it over MCP.
 
-Status: **0.3 in progress**. It has a REST API, an MCP server for AI assistants, and a responsive web app: search, part and place pages, Inbox review, editing, login, a camera QR scanner, moving things by scanning (scan, carry, scan), quick-add inventory sessions, and QR labels for the P-touch and laser marking. See [PLAN.md](PLAN.md) for the full plan and roadmap, and [docs/labels.md](docs/labels.md) for printing labels.
+Status: **0.6 in progress**. It has a REST API, an MCP server for AI assistants, and a responsive web app with: search with category-field filters, part and place pages, Inbox review, editing, login, a camera QR scanner, moving things by scanning (scan, carry, scan), quick-add inventory sessions, QR labels for the P-touch and laser marking, spreadsheet import, a "can we build it?" parts-list check, and SVG lab maps. See [PLAN.md](PLAN.md) for the plan and roadmap, [docs/labels.md](docs/labels.md) for printing labels, and [docs/maps.md](docs/maps.md) for lab maps.
 
 ## Run it
 
