@@ -418,6 +418,34 @@ export function createMcpServer(
   );
 
   server.registerTool(
+    'duplicate_location',
+    {
+      title: 'Copy place',
+      description:
+        'Copy a place with all places inside it (not stock), each copy with a new code, e.g. six more cabinets like this one. Copies are named on (Cabinet A → Cabinet B) unless a name is given, and share its maps.',
+      inputSchema: {
+        ref: z.string(),
+        count: z.number().int().min(1).max(20).optional(),
+        name: z.string().optional().describe('Name of the first copy'),
+        parent: z
+          .string()
+          .nullable()
+          .optional()
+          .describe('Where to put the copies; default next to the original'),
+      },
+      annotations: write,
+    },
+    tool(async (a) =>
+      locations.duplicate(
+        a.ref,
+        { count: a.count, name: a.name, parent: a.parent },
+        actor,
+        (tx, pairs) => services.maps.copyMapsFor(tx, pairs),
+      ),
+    ),
+  );
+
+  server.registerTool(
     'attach_file',
     {
       title: 'Attach file or link',

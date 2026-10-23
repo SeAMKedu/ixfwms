@@ -296,20 +296,57 @@ export const importMappings = sqliteTable('import_mappings', {
   updatedAt: updatedAt(),
 });
 
-/** Drawings of a place (lab floor plan, cabinet front view); their element ids link to sub-places. */
-export const locationViews = sqliteTable(
-  'location_views',
+/**
+ * A map drawing (SVG) or model (.glb), drawn once and usable for many places: one cabinet drawing
+ * can serve all identical cabinets. Replacing its file updates every place that uses it.
+ */
+export const mapDrawings = sqliteTable('map_drawings', {
+  id: id(),
+  name: text('name').notNull(),
+  kind: text('kind').$type<MapKind>().notNull(),
+  fileId: text('file_id')
+    .notNull()
+    .references(() => files.id),
+  createdBy: text('created_by').references(() => users.id),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+/** A place shown with a drawing (at most one 2D and one 3D per place). */
+export const mapUsages = sqliteTable(
+  'map_usages',
   {
     id: id(),
     locationId: text('location_id')
       .notNull()
       .references(() => locations.id, { onDelete: 'cascade' }),
-    kind: text('kind').$type<MapKind>().notNull(),
-    fileId: text('file_id')
+    drawingId: text('drawing_id')
       .notNull()
-      .references(() => files.id),
-    createdBy: text('created_by').references(() => users.id),
+      .references(() => mapDrawings.id),
+    kind: text('kind').$type<MapKind>().notNull(),
     createdAt: createdAt(),
   },
-  (t) => [uniqueIndex('location_views_unique').on(t.locationId, t.kind)],
+  (t) => [uniqueIndex('map_usages_unique').on(t.locationId, t.kind)],
+);
+
+/**
+ * Which shape (SVG element id, or 3D object name) stands for which place, set by clicking in the app.
+ * Per usage, so the same cabinet drawing links to each cabinet's own shelves.
+ */
+export const mapLinks = sqliteTable(
+  'map_links',
+  {
+    id: id(),
+    usageId: text('usage_id')
+      .notNull()
+      .references(() => mapUsages.id, { onDelete: 'cascade' }),
+    elementKey: text('element_key').notNull(),
+    targetId: text('target_id')
+      .notNull()
+      .references(() => locations.id, { onDelete: 'cascade' }),
+  },
+  (t) => [
+    uniqueIndex('map_links_element').on(t.usageId, t.elementKey),
+    uniqueIndex('map_links_target').on(t.usageId, t.targetId),
+  ],
 );

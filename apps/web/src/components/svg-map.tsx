@@ -1,4 +1,4 @@
-import { codeFromElementId, type MapLayer } from '@ixfwms/domain';
+import type { MapLayer } from '@ixfwms/domain';
 import { useQuery } from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 import { lazy, Suspense, useEffect, useMemo, useRef } from 'react';
@@ -10,6 +10,15 @@ import { Card, ErrorBox, Loading } from './ui';
 /** three.js is large, so the 3D viewer loads only when a 3D map is shown. */
 const ModelMap = lazy(() => import('./model-map'));
 
+/** Picking shapes to link instead of opening places. */
+export interface MapEditing {
+  selected: string | null;
+  /** The picked shape, and the shapes around it (innermost first) for stepping out to a group. */
+  onSelect: (key: string | null, parents: string[]) => void;
+}
+
+const STATE_CLASSES = ['ixf-place', 'ixf-hit', 'ixf-target', 'ixf-linked', 'ixf-selected'];
+
 /** Drawings can come from anywhere, so scripts, event handlers and external references are stripped. */
 function sanitize(svg: string): string {
   return DOMPurify.sanitize(svg, {
@@ -19,17 +28,22 @@ function sanitize(svg: string): string {
 }
 
 /**
- * One drawing. Elements with ids like "loc:A3F9" become clickable and open that place;
- * codes in `highlight` light up, the last one (the place you're looking for) strongest.
+ * One drawing. Shapes linked to places (`links`: element id → place code) are clickable and open
+ * that place; codes in `highlight` light up, the last one (the place you're looking for) strongest.
+ * With `editing`, any shape with an id can be picked instead.
  */
 export function SvgMap({
   href,
   highlight,
+  links,
   title,
+  editing,
 }: {
   href: string;
   highlight: string[];
+  links: Record<string, string>;
   title: string;
+  editing?: MapEditing;
 }) {
   const navigate = useNavigate();
   const box = useRef<HTMLDivElement>(null);
@@ -39,6 +53,8 @@ export function SvgMap({
     staleTime: Infinity,
   });
   const clean = useMemo(() => (svg.data ? sanitize(svg.data) : ''), [svg.data]);
+  const selected = editing?.selected ?? null;
+  const isEditing = !!editing;
 
   useEffect(() => {
     const root = box.current?.querySelector('svg');
@@ -53,30 +69,73 @@ export function SvgMap({
     root.removeAttribute('height');
     root.setAttribute('role', 'img');
     root.setAttribute('aria-label', title);
-    const present = new Set<string>();
+    let target: SVGElement | null = null;
     for (const el of root.querySelectorAll<SVGElement>('[id]')) {
-      const code = codeFromElementId(el.id);
+      el.classList.remove(...STATE_CLASSES);
+      delete el.dataset.ixfCode;
+      const code = links[el.id];
+      if (isEditing) {
+        el.classList.toggle('ixf-linked', !!code);
+        el.classList.toggle('ixf-selected', el.id === selected);
+        continue;
+      }
       if (!code) continue;
-      present.add(code);
       el.dataset.ixfCode = code;
       el.classList.add('ixf-place');
-      el.classList.toggle('ixf-hit', highlight.includes(code));
+      if (highlight.includes(code)) {
+        el.classList.add('ixf-hit');
+        if (!target || highlight.indexOf(code) > highlight.indexOf(target.dataset.ixfCode!))
+          target = el;
+      }
     }
-    const target = [...highlight].reverse().find((c) => present.has(c));
-    if (target) root.querySelector(`[data-ixf-code="${target}"]`)?.classList.add('ixf-target');
-  }, [clean, highlight, title]);
+    target?.classList.add('ixf-target');
+  }, [clean, highlight, links, title, isEditing, selected]);
 
   if (svg.isPending) return <Loading />;
   if (svg.error) return <ErrorBox error={svg.error} />;
   return (
     <div
       ref={box}
-      className="ixf-map overflow-hidden rounded-lg border border-line bg-white"
+      className={`ixf-map overflow-hidden rounded-lg border border-line bg-white${editing ? ' ixf-editing' : ''}`}
       onClick={(e) => {
+        const root = box.current?.querySelector('svg');
+        if (editing) {
+          const keys: string[] = [];
+          for (let el = (e.target as Element).closest('[id]'); el && el !== root;) {
+            if (!root?.contains(el)) break;
+            keys.push(el.id);
+            el = el.parentElement?.closest('[id]') ?? null;
+          }
+          editing.onSelect(keys[0] ?? null, keys.slice(1));
+          return;
+        }
         const el = (e.target as Element).closest<SVGElement>('[data-ixf-code]');
         if (el?.dataset.ixfCode) void navigate(`/l/${el.dataset.ixfCode}`);
       }}
       dangerouslySetInnerHTML={{ __html: clean }}
+    />
+  );
+}
+
+/** One layer, 2D or 3D. */
+export function MapView({ layer, editing }: { layer: MapLayer; editing?: MapEditing }) {
+  return layer.kind === 'gltf_3d' ? (
+    <Suspense fallback={<Loading />}>
+      <ModelMap
+        href={layer.href}
+        highlight={layer.highlight}
+        links={layer.links}
+        title={layer.location.name}
+        editing={editing}
+      />
+    </Suspense>
+  ) : (
+    <SvgMap
+      href={layer.href}
+      highlight={layer.highlight}
+      links={layer.links}
+      title={layer.location.name}
+      editing={editing}
     />
   );
 }
@@ -92,13 +151,7 @@ export function MapLayers({ code, layers: given }: { code: string; layers?: MapL
     <Card title={t('maps.title')}>
       {layers.map((l) => (
         <figure key={`${l.location.id}-${l.kind}`} className="flex flex-col gap-1.5">
-          {l.kind === 'gltf_3d' ? (
-            <Suspense fallback={<Loading />}>
-              <ModelMap href={l.href} highlight={l.highlight} title={l.location.name} />
-            </Suspense>
-          ) : (
-            <SvgMap href={l.href} highlight={l.highlight} title={l.location.name} />
-          )}
+          <MapView layer={l} />
           <figcaption className="text-[12px] text-muted">
             <Link to={`/l/${l.location.code}`} className="hover:underline">
               {l.location.name}

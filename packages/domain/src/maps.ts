@@ -68,20 +68,51 @@ export function scanSvgCodes(svg: string): string[] {
   return [...codes];
 }
 
-export interface MapCheck {
-  /** Codes in the drawing that are this place's sub-places (anywhere below it). */
-  linked: { code: string; name: string }[];
-  /** Codes in the drawing that don't belong to a place inside this one. */
-  unknown: string[];
-  /** Direct sub-places that aren't drawn yet. */
-  notDrawn: { code: string; name: string }[];
+/** A shape linked to a place, either clicked in ixfwms or named loc-<code> in the drawing ("auto"). */
+export interface MapLink {
+  elementKey: string;
+  code: string;
+  name: string;
+  auto: boolean;
 }
 
-/** One drawing on the way down to a place, with the elements to highlight. */
+/** How well a place's drawing links up with the places inside it: the sanity check. */
+export interface MapCheck {
+  drawing: { id: string; name: string; kind: MapKind; usedBy: number };
+  links: MapLink[];
+  /** Links whose shape is no longer in the drawing (renamed or deleted after a replace). */
+  broken: MapLink[];
+  /** Direct sub-places that no shape stands for yet. */
+  notLinked: { code: string; name: string }[];
+  /** loc-<code> names in the drawing for places that aren't inside this one. */
+  unknown: string[];
+}
+
+/** One drawing on the way down to a place, with what to highlight and what each shape stands for. */
 export interface MapLayer {
   location: LocationSummary;
   kind: MapKind;
+  drawingId: string;
   href: string;
   /** Codes on the path below this place (e.g. the cabinet, shelf and box to light up on the lab plan). */
   highlight: string[];
+  /** Element id / object name → place code. */
+  links: Record<string, string>;
+}
+
+/** A drawing in the shared library and the places that use it. */
+export interface MapDrawingInfo {
+  id: string;
+  name: string;
+  kind: MapKind;
+  href: string;
+  updatedAt: string;
+  usages: { location: LocationSummary; linked: number; broken: number }[];
+}
+
+/** All element ids in an SVG document, for linking shapes to places. */
+export function svgElementIds(svg: string): string[] {
+  return [
+    ...new Set([...svg.matchAll(/\sid\s*=\s*["']([^"']+)["']/g)].map((m) => m[1]!).filter(Boolean)),
+  ];
 }

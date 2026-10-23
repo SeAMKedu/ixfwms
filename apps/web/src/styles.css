@@ -155,3 +155,18 @@ h3 {
   color: var(--surface);
   font-weight: 600;
 }
+
+/* Linking shapes to places: every shape with an id can be picked. */
+.ixf-map.ixf-editing [id] {
+  cursor: crosshair;
+}
+.ixf-map.ixf-editing .ixf-linked:is(rect, path, polygon, circle, ellipse),
+.ixf-map.ixf-editing .ixf-linked :is(rect, path, polygon, circle, ellipse) {
+  fill: color-mix(in srgb, var(--ok) 20%, transparent) !important;
+}
+.ixf-map.ixf-editing .ixf-selected:is(rect, path, polygon, circle, ellipse),
+.ixf-map.ixf-editing .ixf-selected :is(rect, path, polygon, circle, ellipse) {
+  stroke: var(--link) !important;
+  stroke-width: 3px !important;
+  stroke-dasharray: 6 3;
+}

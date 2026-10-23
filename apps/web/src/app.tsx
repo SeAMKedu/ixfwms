@@ -13,6 +13,7 @@ import { HistoryPage } from './pages/history';
 import { ImportPage } from './pages/import';
 import { InboxPage } from './pages/inbox';
 import { LabelsPage } from './pages/labels';
+import { MapsPage } from './pages/maps';
 import { LocationPage } from './pages/location';
 import { LoginPage } from './pages/login';
 import { NotFoundPage } from './pages/not-found';
@@ -39,6 +40,7 @@ const routes = [
       { path: '/l/:code/add', element: <SessionPage /> },
       { path: '/carry', element: <CarryPage /> },
       { path: '/labels', element: <LabelsPage /> },
+      { path: '/maps', element: <MapsPage /> },
       { path: '/categories', element: <CategoriesPage /> },
       { path: '/import', element: <ImportPage /> },
       { path: '/bom', element: <BomPage /> },

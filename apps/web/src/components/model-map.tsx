@@ -1,4 +1,3 @@
-import { codeFromObjectName } from '@ixfwms/domain';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -7,16 +6,24 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { CSS2DObject, CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import { usePlaces } from '../api/queries';
+import type { MapEditing } from './svg-map';
 import { ErrorBox } from './ui';
 
 const HIT = new THREE.Color('#1d5ea8');
 const CLICK_TOLERANCE_PX = 5;
 
-/** The place code an object stands for: its own name, or the nearest named ancestor's. */
-function codeOf(object: THREE.Object3D | null): { code: string; object: THREE.Object3D } | null {
+/** The object's name as in Blender (three.js tidies `name`, the loader keeps the original). */
+function keyOf(o: THREE.Object3D): string {
+  return typeof o.userData.name === 'string' ? o.userData.name : o.name;
+}
+
+/** The place an object stands for: its own link, or the nearest linked ancestor's. */
+function codeOf(
+  object: THREE.Object3D | null,
+  links: Record<string, string>,
+): { code: string; object: THREE.Object3D } | null {
   for (let o = object; o; o = o.parent) {
-    const name = typeof o.userData.name === 'string' ? o.userData.name : o.name;
-    const code = codeFromObjectName(name);
+    const code = links[keyOf(o)];
     if (code) return { code, object: o };
   }
   return null;
@@ -69,17 +76,22 @@ function frame(
 }
 
 /**
- * A 3D model of a place (glTF from Blender). Objects named "loc-<code>" are places: the path in
- * `highlight` is tinted and labelled, the camera turns to the last of them, and clicking opens a place.
+ * A 3D model of a place (glTF from Blender). Objects linked to places (`links`: object name →
+ * code) are tinted and labelled along the path in `highlight`, the camera turns to the last of
+ * them, and clicking opens a place. With `editing`, any named object can be picked instead.
  */
 export default function ModelMap({
   href,
   highlight,
+  links,
   title,
+  editing,
 }: {
   href: string;
   highlight: string[];
+  links: Record<string, string>;
   title: string;
+  editing?: MapEditing;
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -92,6 +104,27 @@ export default function ModelMap({
     [places.data],
   );
   const highlightKey = highlight.join(',');
+  const linksKey = JSON.stringify(links);
+  const isEditing = !!editing;
+  const selected = editing?.selected ?? null;
+  // Picking must not rebuild the scene, so the callback and named objects live in refs.
+  const onSelect = useRef(editing?.onSelect);
+  useEffect(() => {
+    onSelect.current = editing?.onSelect;
+  });
+  const sceneRef = useRef<{ scene: THREE.Scene; named: Map<string, THREE.Object3D> } | null>(null);
+
+  useEffect(() => {
+    const current = sceneRef.current;
+    const object = selected ? current?.named.get(selected) : undefined;
+    if (!current || !object) return;
+    const outline = new THREE.BoxHelper(object, HIT);
+    current.scene.add(outline);
+    return () => {
+      current.scene.remove(outline);
+      outline.dispose();
+    };
+  }, [selected, linksKey]);
 
   useEffect(() => {
     const container = box.current;
@@ -132,11 +165,19 @@ export default function ModelMap({
         if (disposed) return;
         scene.add(gltf.scene);
         const linked = new Map<string, THREE.Object3D>();
+        const named = new Map<string, THREE.Object3D>();
         gltf.scene.traverse((o) => {
-          const found = codeOf(o);
+          if (o !== gltf.scene && keyOf(o) && !named.has(keyOf(o))) named.set(keyOf(o), o);
+          const found = codeOf(o, links);
           if (found && found.object === o && !linked.has(found.code)) linked.set(found.code, o);
         });
-        pickable = [...linked.values()];
+        sceneRef.current = { scene, named };
+        pickable = isEditing ? [gltf.scene] : [...linked.values()];
+        if (isEditing) {
+          for (const o of linked.values()) tint(o, 0.3);
+          frame(camera, controls, new THREE.Box3().setFromObject(gltf.scene), 1.1);
+          return;
+        }
         const present = highlight.filter((c) => linked.has(c));
         const target = present[present.length - 1];
         for (const code of present) {
@@ -169,20 +210,34 @@ export default function ModelMap({
         -((event.clientY - rect.top) / rect.height) * 2 + 1,
       );
       raycaster.setFromCamera(pointer, camera);
-      const hit = raycaster.intersectObjects(pickable, true)[0];
-      return hit ? codeOf(hit.object) : null;
+      return raycaster.intersectObjects(pickable, true)[0]?.object ?? null;
+    };
+    /** The picked object's name and its named ancestors', innermost first. */
+    const namesUp = (object: THREE.Object3D | null) => {
+      const keys: string[] = [];
+      for (let o = object; o && o.parent; o = o.parent) if (keyOf(o)) keys.push(keyOf(o));
+      return keys;
     };
     let downAt: { x: number; y: number } | null = null;
     const onDown = (e: PointerEvent) => (downAt = { x: e.clientX, y: e.clientY });
     const onUp = (e: PointerEvent) => {
       if (downAt && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) < CLICK_TOLERANCE_PX) {
-        const found = pick(e);
-        if (found) void navigate(`/l/${found.code}`);
+        const hit = pick(e);
+        if (isEditing) {
+          const keys = namesUp(hit);
+          onSelect.current?.(keys[0] ?? null, keys.slice(1));
+        } else {
+          const found = codeOf(hit, links);
+          if (found) void navigate(`/l/${found.code}`);
+        }
       }
       downAt = null;
     };
     const onMove = (e: PointerEvent) => {
-      if (e.buttons === 0) renderer.domElement.style.cursor = pick(e) ? 'pointer' : 'grab';
+      if (e.buttons !== 0) return;
+      const hit = pick(e);
+      const pointing = isEditing ? !!hit : !!codeOf(hit, links);
+      renderer.domElement.style.cursor = pointing ? (isEditing ? 'crosshair' : 'pointer') : 'grab';
     };
     renderer.domElement.addEventListener('pointerdown', onDown);
     renderer.domElement.addEventListener('pointerup', onUp);
@@ -204,6 +259,7 @@ export default function ModelMap({
 
     return () => {
       disposed = true;
+      sceneRef.current = null;
       renderer.setAnimationLoop(null);
       resize.disconnect();
       controls.dispose();
@@ -219,9 +275,9 @@ export default function ModelMap({
       renderer.dispose();
       container.replaceChildren();
     };
-    // Rebuild only when the model or the highlighted path changes.
+    // Rebuild only when the model, its links or the highlighted path change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [href, highlightKey, title, names]);
+  }, [href, highlightKey, linksKey, title, names, isEditing]);
 
   return (
     <div className="flex flex-col gap-1">
@@ -230,7 +286,9 @@ export default function ModelMap({
         className="relative overflow-hidden rounded-lg border border-line bg-surface-2"
       />
       {error && <ErrorBox error={error} />}
-      <p className="text-[12px] text-muted">{t('maps.model3dHint')}</p>
+      <p className="text-[12px] text-muted">
+        {t(isEditing ? 'maps.model3dPickHint' : 'maps.model3dHint')}
+      </p>
     </div>
   );
 }

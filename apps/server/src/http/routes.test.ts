@@ -322,9 +322,23 @@ describe('maps over HTTP', () => {
       })
     ).json<{ id: string; href: string }>();
     expect(await req('PUT', `/api/locations/${lab.code}/map`, { fileId: file.id })).toMatchObject({
-      linked: [{ code: cab.code }],
+      links: [{ code: cab.code }],
     });
     expect(await req('GET', `/api/locations/${lab.code}/map/check`)).toMatchObject({ unknown: [] });
+    expect(
+      await req('PUT', `/api/locations/${lab.code}/map/links`, {
+        elementKey: `loc:${cab.code}`,
+        target: null,
+      }),
+    ).toMatchObject({ links: [{ auto: true }] });
+    const copies = await req<{ code: string; name: string }[]>(
+      'POST',
+      `/api/locations/${cab.code}/duplicate`,
+      { count: 2 },
+    );
+    expect(copies.map((c) => c.name)).toEqual(['Cab 2', 'Cab 3']);
+    const library = await req<{ usages: unknown[] }[]>('GET', '/api/map-drawings');
+    expect(library).toEqual([expect.objectContaining({ usages: [expect.anything()] })]);
     const layers = await req<{ href: string; highlight: string[] }[]>(
       'GET',
       `/api/maps/${cab.code}`,

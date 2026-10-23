@@ -12,6 +12,7 @@ import {
   LogIn,
   LogOut,
   MapPin,
+  Map as MapIcon,
   QrCode,
   ScanLine,
   Search,
@@ -175,6 +176,7 @@ export function Layout() {
   // Occasional pages: tucked under "More" so the everyday ones stand out.
   const more: SideLinkItem[] = [
     { to: '/labels', label: t('nav.labels'), icon: QrCode },
+    { to: '/maps', label: t('nav.maps'), icon: MapIcon },
     { to: '/history', label: t('nav.history'), icon: History },
     { to: '/setup', label: t('nav.setup'), icon: Smartphone },
     ...(can('admin')

@@ -2,6 +2,8 @@ import {
   DEFAULT_LOCATION_TYPES,
   isValidCode,
   normalizeCode,
+  nextFreeName,
+  DuplicateLocationInput,
   type CreateLocationInput,
   type LocationKind,
   type LocationNode,
@@ -114,6 +116,68 @@ export class LocationService {
       const loc = await this.resolve(ref, tx);
       await this.moveWithin(tx, loc, newParentRef, who);
       return this.summarize(tx, await this.resolve(loc.id, tx));
+    });
+  }
+
+  /**
+   * Copies a place with everything below it (names, types, descriptions; not stock), each copy
+   * with a new code. Copies are named on from the original (Cabinet A → Cabinet B, C…) unless a
+   * name is given. `afterCopy` gets original → copy ids, for copying maps along.
+   */
+  async duplicate(
+    ref: string,
+    input: DuplicateLocationInput,
+    actor: Actor | null,
+    afterCopy?: (tx: Executor, pairs: Map<string, string>) => Promise<void>,
+  ): Promise<LocationSummary[]> {
+    const who = requireScope(actor, 'inventory');
+    const { name, parent, count } = DuplicateLocationInput.parse(input);
+    return this.db.transaction(async (tx) => {
+      const original = await this.resolve(ref, tx);
+      if (original.kind !== 'normal')
+        throw invalid(`The ${original.name} location can't be copied`);
+      const parentId =
+        parent === undefined ? original.parentId : parent && (await this.resolve(parent, tx)).id;
+      const inside = await tx
+        .select()
+        .from(locations)
+        .where(like(locations.path, `${original.path}%`))
+        .all();
+      const types = new Map(
+        (await tx.select().from(locationTypes).all()).map((t) => [t.id, t.key]),
+      );
+      const copies: LocationSummary[] = [];
+      let previous = original.name;
+      for (let n = 0; n < count; n++) {
+        const siblings = await tx
+          .select({ name: locations.name })
+          .from(locations)
+          .where(parentId ? eq(locations.parentId, parentId) : isNull(locations.parentId))
+          .all();
+        const taken = siblings.map((s) => s.name);
+        const copyName = name && n === 0 ? name : nextFreeName(previous, taken);
+        previous = copyName;
+        const pairs = new Map<string, string>();
+        // Parents come before children when sorted by path length.
+        for (const row of [...inside].sort((a, b) => a.path.length - b.path.length)) {
+          const isRoot = row.id === original.id;
+          const copy = await this.insert(tx, {
+            name: isRoot ? copyName : row.name,
+            parent: isRoot ? parentId : pairs.get(row.parentId!)!,
+            typeKey: types.get(row.typeId) ?? 'box',
+            kind: 'normal',
+            description: row.description,
+          });
+          pairs.set(row.id, copy.id);
+          if (isRoot) copies.push(await this.summarize(tx, copy));
+        }
+        await afterCopy?.(tx, pairs);
+        await audit(tx, who, 'duplicate', 'location', pairs.get(original.id)!, {
+          from: original.id,
+          places: pairs.size,
+        });
+      }
+      return copies;
     });
   }
 

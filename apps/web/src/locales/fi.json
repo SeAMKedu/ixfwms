@@ -25,7 +25,8 @@
     "setup": "Puhelin- ja AI-asetukset",
     "account": "Oma tili",
     "admin": "Ylläpito",
-    "more": "Lisää"
+    "more": "Lisää",
+    "maps": "Kartat"
   },
   "common": {
     "save": "Tallenna",
@@ -213,7 +214,16 @@
     "unassignedText": "Tätä koodia ei ole vielä käytetty (ehkä tyhjästä tarrasta). Rekisteröi paikka, johon tarra on kiinnitetty.",
     "parentCode": "Sisällä",
     "create": "Luo paikka",
-    "addItems": "Lisää osia"
+    "addItems": "Lisää osia",
+    "copy": "Kopioi",
+    "copyHint_one": "Kopioi tämän paikan ja sen sisällä olevan {{count}} paikan alempineen uusilla koodeilla. Osia ja varastoa ei kopioida.",
+    "copyHint_other": "Kopioi tämän paikan ja sen sisällä olevat {{count}} paikkaa alempineen uusilla koodeilla. Osia ja varastoa ei kopioida.",
+    "copyCount": "Montako",
+    "copyName": "Nimi",
+    "copyNameHint": "Tyhjä: numeroidaan tästä eteenpäin",
+    "copyWhere": "Kopioiden paikka",
+    "copyMaps": "Käytä samoja karttoja, yhdistettyinä kopioihin",
+    "copyDo": "Tee kopiot"
   },
   "inbox": {
     "title": "Saapuneet",
@@ -473,21 +483,57 @@
   "maps": {
     "title": "Kartalla",
     "manage": "Tämän paikan kartta",
-    "howTo": "Lataa SVG-piirros (Inkscape, Illustrator) tai Blenderistä .glb-muodossa viety 3D-malli. Nimeä jokainen tämän sisällä olevaa paikkaa esittävä muoto tai objekti loc- ja paikan koodi, esim. {{example}} (myös loc: ja loc_ käyvät). Niistä tulee klikattavia, ja ne korostuvat kun etsitään ”missä se on”.",
+    "howTo": "Lataa SVG-piirros (Inkscape, Illustrator) tai Blenderistä .glb-muodossa viety 3D-malli, ja yhdistä sitten muodot paikkoihin kohdasta ”Yhdistä muodot”: napsauta muotoa ja valitse paikka. Muodot tai objektit, joiden nimi on loc- ja koodi, esim. {{example}}, yhdistyvät itsestään.",
     "upload": "Lataa SVG-kartta tai 3D-malli (.glb)",
     "replace": "Vaihda kartta",
     "remove": "Poista kartta",
     "showOnMap": "Kartta",
     "linked_one": "{{count}} paikka linkitetty",
     "linked_other": "{{count}} paikkaa linkitetty",
-    "notDrawn": "Ei vielä piirroksessa:",
     "unknown": "Tunnisteet paikoille, jotka eivät ole tämän sisällä: {{codes}}",
     "starter": "Lataa aloituspiirros",
     "model3dHint": "Vedä kääntääksesi, rullaa tai nipistä zoomataksesi, napsauta korostettua objektia avataksesi sen.",
     "kinds": {
       "svg_2d": "2D-piirros",
       "gltf_3d": "3D-malli"
-    }
+    },
+    "notLinked": "Ei vielä muotoa:",
+    "broken_one": "{{count}} yhteys menetti muotonsa (piirros muuttui):",
+    "broken_other": "{{count}} yhteyttä menetti muotonsa (piirros muuttui):",
+    "unlink": "Poista yhteys",
+    "linkShapes": "Yhdistä muodot",
+    "doneLinking": "Valmis",
+    "pickShape": "Napsauta piirroksen muotoa yhdistääksesi sen tämän sisällä olevaan paikkaan.",
+    "selectedShape": "Valittu muoto",
+    "byName": "nimen perusteella",
+    "selectGroup": "Valitse ympäröivä ryhmä ({{id}})",
+    "linkTo": "Yhdistä paikkaan",
+    "linkOther": "…tai muuhun sisällä olevaan paikkaan",
+    "sharedWith_one": "Yhteinen {{count}} muun paikan kanssa",
+    "sharedWith_other": "Yhteinen {{count}} muun paikan kanssa",
+    "replaceShared_one": "Piirros on {{count}} paikan käytössä. Korvataanko se?",
+    "replaceShared_other": "Piirros on {{count}} paikan käytössä. Korvataanko se kaikilta?",
+    "replacedFor_one": "Korvattu {{count}} paikalta.",
+    "replacedFor_other": "Korvattu {{count}} paikalta.",
+    "brokenAfter_one": "{{count}} yhteys menetti muotonsa; korjaa se kartan paikan sivulla.",
+    "brokenAfter_other": "{{count}} yhteyttä menetti muotonsa; korjaa ne karttojen paikkojen sivuilla.",
+    "copyLinksFrom": "Yhdistä kuten",
+    "copyLinks": "Kopioi yhteydet",
+    "copyOverwrites": "Tämä korvaa täällä tehdyt yhteydet. Jatketaanko?",
+    "useExisting": "Tai käytä kirjaston piirrosta",
+    "linkLike": "Yhdistetty kuten",
+    "noLinks": "(ei vielä yhteyksiä)",
+    "replacesOwn": "Paikalla on jo tämän tyyppinen kartta; käytetäänkö tätä sen sijaan?",
+    "use": "Käytä",
+    "model3dPickHint": "Käännä vetämällä, zoomaa vierittämällä tai nipistämällä, valitse objekti napsauttamalla.",
+    "library": "Kartat",
+    "addToLibrary": "Lisää piirros",
+    "libraryIntro": "Piirroksia ja 3D-malleja voi jakaa: piirrä kaappi kerran ja käytä sitä kaikille samanlaisille kaapeille. Piirroksen korvaaminen päivittää kaikki sitä käyttävät paikat, ja muotonsa menettäneet yhteydet näkyvät täällä.",
+    "libraryEmpty": "Ei vielä karttoja. Lisää kartta täällä tai paikan sivulla.",
+    "drawingName": "Piirroksen nimi",
+    "openFile": "tiedosto",
+    "unused": "Ei minkään paikan käytössä.",
+    "brokenHint": "Osa yhteyksistä osoittaa muotoihin, joita piirroksessa ei enää ole. Avaa paikka ja yhdistä ne uudelleen."
   },
   "users": {
     "title": "Käyttäjät",
@@ -612,7 +658,8 @@
     "addItems": "Lisää osia tänne",
     "editPlace": "Muokkaa tätä paikkaa",
     "movePlace": "Siirrä tämä paikka",
-    "pickUp": "Ota tämä paikka mukaan"
+    "pickUp": "Ota tämä paikka mukaan",
+    "copyPlace": "Kopioi tämä paikka"
   },
   "colours": {
     "black": "musta",

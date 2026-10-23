@@ -1,11 +1,18 @@
-import { DEFAULT_LOCATION_TYPES, isValidCode, normalizeCode } from '@ixfwms/domain';
-import { ChevronRight, Hand, Pencil, Plus } from 'lucide-react';
+import {
+  DEFAULT_LOCATION_TYPES,
+  isValidCode,
+  nextName,
+  normalizeCode,
+  type LocationDetail,
+} from '@ixfwms/domain';
+import { ChevronRight, Copy, Hand, Pencil, Plus } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router';
 import {
   useCodeInfo,
   useCreateLocation,
+  useDuplicateLocation,
   useLocation,
   useMapLayers,
   useMoveLocation,
@@ -177,11 +184,11 @@ function Missing({ code }: { code: string }) {
 function LocationMaps({ code, canEdit }: { code: string; canEdit: boolean }) {
   const layers = useMapLayers(code);
   if (!layers.data) return null;
-  const kinds = layers.data.filter((l) => l.location.code === code).map((l) => l.kind);
+  const own = layers.data.filter((l) => l.location.code === code);
   return (
     <>
       <MapLayers code={code} layers={layers.data} />
-      {canEdit && <MapManager code={code} kinds={kinds} />}
+      {canEdit && <MapManager code={code} layers={own} />}
     </>
   );
 }
@@ -198,7 +205,84 @@ const NEXT_TYPE: Record<string, string> = {
   box: 'bin',
 };
 
-type Panel = 'new' | 'edit' | 'move' | null;
+type Panel = 'new' | 'edit' | 'move' | 'copy' | null;
+
+/** Copies of a place with everything below it, e.g. the other six cabinets like this one. */
+function CopyPlaceForm({ place, onDone }: { place: LocationDetail; onDone: () => void }) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const parentOf = place.path.length > 1 ? (place.path[place.path.length - 2]?.code ?? '') : '';
+  const [count, setCount] = useState('1');
+  const [name, setName] = useState('');
+  const [parent, setParent] = useState(parentOf);
+  const [maps, setMaps] = useState(true);
+  const duplicate = useDuplicateLocation(place.code);
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    const copies = await duplicate.mutateAsync({
+      count: Math.min(20, Math.max(1, Number(count) || 1)),
+      name: name.trim() || null,
+      parent: parent ? normalizeCode(parent) : null,
+      maps,
+    });
+    onDone();
+    if (copies.length === 1) void navigate(`/l/${copies[0]!.code}`);
+    else if (parent) void navigate(`/l/${normalizeCode(parent)}`);
+  };
+  return (
+    <form
+      onSubmit={(e) => void submit(e)}
+      className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-4"
+    >
+      <p className="text-sm text-muted">{t('places.copyHint', { count: place.children.length })}</p>
+      <div className="grid gap-2 sm:grid-cols-[6rem_minmax(0,1fr)]">
+        <Field label={t('places.copyCount')}>
+          {(id) => (
+            <TextInput
+              id={id}
+              type="number"
+              min={1}
+              max={20}
+              value={count}
+              onChange={(e) => setCount(e.target.value)}
+            />
+          )}
+        </Field>
+        <Field label={t('places.copyName')} hint={t('places.copyNameHint')}>
+          {(id) => (
+            <TextInput
+              id={id}
+              value={name}
+              placeholder={nextName(place.name)}
+              onChange={(e) => setName(e.target.value)}
+            />
+          )}
+        </Field>
+      </div>
+      <Field label={t('places.copyWhere')}>
+        {(id) => (
+          <PlacePicker
+            id={id}
+            value={parent}
+            onChange={setParent}
+            exclude={(p) => p.pathCodes.includes(place.code)}
+          />
+        )}
+      </Field>
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" checked={maps} onChange={(e) => setMaps(e.target.checked)} />
+        {t('places.copyMaps')}
+      </label>
+      <ErrorBox error={duplicate.error} />
+      <div className="flex gap-2">
+        <Button type="submit" variant="primary" busy={duplicate.isPending}>
+          {t('places.copyDo')}
+        </Button>
+        <Button onClick={onDone}>{t('common.cancel')}</Button>
+      </div>
+    </form>
+  );
+}
 
 export function LocationPage() {
   const { t } = useTranslation();
@@ -228,6 +312,7 @@ export function LocationPage() {
   useShortcut('a', t('shortcuts.addItems'), () => void navigate(`/l/${code}/add`), editable);
   useShortcut('e', t('shortcuts.editPlace'), () => openPanel('edit'), editable);
   useShortcut('m', t('shortcuts.movePlace'), () => openPanel('move'), editable);
+  useShortcut('d', t('shortcuts.copyPlace'), () => openPanel('copy'), editable);
   useShortcut('p', t('shortcuts.pickUp'), () => pick.mutate({ location: code }), editable);
   if (loc.isPending) return <Loading />;
   if (isNotFound(loc.error)) return <Missing code={code} />;
@@ -279,6 +364,13 @@ export function LocationPage() {
                 variant={panel === 'move' ? 'dark' : 'secondary'}
               >
                 {t('common.move')}
+              </Button>
+              <Button
+                onClick={() => openPanel('copy')}
+                variant={panel === 'copy' ? 'dark' : 'secondary'}
+              >
+                <Copy className="size-4" aria-hidden />
+                {t('places.copy')}
               </Button>
             </>
           )
@@ -340,6 +432,8 @@ export function LocationPage() {
           </div>
         </form>
       )}
+
+      {panel === 'copy' && <CopyPlaceForm place={d} onDone={() => setPanel(null)} />}
 
       <div className="grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
         <Card

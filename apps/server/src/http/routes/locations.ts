@@ -1,4 +1,9 @@
-import { CreateLocationInput, UpdateLocationInput, buildCodeUrl } from '@ixfwms/domain';
+import {
+  CreateLocationInput,
+  DuplicateLocationInput,
+  UpdateLocationInput,
+  buildCodeUrl,
+} from '@ixfwms/domain';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { baseUrl, parse, QueryBool, type AppDeps } from '../context.js';
@@ -6,7 +11,7 @@ import { baseUrl, parse, QueryBool, type AppDeps } from '../context.js';
 const RefParams = z.object({ ref: z.string() });
 
 export function registerLocationRoutes(app: FastifyInstance, { config, services }: AppDeps): void {
-  const { locations, locationViews } = services;
+  const { locations, locationViews, maps } = services;
 
   app.get('/api/locations', async (request) => {
     const q = parse(
@@ -43,6 +48,16 @@ export function registerLocationRoutes(app: FastifyInstance, { config, services 
     const { ref } = parse(RefParams, request.params);
     const { parent } = parse(z.object({ parent: z.string().nullable() }), request.body);
     return locations.move(ref, parent, request.actor);
+  });
+
+  /** Copies a place with everything below it (not stock), e.g. six more cabinets like this one. */
+  app.post('/api/locations/:ref/duplicate', async (request, reply) => {
+    const { ref } = parse(RefParams, request.params);
+    const input = parse(DuplicateLocationInput, request.body ?? {});
+    const copies = await locations.duplicate(ref, input, request.actor, (tx, pairs) =>
+      input.maps ? maps.copyMapsFor(tx, pairs) : Promise.resolve(),
+    );
+    return reply.status(201).send(copies);
   });
 
   /** Data for printing a label: what the QR encodes and the text next to it. */

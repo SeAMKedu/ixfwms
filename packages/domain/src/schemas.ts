@@ -27,6 +27,24 @@ export const CreateLocationInput = z.object({
 });
 export type CreateLocationInput = z.infer<typeof CreateLocationInput>;
 
+export const DuplicateLocationInput = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1)
+    .max(200)
+    .nullish()
+    .describe(
+      'Name of the (first) copy; by default the next free name, e.g. Cabinet A → Cabinet B',
+    ),
+  parent: RefSchema.nullish().describe(
+    'Where the copies go; omit to put them next to the original, null for the top level',
+  ),
+  count: z.number().int().min(1).max(20).default(1),
+  maps: z.boolean().default(true).describe('Use the same maps, with shapes linked to the copies'),
+});
+export type DuplicateLocationInput = z.input<typeof DuplicateLocationInput>;
+
 export const UpdateLocationInput = z.object({
   name: z.string().trim().min(1).max(200).optional(),
   type: z.string().trim().min(1).max(40).optional(),
