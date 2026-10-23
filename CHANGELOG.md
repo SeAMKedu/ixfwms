@@ -1,6 +1,16 @@
 # Changelog
 
 All notable changes to ixfwms.
+## 0.7.0 (2026-10-23)
+
+### Features
+- shared lab maps linked in the app, and copying places
+- readable place addresses and editable place types
+- compact maps, settings sections, temporary places, import samples
+
+### Documentation
+- drop note about older label templates
+- plan status for 0.7, adapters move to 0.8
 ## 0.6.0 (2026-10-23)
 
 ### Features
