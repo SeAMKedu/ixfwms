@@ -36,6 +36,22 @@ docker compose exec ixfwms node apps/server/dist/cli.js token:create --user your
 
 All state (database, uploaded files, backups) lives in the `ixfwms-data` volume. For HTTPS, which the phone camera scanner needs from 0.3, use `docker compose --profile https up -d` and set `IXF_SITE_ADDRESSES` in `.env`.
 
+## Keyboard shortcuts
+
+Press `?` anywhere for the list that applies to the current page. The main ones:
+
+| Keys                                             |                                                                          |
+| ------------------------------------------------ | ------------------------------------------------------------------------ |
+| `/`                                              | search parts                                                             |
+| `g` then `p` / `i` / `l` / `s` / `c` / `h` / `b` | parts, Inbox, places, scan, carrying, history, can-we-build              |
+| `n`                                              | new part                                                                 |
+| `j` / `k`, Enter                                 | move through search results, open one (↓ from the search box also works) |
+| `e`, `t`, `m`, `c`, `a`, `r`                     | on a part: edit, take, move, carry, add stock, mark reviewed             |
+| `a`, `e`, `m`, `p`                               | on a place: add items, edit, move, pick up                               |
+| Tab / → in a place field                         | step into the highlighted place; Backspace steps out                     |
+
+Shortcuts don't fire while you're typing in a field. Esc leaves the field.
+
 ## Configuration
 
 Everything is optional and set with environment variables (or `.env` with Docker). See [.env.example](.env.example).
