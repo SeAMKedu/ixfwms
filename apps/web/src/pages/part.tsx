@@ -648,7 +648,7 @@ export function PartPage() {
         </Card>
         {can('write') && p.status === 'active' && <Review part={p} />}
       </div>
-      <LabelPanel code={p.code} />
+      <LabelPanel code={p.code} fix={canEdit ? 'part' : undefined} />
     </>
   );
 }

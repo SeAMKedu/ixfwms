@@ -300,7 +300,16 @@
     "ptouchTitle": "Tulostus P-touchilla",
     "ptouchSteps": "Tee P-touch Editorissa kerran yksi pohja kutakin teippileveyttä varten: QR-koodiobjekti linkitettynä qr-sarakkeeseen ja tekstiobjektit sarakkeille code, name ja path. Sitten Tiedosto › Tietokanta › Yhdistä, valitse ladattu CSV ja tulosta kaikki tietueet. Yksittäisen tarran voi tulostaa puhelimesta PNG:nä Brotherin sovelluksella.",
     "laserTitle": "Laserkaiverrus",
-    "laserIntro": "DXF- ja SVG-QR-koodit ovat millimetrimittaisia vektorimuotoja, ja niissä on vahvempi virheenkorjaus naarmuuntuneita tai likaisia tarroja varten."
+    "laserIntro": "DXF- ja SVG-QR-koodit ovat millimetrimittaisia vektorimuotoja, ja niissä on vahvempi virheenkorjaus naarmuuntuneita tai likaisia tarroja varten.",
+    "batchesTitle": "Tulostetut tyhjät tarrat",
+    "batchesIntro": "Joka kerta kun tyhjiä tarroja varataan, koodit tallentuvat eräksi. Hukkuiko tuloste? Lataa käyttämättömät koodit uudelleen. Katosiko tai vaurioituiko tarroja? Poista niiden koodit käytöstä, niin niitä ei käytetä.",
+    "batchCounts": "{{unused}} käyttämättä · {{used}} käytössä · {{retired}} poistettu",
+    "downloadUnused": "Lataa käyttämättömät uudelleen (CSV)",
+    "showCodes": "Näytä koodit",
+    "hideCodes": "Piilota koodit",
+    "retire_one": "Poista {{count}} koodi käytöstä",
+    "retire_other": "Poista {{count}} koodia käytöstä",
+    "retireHint": "Käytöstä poistettuja koodeja ei anneta enää koskaan. Sellaisen skannaus kertoo, että tarra kuuluu heittää pois."
   },
   "session": {
     "title": "Lisää osia",
@@ -627,5 +636,18 @@
     "custom": "Oma sävy",
     "countsAs": "lasketaan värinä",
     "clear": "Tyhjennä"
+  },
+  "labelFix": {
+    "open": "Väärä tai kadonnut tarra?",
+    "sticker": "Siihen kiinnitetyn tarran koodi",
+    "stickerHint": "Tarra, joka siinä oikeasti on (esim. tyhjä tarra)",
+    "useSticker": "Käytä tätä tarraa",
+    "swapWith": "Vaihda koodit paikan kanssa",
+    "swapHint": "Kun kaksi tarraa on mennyt ristiin",
+    "swap": "Vaihda",
+    "fresh": "Uusi koodi",
+    "freshHint": "Tulosta sitten uusi tarra. Vanha koodi poistetaan käytöstä joka tapauksessa.",
+    "retiredTitle": "Käytöstä poistettu tarra",
+    "retiredText": "Tämä tarra poistettiin käytöstä {{date}}. Heitä se pois, tai skannaa vieressä oleva tarra."
   }
 }

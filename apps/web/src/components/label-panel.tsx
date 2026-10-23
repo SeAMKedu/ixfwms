@@ -2,6 +2,7 @@ import { Download } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { saveBlob } from '../api/client';
+import { LabelFix } from './label-fix';
 import { Button, Card, ErrorBox, Segmented } from './ui';
 
 type Tape = '9' | '12' | '24';
@@ -36,7 +37,15 @@ async function svgToPng(svgUrl: string): Promise<Blob> {
 }
 
 /** Preview and downloads for one code's label: PNG for the P-touch app, SVG, DXF for laser marking. */
-export function LabelPanel({ code, csvHref }: { code: string; csvHref?: string }) {
+export function LabelPanel({
+  code,
+  csvHref,
+  fix,
+}: {
+  code: string;
+  csvHref?: string;
+  fix?: 'location' | 'part';
+}) {
   const { t } = useTranslation();
   const [tape, setTape] = useState<Tape>('12');
   const [error, setError] = useState<unknown>(null);
@@ -88,6 +97,7 @@ export function LabelPanel({ code, csvHref }: { code: string; csvHref?: string }
         )}
       </div>
       <ErrorBox error={error} />
+      {fix && <LabelFix kind={fix} code={code} />}
     </Card>
   );
 }

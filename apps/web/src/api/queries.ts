@@ -12,6 +12,7 @@ import type {
   UserInfo,
   UserRole,
   CodeInfo,
+  LabelBatch,
   AttachmentView,
   CreateLocationInput,
   CreatePartInput,
@@ -265,3 +266,14 @@ export const useBackups = (enabled: boolean) =>
   });
 export const useBackupNow = () =>
   useChange(() => api<{ file: string }>('/api/backups', { body: {} }));
+
+export const useLabelBatches = (enabled: boolean) =>
+  useQuery({
+    queryKey: ['labelBatches'],
+    queryFn: () => api<LabelBatch[]>('/api/labels/batches'),
+    enabled,
+  });
+export const useRetireCodes = () =>
+  useChange((codes: string[]) =>
+    api<{ retired: number }>('/api/labels/retire', { body: { codes } }),
+  );

@@ -168,7 +168,7 @@ function Missing({ code }: { code: string }) {
   const { can } = useSession();
   const normalized = normalizeCode(code);
   const info = useCodeInfo(normalized, isValidCode(normalized));
-  if (info.data && !info.data.assigned && can('inventory'))
+  if (info.data && !info.data.assigned && !info.data.retired && can('inventory'))
     return <NewPlaceWithCode code={info.data.code} />;
   return <NotFoundPage code={code} />;
 }
@@ -432,7 +432,11 @@ export function LocationPage() {
       </div>
       <LocationMaps code={d.code} canEdit={canEdit} />
       {d.kind === 'normal' && (
-        <LabelPanel code={d.code} csvHref={`/api/labels.csv?location=${d.code}&recursive=1`} />
+        <LabelPanel
+          code={d.code}
+          csvHref={`/api/labels.csv?location=${d.code}&recursive=1`}
+          fix={canEdit ? 'location' : undefined}
+        />
       )}
     </>
   );

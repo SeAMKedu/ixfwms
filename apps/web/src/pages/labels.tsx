@@ -3,9 +3,110 @@ import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { download } from '../api/client';
 import { qs } from '../api/client';
+import { useLabelBatches, useRetireCodes } from '../api/queries';
 import { useSession } from '../auth/session';
+import { formatDate } from '../lib/format';
 import { PlacePicker } from '../components/place-picker';
 import { Button, Card, ErrorBox, Field, PageHeader, Select, TextInput } from '../components/ui';
+
+/** Printed blank-label batches: get a lost printout again, or retire codes whose labels are gone. */
+function Batches() {
+  const { t } = useTranslation();
+  const batches = useLabelBatches(true);
+  const retire = useRetireCodes();
+  const [open, setOpen] = useState<string | null>(null);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  if (!batches.data?.length) return null;
+  const toggle = (code: string) =>
+    setPicked((cur) => {
+      const next = new Set(cur);
+      if (next.has(code)) next.delete(code);
+      else next.add(code);
+      return next;
+    });
+  return (
+    <Card title={t('labels.batchesTitle')} className="md:col-span-2">
+      <p className="text-sm text-muted">{t('labels.batchesIntro')}</p>
+      <ul className="flex flex-col">
+        {batches.data.map((b) => {
+          const key = b.id ?? 'none';
+          return (
+            <li
+              key={key}
+              className="flex flex-col gap-2 border-t border-line py-2.5 first:border-t-0"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                <span>
+                  {formatDate(b.createdAt)}
+                  {b.createdBy && ` · ${b.createdBy}`}
+                  <span className="ml-2 text-muted">
+                    {t('labels.batchCounts', {
+                      unused: b.unused.length,
+                      used: b.used,
+                      retired: b.retired,
+                    })}
+                  </span>
+                </span>
+                <span className="flex gap-3 text-[13px]">
+                  {b.unused.length > 0 && (
+                    <a
+                      href={`/api/labels/batches/${key}/labels.csv`}
+                      download
+                      className="text-link hover:underline"
+                    >
+                      {t('labels.downloadUnused')}
+                    </a>
+                  )}
+                  {b.unused.length > 0 && (
+                    <button
+                      type="button"
+                      className="text-link hover:underline"
+                      onClick={() => setOpen(open === key ? null : key)}
+                    >
+                      {open === key ? t('labels.hideCodes') : t('labels.showCodes')}
+                    </button>
+                  )}
+                </span>
+              </div>
+              {open === key && (
+                <div className="flex flex-col gap-2 rounded-lg bg-surface-2 p-3">
+                  <div className="flex flex-wrap gap-x-4 gap-y-1">
+                    {b.unused.map((code) => (
+                      <label
+                        key={code}
+                        className="inline-flex items-center gap-1.5 font-mono text-[13px]"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={picked.has(code)}
+                          onChange={() => toggle(code)}
+                        />
+                        {code}
+                      </label>
+                    ))}
+                  </div>
+                  <Button
+                    small
+                    className="self-start"
+                    disabled={picked.size === 0}
+                    busy={retire.isPending}
+                    onClick={() =>
+                      retire.mutate([...picked], { onSuccess: () => setPicked(new Set()) })
+                    }
+                  >
+                    {t('labels.retire', { count: picked.size })}
+                  </Button>
+                  <p className="text-[12px] text-muted">{t('labels.retireHint')}</p>
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      <ErrorBox error={retire.error} />
+    </Card>
+  );
+}
 
 export function LabelsPage() {
   const { t } = useTranslation();
@@ -97,6 +198,7 @@ export function LabelsPage() {
             {t('labels.download')}
           </a>
         </Card>
+        {can('inventory') && <Batches />}
         <Card title={t('labels.ptouchTitle')}>
           <p className="text-sm">{t('labels.ptouchSteps')}</p>
         </Card>

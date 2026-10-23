@@ -300,7 +300,16 @@
     "ptouchTitle": "Printing on the P-touch",
     "ptouchSteps": "Make one template per tape width in P-touch Editor (once): a QR code object linked to the qr column and text objects for code, name and path. Then File › Database › Connect, choose the downloaded CSV, and print all records. For a single label from a phone, use the PNG with the Brother app.",
     "laserTitle": "Laser marking",
-    "laserIntro": "DXF and SVG QR codes are vector shapes in millimetres, with extra error correction for scratched or dirty tags."
+    "laserIntro": "DXF and SVG QR codes are vector shapes in millimetres, with extra error correction for scratched or dirty tags.",
+    "batchesTitle": "Printed blank labels",
+    "batchesIntro": "Each time blank labels are reserved, the codes are kept as a batch. Lost the printout? Download the unused codes again. Lost or damaged labels? Retire their codes so they are never used.",
+    "batchCounts": "{{unused}} unused · {{used}} used · {{retired}} retired",
+    "downloadUnused": "Download unused again (CSV)",
+    "showCodes": "Show codes",
+    "hideCodes": "Hide codes",
+    "retire_one": "Retire {{count}} code",
+    "retire_other": "Retire {{count}} codes",
+    "retireHint": "Retired codes are never handed out again. Scanning one says the label should be thrown away."
   },
   "session": {
     "title": "Add items",
@@ -627,5 +636,18 @@
     "custom": "Custom shade",
     "countsAs": "counts as",
     "clear": "Clear"
+  },
+  "labelFix": {
+    "open": "Wrong or lost label?",
+    "sticker": "The code on its sticker",
+    "stickerHint": "The label actually stuck on it (e.g. a blank one)",
+    "useSticker": "Use this sticker",
+    "swapWith": "Swap codes with",
+    "swapHint": "When two labels got switched",
+    "swap": "Swap",
+    "fresh": "New code",
+    "freshHint": "Then print a new label. The old code is retired either way.",
+    "retiredTitle": "Retired label",
+    "retiredText": "This label was taken out of use on {{date}}. Throw it away, or scan the label next to it."
   }
 }
