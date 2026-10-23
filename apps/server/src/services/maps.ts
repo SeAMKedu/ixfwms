@@ -1,5 +1,11 @@
 import { readFile } from 'node:fs/promises';
-import { scanSvgCodes, type MapCheck, type MapLayer } from '@ixfwms/domain';
+import {
+  scanGlbCodes,
+  scanSvgCodes,
+  type MapCheck,
+  type MapKind,
+  type MapLayer,
+} from '@ixfwms/domain';
 import { and, eq, inArray, like } from 'drizzle-orm';
 import type { Db } from '../db/client.js';
 import { locations, locationViews } from '../db/schema.js';
@@ -10,8 +16,12 @@ import type { FileService } from './files.js';
 import type { LocationRow, LocationService } from './locations.js';
 
 const MAX_SVG_BYTES = 10 * 1024 * 1024;
+const MAX_MODEL_BYTES = 100 * 1024 * 1024;
 
-/** Lab maps: an SVG drawing per place whose element ids ("loc:A3F9") link to the places inside it. */
+/**
+ * Lab maps: per place, an SVG drawing and/or a 3D model (.glb). SVG element ids and 3D object
+ * names like "loc-A3F9" link to the places inside it.
+ */
 export class MapService {
   constructor(
     private readonly db: Db,
@@ -19,40 +29,43 @@ export class MapService {
     private readonly files: FileService,
   ) {}
 
-  /** Sets (or replaces) a place's drawing from an uploaded file and reports how well it links up. */
+  /**
+   * Sets (or replaces) a place's map from an uploaded file: an SVG drawing or a .glb model, told
+   * apart by the file. Reports how well it links up with the places inside.
+   */
   async setMap(ref: string, fileId: string, actor: Actor | null): Promise<MapCheck> {
     const who = requireScope(actor, 'inventory');
     const loc = await this.locations.resolve(ref);
-    const svg = await this.readSvg(fileId);
+    const { kind, codes } = await this.read(fileId);
     await this.db
       .insert(locationViews)
-      .values({ id: newId(), locationId: loc.id, kind: 'svg_2d', fileId, createdBy: who.userId })
+      .values({ id: newId(), locationId: loc.id, kind, fileId, createdBy: who.userId })
       .onConflictDoUpdate({
         target: [locationViews.locationId, locationViews.kind],
         set: { fileId, createdBy: who.userId },
       });
-    await audit(this.db, who, 'map', 'location', loc.id, { fileId });
-    return this.checkSvg(loc, svg);
+    await audit(this.db, who, 'map', 'location', loc.id, { fileId, kind });
+    return this.checkCodes(loc, codes);
   }
 
-  async removeMap(ref: string, actor: Actor | null): Promise<void> {
+  async removeMap(ref: string, kind: MapKind, actor: Actor | null): Promise<void> {
     const who = requireScope(actor, 'inventory');
     const loc = await this.locations.resolve(ref);
     await this.db
       .delete(locationViews)
-      .where(and(eq(locationViews.locationId, loc.id), eq(locationViews.kind, 'svg_2d')));
-    await audit(this.db, who, 'map-removed', 'location', loc.id);
+      .where(and(eq(locationViews.locationId, loc.id), eq(locationViews.kind, kind)));
+    await audit(this.db, who, 'map-removed', 'location', loc.id, { kind });
   }
 
-  async check(ref: string): Promise<MapCheck> {
+  async check(ref: string, kind: MapKind): Promise<MapCheck> {
     const loc = await this.locations.resolve(ref);
     const view = await this.db
       .select()
       .from(locationViews)
-      .where(and(eq(locationViews.locationId, loc.id), eq(locationViews.kind, 'svg_2d')))
+      .where(and(eq(locationViews.locationId, loc.id), eq(locationViews.kind, kind)))
       .get();
     if (!view) throw notFound('Map of', loc.code);
-    return this.checkSvg(loc, await this.readSvg(view.fileId));
+    return this.checkCodes(loc, (await this.read(view.fileId)).codes);
   }
 
   /**
@@ -74,15 +87,18 @@ export class MapService {
       .all();
     const layers: MapLayer[] = [];
     for (const [i, place] of path.entries()) {
-      const view = views.find((v) => v.locationId === place.id && v.kind === 'svg_2d');
-      if (!view) continue;
-      const { row } = await this.files.get(view.fileId);
-      layers.push({
-        location: place,
-        kind: view.kind,
-        href: `/api/files/${row.id}/${encodeURIComponent(row.filename)}`,
-        highlight: path.slice(i + 1).map((p) => p.code),
-      });
+      // 3D first when a place has both: it's usually the richer view of the same room.
+      for (const view of views
+        .filter((v) => v.locationId === place.id)
+        .sort((a, b) => a.kind.localeCompare(b.kind))) {
+        const { row } = await this.files.get(view.fileId);
+        layers.push({
+          location: place,
+          kind: view.kind,
+          href: `/api/files/${row.id}/${encodeURIComponent(row.filename)}`,
+          highlight: path.slice(i + 1).map((p) => p.code),
+        });
+      }
     }
     return layers;
   }
@@ -121,16 +137,22 @@ export class MapService {
     );
   }
 
-  private async readSvg(fileId: string): Promise<string> {
+  private async read(fileId: string): Promise<{ kind: MapKind; codes: string[] }> {
     const { row, path } = await this.files.get(fileId);
-    if (!(row.mime === 'image/svg+xml' || /\.svg$/i.test(row.filename)))
-      throw invalid('Maps are SVG drawings (.svg)');
-    if (row.size > MAX_SVG_BYTES) throw invalid('That drawing is too large for a map (max 10 MB)');
-    return readFile(path, 'utf8');
+    if (row.mime === 'image/svg+xml' || /\.svg$/i.test(row.filename)) {
+      if (row.size > MAX_SVG_BYTES)
+        throw invalid('That drawing is too large for a map (max 10 MB)');
+      return { kind: 'svg_2d', codes: scanSvgCodes(await readFile(path, 'utf8')) };
+    }
+    if (row.mime === 'model/gltf-binary' || /\.glb$/i.test(row.filename)) {
+      if (row.size > MAX_MODEL_BYTES)
+        throw invalid('That model is too large for a map (max 100 MB)');
+      return { kind: 'gltf_3d', codes: scanGlbCodes(await readFile(path)) };
+    }
+    throw invalid('Maps are SVG drawings (.svg) or binary glTF models (.glb)');
   }
 
-  private async checkSvg(loc: LocationRow, svg: string): Promise<MapCheck> {
-    const codes = scanSvgCodes(svg);
+  private async checkCodes(loc: LocationRow, codes: string[]): Promise<MapCheck> {
     const inside = await this.db
       .select()
       .from(locations)

@@ -1,8 +1,10 @@
+import { MAP_KINDS } from '@ixfwms/domain';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { parse, type AppDeps } from '../context.js';
 
 const RefParams = z.object({ ref: z.string() });
+const KindQuery = z.object({ kind: z.enum(MAP_KINDS).default('svg_2d') });
 
 export function registerMapRoutes(app: FastifyInstance, { services }: AppDeps): void {
   const { maps } = services;
@@ -25,11 +27,15 @@ export function registerMapRoutes(app: FastifyInstance, { services }: AppDeps): 
   });
 
   app.get('/api/locations/:ref/map/check', async (request) =>
-    maps.check(parse(RefParams, request.params).ref),
+    maps.check(parse(RefParams, request.params).ref, parse(KindQuery, request.query).kind),
   );
 
   app.delete('/api/locations/:ref/map', async (request, reply) => {
-    await maps.removeMap(parse(RefParams, request.params).ref, request.actor);
+    await maps.removeMap(
+      parse(RefParams, request.params).ref,
+      parse(KindQuery, request.query).kind,
+      request.actor,
+    );
     return reply.status(204).send();
   });
 }

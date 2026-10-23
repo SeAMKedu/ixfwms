@@ -57,7 +57,7 @@ describe('lab maps', () => {
     expect((await maps.setMap(lab.code, plan2.id, env.inventory)).notDrawn).toEqual([]);
     expect((await maps.layers(lab.code)).length).toBe(1);
 
-    await maps.removeMap(cabA.code, env.inventory);
+    await maps.removeMap(cabA.code, 'svg_2d', env.inventory);
     expect((await maps.layers(box.code)).map((l) => l.location.name)).toEqual(['Robotics lab']);
   });
 
@@ -72,7 +72,7 @@ describe('lab maps', () => {
     await expect(maps.setMap(lab.code, pdf.id, env.admin)).rejects.toThrow(/SVG/);
     const svg = await svgFile('');
     await expect(maps.setMap(lab.code, svg.id, null)).rejects.toThrow(/token/);
-    await expect(maps.check(lab.code)).rejects.toThrow(/not found/);
+    await expect(maps.check(lab.code, 'svg_2d')).rejects.toThrow(/not found/);
   });
 });
 
@@ -92,5 +92,46 @@ describe('starter map', () => {
     const check = await maps.setMap(lab.code, file.id, env.admin);
     expect(check.linked).toHaveLength(3);
     expect(check.notDrawn).toEqual([]);
+  });
+});
+
+describe('3D models', () => {
+  it('accepts a .glb next to the SVG and links objects named loc-<code>', async () => {
+    const { locations, maps, files } = env.services;
+    const lab = await locations.create({ name: 'Lab', type: 'room' }, env.admin);
+    const cab = await locations.create(
+      { name: 'Cabinet A', type: 'cabinet', parent: lab.code },
+      env.admin,
+    );
+    const json = new TextEncoder().encode(
+      JSON.stringify({
+        asset: { version: '2.0' },
+        nodes: [{ name: `loc-${cab.code}.001` }, { name: 'Walls' }],
+      }),
+    );
+    const padded = new Uint8Array(Math.ceil(json.length / 4) * 4).fill(0x20);
+    padded.set(json);
+    const glb = Buffer.alloc(20 + padded.length);
+    glb.writeUInt32LE(0x46546c67, 0);
+    glb.writeUInt32LE(2, 4);
+    glb.writeUInt32LE(glb.length, 8);
+    glb.writeUInt32LE(padded.length, 12);
+    glb.writeUInt32LE(0x4e4f534a, 16);
+    Buffer.from(padded).copy(glb, 20);
+    const model = await files.store(
+      glb,
+      { filename: 'lab.glb', mime: 'model/gltf-binary' },
+      env.admin,
+    );
+    const plan = await svgFile(`<rect id="loc:${cab.code}"/>`);
+
+    expect((await maps.setMap(lab.code, model.id, env.admin)).linked).toEqual([
+      { code: cab.code, name: 'Cabinet A' },
+    ]);
+    await maps.setMap(lab.code, plan.id, env.admin);
+    expect((await maps.layers(cab.code)).map((l) => l.kind)).toEqual(['gltf_3d', 'svg_2d']);
+    expect((await maps.check(lab.code, 'gltf_3d')).linked).toHaveLength(1);
+    await maps.removeMap(lab.code, 'gltf_3d', env.admin);
+    expect((await maps.layers(cab.code)).map((l) => l.kind)).toEqual(['svg_2d']);
   });
 });

@@ -20,6 +20,44 @@ export function codeFromElementId(id: string): string | null {
   return isValidCode(code) ? code : null;
 }
 
+/**
+ * The place code a 3D object name stands for. Accepts the same forms as SVG ids, plus the forms
+ * three.js turns them into when loading glTF ("loc:A3F9" becomes "locA3F9"), and ignores Blender's
+ * ".001" duplicate suffixes.
+ */
+export function codeFromObjectName(name: string): string | null {
+  const base = name.trim().replace(/\.\d{3}$/, '');
+  const direct = codeFromElementId(base);
+  if (direct) return direct;
+  const m = /^loc([0-9a-z]{4,8})$/i.exec(base);
+  if (!m?.[1]) return null;
+  const code = normalizeCode(m[1]);
+  return isValidCode(code) ? code : null;
+}
+
+/** Node names from a binary glTF (.glb) file's JSON chunk. Returns [] for anything that isn't a GLB. */
+export function glbNodeNames(bytes: Uint8Array): string[] {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  if (bytes.byteLength < 20 || view.getUint32(0, true) !== 0x46546c67) return []; // "glTF"
+  const jsonLength = view.getUint32(12, true);
+  if (view.getUint32(16, true) !== 0x4e4f534a) return []; // "JSON"
+  const json = JSON.parse(new TextDecoder().decode(bytes.subarray(20, 20 + jsonLength))) as {
+    nodes?: { name?: string }[];
+  };
+  return (json.nodes ?? []).map((n) => n.name ?? '').filter(Boolean);
+}
+
+/** Place codes named by objects in a .glb model. */
+export function scanGlbCodes(bytes: Uint8Array): string[] {
+  return [
+    ...new Set(
+      glbNodeNames(bytes)
+        .map(codeFromObjectName)
+        .filter((c): c is string => c !== null),
+    ),
+  ];
+}
+
 /** All place codes referenced by element ids in an SVG document. */
 export function scanSvgCodes(svg: string): string[] {
   const codes = new Set<string>();
