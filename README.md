@@ -4,17 +4,19 @@ Parts inventory for the robotics lab: pneumatics, electrical parts, fasteners, f
 
 ## What it does
 
-- **Parts and stock:** parts with order numbers, categories, project tags, files (datasheets, STEP models) and stock in any number of places. Stock can be counted, weighed or length-measured (weighed fasteners show an estimated count), or just marked plenty / low / empty.
+- **Items and stock:** parts, tools and devices with order numbers, other names people use, categories, project tags, files (datasheets, STEP models) and stock in any number of places. Stock can be counted, weighed or length-measured (weighed fasteners show an estimated count), or just marked plenty / low / empty.
+- **Tools and devices one by one:** an item can be tracked as units, each with its own QR code, serial number, home place ("Put back"), status, log (maintenance, firmware versions, next check date) and network details (shown only when logged in, and gathered into a network list). Units can be lent out of the lab with a person responsible. See [docs/tools-and-units.md](docs/tools-and-units.md).
+- **Without an account:** anyone on the lab network can look things up and report a problem (broken, missing parts, running low). The lab chooses whether they may also put things back, and bring things to a workstation and clear it again.
 - **Places:** a tree of any depth (building › lab › cabinet › shelf › box). Every place and part has a short code printed on its QR label. Fixed places have short, readable addresses like `Robolab-A-C` (lab, cabinet A, shelf C); containers (boxes, bins, pallets) are known by name and aren't part of addresses. Place types are set in Settings. A cabinet can be copied with everything inside it, e.g. six more like it.
 - **Phone first:** a camera QR scanner; moving things by scanning (pick up, walk, scan where it goes); quick-add inventory sessions with photos.
-- **Inbox:** new parts from imports or AI assistants arrive as drafts to review, merge or put away. Things carried for hours get flagged, and so do temporary places (a delivery pallet, say) nobody has touched for longer than expected.
+- **Inbox:** new parts from imports or AI assistants arrive as drafts to review, merge or put away. Problem reports, units lent out (overdue in red) and units due for a check are listed. Things carried for hours get flagged, and so do temporary places (a delivery pallet, or things left on a workstation) nobody has touched for longer than expected.
 - **Settings:** place types (movable, temporary), categories and their fields, carrying and label defaults, saved import mappings, users, backups, and what the server was started with.
 - **Category fields:** e.g. thread and length for screws, colour (palette name + exact shade) for filament and wire. Search can filter on these fields, and a low-stock list is built in.
 - **Labels:** CSV for P-touch Editor, PNG for phone printing, SVG/DXF for laser marking, and batches of blank labels. Lost or misplaced labels can be retired, reassigned or swapped.
 - **Lab maps:** SVG floor plans and 3D models (`.glb` from Blender). Shapes are linked to places by clicking them (or by naming them `loc-<code>`), light up for "where is it?" and are clickable. One drawing can serve many identical cabinets, and a check lists links broken by a changed drawing.
 - **Can we build it?** Checks a parts list (pasted, or exported from Solid Edge, NX, Inventor, EPLAN or TIA Portal) against stock.
 - **Spreadsheet import:** CSV or Excel, with column mappings you can save.
-- **AI assistants (MCP):** Claude and other assistants can search, check parts lists and do the initial inventory from order emails and photos.
+- **AI assistants (MCP):** Claude and other assistants can search, answer "where is the impact drill?" in short sentences (a voice client can read them out), check parts lists, lend and log units, and do the initial inventory from order emails and photos.
 - **Everyday use:** login for changes (reading is open on the lab network), users and API tokens, history with undo for moves, nightly backups, English and Finnish, keyboard shortcuts.
 
 See [PLAN.md](PLAN.md) for the background and roadmap, and [CHANGELOG.md](CHANGELOG.md) for releases. How-tos: [labels](docs/labels.md), [spreadsheets](docs/import.md), [lab maps](docs/maps.md), [initial inventory with an AI assistant](docs/inventory-with-mcp.md).
@@ -62,11 +64,12 @@ Press `?` anywhere for the list that applies to the current page. The main ones:
 
 | Keys                                             |                                                                          |
 | ------------------------------------------------ | ------------------------------------------------------------------------ |
-| `/`                                              | search parts                                                             |
-| `g` then `p` / `i` / `l` / `s` / `c` / `h` / `b` | parts, Inbox, places, scan, carrying, history, can-we-build              |
-| `n`                                              | new part                                                                 |
+| `/`                                              | search items                                                             |
+| `g` then `p` / `i` / `l` / `s` / `c` / `h` / `b` | items, Inbox, places, scan, carrying, history, can-we-build              |
+| `n`                                              | new item                                                                 |
 | `j` / `k`, Enter                                 | move through search results, open one (↓ from the search box also works) |
-| `e`, `t`, `m`, `c`, `a`, `r`                     | on a part: edit, take, move, carry, add stock, mark reviewed             |
+| `e`, `t`, `m`, `c`, `a`, `r`                     | on an item: edit, take, move, carry, add stock (or units), mark reviewed |
+| `b`, `m`, `e`, `l`, `r`                          | on a unit: put back, move, edit, write in the log, report a problem      |
 | `a`, `e`, `m`, `d`, `p`                          | on a place: add items, edit, move, copy, pick up                         |
 | Tab / → in a place field                         | step into the highlighted place; Backspace steps out                     |
 
@@ -99,10 +102,10 @@ claude mcp add --transport http ixfwms http://localhost:3000/mcp --header "Autho
 
 Give assistants a token with the `inventory` scope. They can then create places, add drafts and move stock, but not confirm drafts.
 
-| Tools  |                                                                                                                                                                                                                                  |
-| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Read   | `search_parts`, `get_part`, `find_similar_parts`, `list_locations`, `list_location_types`, `list_overdue_places`, `get_location`, `list_categories`, `get_category_fields`, `list_tags`, `check_availability`, `get_upload_info` |
-| Change | `create_location`, `duplicate_location`, `create_part_drafts`, `update_part`, `add_stock`, `take_stock`, `set_stock_amount`, `move_stock`, `move_location`, `attach_file`                                                        |
+| Tools  |                                                                                                                                                                                                                                                                                                                        |
+| ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Read   | `where_is`, `search_parts`, `get_part`, `get_unit`, `find_similar_parts`, `list_locations`, `list_location_types`, `list_overdue_places`, `get_location`, `list_categories`, `get_category_fields`, `list_tags`, `check_availability`, `list_loans`, `list_reports`, `list_units_needing_attention`, `get_upload_info` |
+| Change | `create_location`, `duplicate_location`, `create_part_drafts`, `update_part`, `add_stock`, `take_stock`, `set_stock_amount`, `move_stock`, `move_location`, `attach_file`, `add_units`, `update_unit`, `move_unit`, `put_back`, `lend_unit`, `return_unit`, `log_unit_event`, `report_problem`, `resolve_report`       |
 
 See [docs/inventory-with-mcp.md](docs/inventory-with-mcp.md) for the initial-inventory workflow.
 
@@ -112,11 +115,15 @@ Reads are open on the lab network; writes need `Authorization: Bearer <token>`. 
 
 |                                                                                                                                                                                   |                                                                      |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| `GET /api/parts?q=&category=&tag=&status=&location=&inStock=&lowStock=&attr=thread:M4`                                                                                            | search (`attr` repeats: `key:value`, `key>=n`, `key<=n`, `key~text`) |
+| `GET /api/parts?q=&kind=&category=&tag=&status=&location=&inStock=&lowStock=&attr=thread:M4`                                                                                      | search (`attr` repeats: `key:value`, `key>=n`, `key<=n`, `key~text`) |
 | `GET /api/parts/:code` · `POST /api/parts` · `PATCH /api/parts/:code` · `POST /api/parts/similar` · `POST /api/parts/:code/merge` · `/status` · `/code`                           | parts                                                                |
 | `GET /api/locations?parent=&tree=1&flat=1` · `GET /api/locations/:code?recursive=1` · `POST /api/locations` · `PATCH` · `/move` · `/duplicate` · `/code` · `/swap-code`           | places                                                               |
 | `POST /api/stock` · `POST /api/stock/:lotId/take` · `/stocktake` · `/move`                                                                                                        | stock                                                                |
 | `GET /api/carry` · `GET /api/carry/all` · `POST /api/carry/pick` · `POST /api/carry/drop`                                                                                         | scan, carry, scan                                                    |
+| `POST /api/units` · `GET` / `PATCH /api/units/:code` · `/log` · `/move` · `/put-back` · `/lend` · `/return` · `/code` · `GET /api/units/attention` · `GET /api/loans?open=1`      | units and loans                                                      |
+| `POST` / `GET /api/reports?open=1` · `POST /api/reports/:id/resolve`                                                                                                              | problem reports (anyone may report)                                  |
+| `POST /api/stock/:lotId/open-move` · `/put-back` · `POST /api/locations/:code/clear`                                                                                              | moves allowed without an account (as the lab's setting says)         |
+| `GET /api/where?q=` · `GET /api/network` · `/api/network.csv`                                                                                                                     | "where is it?" sentences; network list (logged in)                   |
 | `GET /api/locations/overdue` · `POST /api/locations/:code/still-needed`                                                                                                           | temporary places                                                     |
 | `GET` / `PATCH /api/settings` · `GET /api/system` (admin) · `DELETE /api/import/mappings/:name`                                                                                   | settings                                                             |
 | `GET` / `POST /api/location-types` · `PATCH` / `DELETE /api/location-types/:key`                                                                                                  | place types (movable or fixed)                                       |
