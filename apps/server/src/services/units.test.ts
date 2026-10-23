@@ -54,6 +54,24 @@ describe('units of individually tracked items', () => {
     expect((await env.services.labels.lookup(unit.code)).assigned).toBe('unit');
   });
 
+  it('keeps units in the order they were added', async () => {
+    const { drill, shelf } = await lab();
+    const added = await env.services.units.add(
+      {
+        part: drill.code,
+        units: Array.from({ length: 6 }, (_, i) => ({ name: `Drill ${i + 3}` })),
+        home: shelf.code,
+      },
+      env.admin,
+    );
+    const names = ['Drill 3', 'Drill 4', 'Drill 5', 'Drill 6', 'Drill 7', 'Drill 8'];
+    expect(added.map((u) => u.name)).toEqual(names);
+    expect((await env.services.parts.get(drill.code)).units.map((u) => u.name)).toEqual([
+      'Drill 2',
+      ...names,
+    ]);
+  });
+
   it('finds items by alias, unit name and serial number, and says where they are', async () => {
     const { drill, unit, bench } = await lab();
     const { parts, where } = env.services;

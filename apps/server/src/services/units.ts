@@ -129,7 +129,10 @@ export class UnitService {
       await audit(tx, who, 'create', 'unit', part.id, { count: created.length });
       return created;
     });
-    return this.briefs(await this.db.select().from(units).where(inArray(units.id, ids)).all());
+    // Ids are time-ordered, so this is the order they were given in.
+    return this.briefs(
+      await this.db.select().from(units).where(inArray(units.id, ids)).orderBy(asc(units.id)).all(),
+    );
   }
 
   async update(ref: string, input: UpdateUnitInput, actor: Actor | null): Promise<UnitDetail> {
@@ -369,7 +372,7 @@ export class UnitService {
       .select()
       .from(units)
       .where(inArray(units.partId, partIds))
-      .orderBy(asc(units.createdAt))
+      .orderBy(asc(units.id))
       .all();
     const briefs = await this.briefs(rows, ex);
     rows.forEach((r, i) => out.set(r.partId, [...(out.get(r.partId) ?? []), briefs[i]!]));
