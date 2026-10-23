@@ -3,12 +3,26 @@ import { IDENTIFIER_KINDS } from './identifiers.js';
 import { MEASURE_UNITS, STOCK_LEVELS, STOCK_MODES } from './quantity.js';
 import { ATTACHMENT_KINDS, PART_STATUSES } from './enums.js';
 import { AttributeFilter } from './attributes.js';
+import { SHORT_NAME_PATTERN } from './addresses.js';
 
 /** A location or part reference: internal id or short code. */
 export const RefSchema = z.string().trim().min(1).max(64);
 
+/** A place's short name for its address, e.g. "A" for Cabinet A; empty means guess it from the name. */
+export const ShortNameSchema = z
+  .string()
+  .trim()
+  .max(12)
+  .refine((s) => s === '' || SHORT_NAME_PATTERN.test(s), {
+    message: 'Use letters, digits, "." or "_" (no spaces or "-")',
+  })
+  .transform((s) => s || null)
+  .nullish()
+  .describe('Short name used in the address, e.g. "A" for Cabinet A or "A140.1" for a room');
+
 export const CreateLocationInput = z.object({
   name: z.string().trim().min(1).max(200),
+  shortName: ShortNameSchema,
   parent: RefSchema.nullish().describe('Parent location id or code; omit for a top-level location'),
   type: z
     .string()
@@ -47,6 +61,7 @@ export type DuplicateLocationInput = z.input<typeof DuplicateLocationInput>;
 
 export const UpdateLocationInput = z.object({
   name: z.string().trim().min(1).max(200).optional(),
+  shortName: ShortNameSchema,
   type: z.string().trim().min(1).max(40).optional(),
   description: z.string().trim().max(2000).nullish(),
 });
@@ -169,3 +184,10 @@ export const AttachInput = z
   })
   .refine((a) => (a.fileId == null) !== (a.url == null), { message: 'give either fileId or url' });
 export type AttachInput = z.infer<typeof AttachInput>;
+
+export const LocationTypeInput = z.object({
+  name: z.string().trim().min(1).max(60),
+  movable: z.boolean().default(false),
+  sort: z.number().int().min(0).max(1000).optional(),
+});
+export type LocationTypeInput = z.input<typeof LocationTypeInput>;

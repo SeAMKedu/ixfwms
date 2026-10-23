@@ -36,16 +36,24 @@ export function hasScope(granted: readonly Scope[], required: Scope): boolean {
 }
 
 /** Location types seeded on first start. They are data, so labs can add their own. */
+/**
+ * Place types a new database starts with; they can be renamed, added and removed in the app.
+ * Movable ones (containers) aren't part of addresses, so carrying them around doesn't change any.
+ */
 export const DEFAULT_LOCATION_TYPES = [
-  { key: 'building', name: 'Building' },
-  { key: 'floor', name: 'Floor' },
-  { key: 'room', name: 'Room / lab' },
-  { key: 'zone', name: 'Zone / cell' },
-  { key: 'cabinet', name: 'Cabinet' },
-  { key: 'shelf', name: 'Shelf' },
-  { key: 'drawer', name: 'Drawer' },
-  { key: 'box', name: 'Box' },
-  { key: 'bin', name: 'Bin / bag' },
-  { key: 'device', name: 'Device' },
-  { key: 'system', name: 'System' },
+  { key: 'building', name: 'Building', movable: false },
+  { key: 'floor', name: 'Floor', movable: false },
+  { key: 'room', name: 'Room / lab', movable: false },
+  { key: 'zone', name: 'Zone / cell', movable: false },
+  { key: 'cabinet', name: 'Cabinet', movable: false },
+  { key: 'shelf', name: 'Shelf', movable: false },
+  { key: 'pallet', name: 'Pallet', movable: true },
+  { key: 'drawer', name: 'Drawer', movable: true },
+  { key: 'box', name: 'Box', movable: true },
+  { key: 'bin', name: 'Bin / bag', movable: true },
+  { key: 'device', name: 'Device', movable: false },
+  { key: 'system', name: 'System', movable: false },
 ] as const;
+
+/** Types the app uses itself (the Inbox, people carrying things); not editable. */
+export const BUILT_IN_LOCATION_TYPES = ['system', 'in_transit'] as const;

@@ -195,6 +195,10 @@ export class LabelService {
         .join(' › '),
       type: summary?.type ?? '',
       qr: buildCodeUrl(baseUrl, 'location', row.code),
+      address: summary?.address ?? '',
+      parent: summary?.within ?? '',
+      short: summary?.short ?? '',
+      movable: summary?.movable ?? false,
     };
   }
 
@@ -212,6 +216,7 @@ export class LabelService {
       path: row?.category ?? '',
       type: 'part',
       qr: buildCodeUrl(baseUrl, 'part', code),
+      ...NO_ADDRESS,
     };
   }
 }
@@ -224,5 +229,8 @@ function blankLabel(code: string, baseUrl: string): LabelData {
     path: '',
     type: '',
     qr: buildCodeUrl(baseUrl, 'location', code),
+    ...NO_ADDRESS,
   };
 }
+
+const NO_ADDRESS = { address: '', parent: '', short: '', movable: false };

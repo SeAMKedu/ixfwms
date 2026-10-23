@@ -57,6 +57,13 @@
       "when": 1792753877088,
       "tag": "0007_drop_location_views",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1792769190541,
+      "tag": "0008_place_addresses",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,7 @@
 import {
   CreateLocationInput,
   DuplicateLocationInput,
+  LocationTypeInput,
   UpdateLocationInput,
   buildCodeUrl,
 } from '@ixfwms/domain';
@@ -26,6 +27,30 @@ export function registerLocationRoutes(app: FastifyInstance, { config, services 
     if (q.flat) return locations.allWithPaths();
     if (q.tree) return locations.tree(q.parent ?? null, q.depth ?? 10);
     return locations.children(q.parent ?? null);
+  });
+
+  /** Place types: what can be picked for a place, and which are movable containers. */
+  app.get('/api/location-types', async () => locations.types());
+
+  app.post('/api/location-types', async (request, reply) =>
+    reply
+      .status(201)
+      .send(await locations.createType(parse(LocationTypeInput, request.body), request.actor)),
+  );
+
+  app.patch('/api/location-types/:key', async (request) => {
+    const { key } = parse(z.object({ key: z.string() }), request.params);
+    return locations.updateType(
+      key,
+      parse(LocationTypeInput.partial(), request.body),
+      request.actor,
+    );
+  });
+
+  app.delete('/api/location-types/:key', async (request, reply) => {
+    const { key } = parse(z.object({ key: z.string() }), request.params);
+    await locations.deleteType(key, request.actor);
+    return reply.status(204).send();
   });
 
   app.get('/api/locations/:ref', async (request) => {

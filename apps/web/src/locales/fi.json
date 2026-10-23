@@ -26,7 +26,8 @@
     "account": "Oma tili",
     "admin": "Ylläpito",
     "more": "Lisää",
-    "maps": "Kartat"
+    "maps": "Kartat",
+    "settings": "Asetukset"
   },
   "common": {
     "save": "Tallenna",
@@ -208,7 +209,8 @@
       "bin": "Lokero / pussi",
       "device": "Laite",
       "system": "Järjestelmä",
-      "in_transit": "Kannettavana"
+      "in_transit": "Kannettavana",
+      "pallet": "Lava"
     },
     "unassignedTitle": "Uusi paikka koodilla {{code}}",
     "unassignedText": "Tätä koodia ei ole vielä käytetty (ehkä tyhjästä tarrasta). Rekisteröi paikka, johon tarra on kiinnitetty.",
@@ -223,7 +225,12 @@
     "copyNameHint": "Tyhjä: numeroidaan tästä eteenpäin",
     "copyWhere": "Kopioiden paikka",
     "copyMaps": "Käytä samoja karttoja, yhdistettyinä kopioihin",
-    "copyDo": "Tee kopiot"
+    "copyDo": "Tee kopiot",
+    "within": "paikassa {{address}}",
+    "codeHint": "QR-tarran koodi; se ei muutu koskaan",
+    "shortName": "Lyhyt nimi",
+    "shortNameHint": "Osoitetta varten, esim. A tai A140.1",
+    "clash": "Viereisellä paikalla {{names}} on sama lyhyt nimi, joten osoite {{address}} ei ole yksilöllinen. Anna toiselle niistä eri lyhyt nimi."
   },
   "inbox": {
     "title": "Saapuneet",
@@ -696,5 +703,19 @@
     "freshHint": "Tulosta sitten uusi tarra. Vanha koodi poistetaan käytöstä joka tapauksessa.",
     "retiredTitle": "Käytöstä poistettu tarra",
     "retiredText": "Tämä tarra poistettiin käytöstä {{date}}. Heitä se pois, tai skannaa vieressä oleva tarra."
+  },
+  "settings": {
+    "title": "Asetukset",
+    "types": "Paikkatyypit",
+    "typesIntro": "Paikkaa lisättäessä tarjottavat tyypit. Siirrettävät ovat kuljetettavia säilytysastioita (laatikot, pussit, lavat): ne eivät kuulu osoitteisiin, joten niiden siirtäminen ei koskaan tee osoitteesta tai tarrasta väärää. Muut (huoneet, kaapit, hyllyt) muodostavat osoitteet, kuten Robolab-A-C.",
+    "typeName": "Tyypin nimi",
+    "movable": "Siirrettävä",
+    "placeCount_one": "{{count}} paikka",
+    "placeCount_other": "{{count}} paikkaa",
+    "moveUp": "Siirrä ylös",
+    "moveDown": "Siirrä alas",
+    "inUse": "Tämän tyyppisiä paikkoja on olemassa",
+    "newType": "Uusi tyyppi",
+    "newTypeExample": "esim. Työkaluvaunu"
   }
 }

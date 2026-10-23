@@ -1,5 +1,5 @@
 import {
-  DEFAULT_LOCATION_TYPES,
+  autoShortName,
   isValidCode,
   nextName,
   normalizeCode,
@@ -14,6 +14,7 @@ import {
   useCreateLocation,
   useDuplicateLocation,
   useLocation,
+  useLocationTypes,
   useMapLayers,
   useMoveLocation,
   usePick,
@@ -21,6 +22,8 @@ import {
 } from '../api/queries';
 import { useSession } from '../auth/session';
 import { useShortcut } from '../lib/shortcuts';
+import { useTypeName } from '../lib/place-types';
+import { placeTag } from '../lib/places';
 import { PlacePicker } from '../components/place-picker';
 import { LabelPanel } from '../components/label-panel';
 import { MapManager } from '../components/map-manager';
@@ -37,6 +40,7 @@ import {
   Loading,
   LocationPath,
   PageHeader,
+  PlaceTag,
   Select,
   StatusPill,
   TextArea,
@@ -54,12 +58,15 @@ function TypeSelect({
   value: string;
   onChange: (v: string) => void;
 }) {
-  const { t } = useTranslation();
+  const types = useLocationTypes();
+  const typeName = useTypeName();
+  const keys = types.data?.map((ty) => ty.key) ?? [];
   return (
     <Select id={id} value={value} onChange={(e) => onChange(e.target.value)}>
-      {DEFAULT_LOCATION_TYPES.filter((ty) => ty.key !== 'system').map((ty) => (
-        <option key={ty.key} value={ty.key}>
-          {t(`places.types.${ty.key}`, { defaultValue: ty.name })}
+      {/* The current type stays choosable while the list loads or if it was removed. */}
+      {(keys.includes(value) ? keys : [value, ...keys]).map((key) => (
+        <option key={key} value={key}>
+          {typeName(key)}
         </option>
       ))}
     </Select>
@@ -296,6 +303,8 @@ export function LocationPage() {
   const pick = usePick();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [shortName, setShortName] = useState('');
+  const typeName = useTypeName();
   const [parent, setParent] = useState('');
 
   /** Opens (or closes) the edit/move/new panel, prefilled from the place. */
@@ -305,6 +314,7 @@ export function LocationPage() {
     setPanel((cur) => (cur === p ? null : p));
     setName(d.name);
     setDescription(d.description ?? '');
+    setShortName(d.shortName ?? '');
     setParent(d.path.length > 1 ? (d.path[d.path.length - 2]?.code ?? '') : '');
   };
   const navigate = useNavigate();
@@ -321,7 +331,7 @@ export function LocationPage() {
   const canEdit = can('inventory') && d.kind === 'normal';
   const saveEdit = async (e: FormEvent) => {
     e.preventDefault();
-    await update.mutateAsync({ name, description: description || null });
+    await update.mutateAsync({ name, shortName, description: description || null });
     setPanel(null);
   };
   const saveMove = async (e: FormEvent) => {
@@ -337,8 +347,14 @@ export function LocationPage() {
         title={d.name}
         meta={
           <>
-            <CodeLabel code={d.code} />
-            <span>{t(`places.types.${d.type}`, { defaultValue: d.type })}</span>
+            <PlaceTag place={d} />
+            {d.movable && d.within && <span>{t('places.within', { address: d.within })}</span>}
+            <span>{typeName(d.type)}</span>
+            {placeTag(d) !== d.code && (
+              <span className="font-mono text-[12px]" title={t('places.codeHint')}>
+                {d.code}
+              </span>
+            )}
           </>
         }
         actions={
@@ -377,6 +393,14 @@ export function LocationPage() {
         }
       />
       {d.description && <p className="max-w-prose whitespace-pre-wrap text-sm">{d.description}</p>}
+      {d.clashes.length > 0 && (
+        <p className="max-w-prose rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn">
+          {t('places.clash', {
+            address: d.address,
+            names: d.clashes.map((c) => c.name).join(', '),
+          })}
+        </p>
+      )}
       <ErrorBox error={pick.error} />
 
       {panel === 'edit' && (
@@ -384,11 +408,29 @@ export function LocationPage() {
           onSubmit={(e) => void saveEdit(e)}
           className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-4"
         >
-          <Field label={t('places.name')}>
-            {(id) => (
-              <TextInput id={id} required value={name} onChange={(e) => setName(e.target.value)} />
-            )}
-          </Field>
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_10rem]">
+            <Field label={t('places.name')}>
+              {(id) => (
+                <TextInput
+                  id={id}
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              )}
+            </Field>
+            <Field label={t('places.shortName')} hint={t('places.shortNameHint')}>
+              {(id) => (
+                <TextInput
+                  id={id}
+                  value={shortName}
+                  maxLength={12}
+                  placeholder={autoShortName(name || d.name)}
+                  onChange={(e) => setShortName(e.target.value.replace(/[\s-]/g, ''))}
+                />
+              )}
+            </Field>
+          </div>
           <Field label={t('part.description')}>
             {(id) => (
               <TextArea
@@ -471,7 +513,7 @@ export function LocationPage() {
                     <span className="min-w-0 truncate">{c.name}</span>
                     <span className="flex shrink-0 items-center gap-2 text-[12px] text-muted">
                       {t('places.parts', { count: c.partCount })}
-                      <CodeLabel code={c.code} />
+                      <PlaceTag place={c} />
                       <ChevronRight className="size-4" aria-hidden />
                     </span>
                   </Link>

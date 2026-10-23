@@ -4,7 +4,7 @@ import { useId, useMemo, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePlaces } from '../api/queries';
 import { matchPlaces, placeLabel } from '../lib/places';
-import { CodeLabel } from './ui';
+import { PlaceTag } from './ui';
 
 interface Props {
   id?: string;
@@ -144,7 +144,7 @@ export function PlacePicker({
           {placeLabel(selected)}
         </button>
         <span className="flex shrink-0 items-center gap-1.5">
-          <CodeLabel code={selected.code} />
+          <PlaceTag place={selected} />
           <button
             type="button"
             aria-label={t('picker.clear')}
@@ -233,7 +233,7 @@ export function PlacePicker({
                       )}
                     </span>
                     <span className="flex shrink-0 items-center gap-1.5">
-                      <CodeLabel code={p.code} />
+                      <PlaceTag place={p} />
                       {children > 0 && (
                         <button
                           type="button"

@@ -11,7 +11,7 @@ import {
   AmountPill,
   ButtonLink,
   Button,
-  CodeLabel,
+  PlaceTag,
   Empty,
   ErrorBox,
   Loading,
@@ -295,11 +295,11 @@ export function SearchPage() {
                       </td>
                       <td className="px-3 py-2">
                         <span className="flex flex-wrap gap-1">
-                          {[...new Set(p.stock.map((s) => s.locationCode))]
+                          {[...new Map(p.stock.map((s) => [s.place.code, s.place])).values()]
                             .slice(0, 3)
-                            .map((code) => (
-                              <Link key={code} to={`/l/${code}`}>
-                                <CodeLabel code={code} />
+                            .map((place) => (
+                              <Link key={place.code} to={`/l/${place.code}`} title={place.name}>
+                                <PlaceTag place={place} />
                               </Link>
                             ))}
                         </span>

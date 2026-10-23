@@ -5,6 +5,10 @@ const MAX_RESULTS = 12;
 
 export const placeLabel = (p: PlaceOption) => p.path.join(' › ');
 
+/** What a place's tape chip says: a fixed place's address, a container's set short name or code. */
+export const placeTag = (p: Pick<PlaceOption, 'movable' | 'address' | 'shortName' | 'code'>) =>
+  p.movable ? (p.shortName ?? p.code) : p.address;
+
 /**
  * Finds places by name or code. Typing follows the hierarchy:
  * "cab a › sh" or "cab a / sh" matches path levels in order, and plain words ("cabinet shelf 3")
@@ -22,6 +26,9 @@ export function matchPlaces(options: PlaceOption[], query: string): PlaceOption[
     const own = names[names.length - 1] ?? '';
     let score: number | null = null;
     if (place.code === code) score = 0;
+    else if (place.address.toLowerCase() === q) score = 1;
+    else if (!place.movable && place.address.toLowerCase().startsWith(q) && q.length > 1)
+      score = 5 + names.length;
     else if (segments.length > 1) {
       // Each typed level must match a path level, in order (levels may be skipped).
       if (matchesInOrder(names, segments)) {

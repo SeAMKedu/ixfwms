@@ -8,6 +8,11 @@ const place = (code: string, ...path: string[]): PlaceOption => ({
   name: path[path.length - 1]!,
   type: 'box',
   kind: 'normal',
+  shortName: null,
+  short: '',
+  movable: false,
+  address: '',
+  within: '',
   path,
   pathCodes: [],
 });
@@ -22,6 +27,16 @@ const places = [
 const labels = (q: string) => matchPlaces(places, q).map(placeLabel);
 
 describe('matchPlaces', () => {
+  it('finds fixed places by address', () => {
+    const addressed = places.map((p) => ({
+      ...p,
+      address: ['RL', ...p.path.slice(1).map((n) => n.split(' ').pop()!)].join('-'),
+    }));
+    const found = matchPlaces(addressed, 'rl-a-3').map(placeLabel);
+    expect(found[0]).toBe('Robotics lab › Cabinet A › Shelf 3');
+    expect(matchPlaces(addressed, 'rl-b').map(placeLabel)[0]).toBe('Robotics lab › Cabinet B');
+  });
+
   it('follows the hierarchy when levels are separated', () => {
     expect(labels('cab a › sh')[0]).toBe('Robotics lab › Cabinet A › Shelf 3');
     expect(labels('cab b / shelf')).toEqual(['Robotics lab › Cabinet B › Shelf 3']);

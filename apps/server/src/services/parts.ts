@@ -497,11 +497,18 @@ export class PartService {
       .where(inArray(partTags.partId, ids))
       .all();
     const lots = await ex
-      .select({ lot: stockLots, locName: locations.name, locCode: locations.code })
+      .select({ lot: stockLots, loc: locations })
       .from(stockLots)
       .innerJoin(locations, eq(locations.id, stockLots.locationId))
       .where(inArray(stockLots.partId, ids))
       .all();
+    const places = new Map(
+      (
+        await this.locations.summaries(ex, [
+          ...new Map(lots.map((l) => [l.loc.id, l.loc])).values(),
+        ])
+      ).map((p) => [p.id, p]),
+    );
     return rows.map((r) => ({
       id: r.id,
       code: r.code,
@@ -517,8 +524,9 @@ export class PartService {
         .filter((l) => l.lot.partId === r.id)
         .map((l) => ({
           display: formatAmount(l.lot),
-          location: l.locName,
-          locationCode: l.locCode,
+          location: l.loc.name,
+          locationCode: l.loc.code,
+          place: places.get(l.loc.id)!,
         })),
     }));
   }

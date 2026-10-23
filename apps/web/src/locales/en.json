@@ -26,7 +26,8 @@
     "account": "Account",
     "admin": "Admin",
     "more": "More",
-    "maps": "Maps"
+    "maps": "Maps",
+    "settings": "Settings"
   },
   "common": {
     "save": "Save",
@@ -208,7 +209,8 @@
       "bin": "Bin / bag",
       "device": "Device",
       "system": "System",
-      "in_transit": "Being carried"
+      "in_transit": "Being carried",
+      "pallet": "Pallet"
     },
     "unassignedTitle": "New place with code {{code}}",
     "unassignedText": "This code isn't used yet (maybe from a blank label). Register the place it's stuck on.",
@@ -223,7 +225,12 @@
     "copyNameHint": "Empty: numbered on from this one",
     "copyWhere": "Put the copies in",
     "copyMaps": "Use the same maps, linked to the copies",
-    "copyDo": "Make copies"
+    "copyDo": "Make copies",
+    "within": "in {{address}}",
+    "codeHint": "Code on the QR label; it never changes",
+    "shortName": "Short name",
+    "shortNameHint": "For the address, e.g. A or A140.1",
+    "clash": "{{names}} next to this place has the same short name, so the address {{address}} isn't unique. Give one of them another short name."
   },
   "inbox": {
     "title": "Inbox",
@@ -696,5 +703,19 @@
     "freshHint": "Then print a new label. The old code is retired either way.",
     "retiredTitle": "Retired label",
     "retiredText": "This label was taken out of use on {{date}}. Throw it away, or scan the label next to it."
+  },
+  "settings": {
+    "title": "Settings",
+    "types": "Place types",
+    "typesIntro": "The types offered when adding a place. Movable ones are containers that get carried around (boxes, bins, pallets): they aren't part of addresses, so moving them never makes an address or label wrong. The others (rooms, cabinets, shelves) make up addresses like Robolab-A-C.",
+    "typeName": "Type name",
+    "movable": "Movable",
+    "placeCount_one": "{{count}} place",
+    "placeCount_other": "{{count}} places",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "inUse": "Places of this type exist",
+    "newType": "New type",
+    "newTypeExample": "e.g. Tool cart"
   }
 }

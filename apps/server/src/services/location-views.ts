@@ -78,6 +78,7 @@ export class LocationViews {
       children: children.map((c) => ({ ...c, partCount: counts.get(c.id) ?? 0 })),
       contents,
       attachments: await this.files.attachmentsOf('location', loc.id),
+      clashes: await this.locations.clashes(loc),
     };
   }
 }

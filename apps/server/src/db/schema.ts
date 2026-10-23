@@ -69,6 +69,8 @@ export const locationTypes = sqliteTable('location_types', {
   key: text('key').notNull().unique(),
   name: text('name').notNull(),
   sort: integer('sort').notNull().default(0),
+  /** Containers that get carried around; left out of addresses. */
+  movable: integer('movable', { mode: 'boolean' }).notNull().default(false),
 });
 
 export const locations = sqliteTable(
@@ -82,6 +84,8 @@ export const locations = sqliteTable(
       .references(() => locationTypes.id),
     kind: text('kind').$type<LocationKind>().notNull().default('normal'),
     name: text('name').notNull(),
+    /** For the address ("A" in "Robolab-A-C"); null = guessed from the name. */
+    shortName: text('short_name'),
     description: text('description'),
     /** Materialised path of ids, e.g. "/a/b/c/" (includes this location), for subtree queries. */
     path: text('path').notNull(),

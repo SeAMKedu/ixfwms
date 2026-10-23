@@ -11,6 +11,7 @@ import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, type LinkProps } from 'react-router';
 import { ApiError } from '../api/client';
+import { placeTag } from '../lib/places';
 
 const cx = (...classes: (string | false | null | undefined)[]) => classes.filter(Boolean).join(' ');
 
@@ -167,6 +168,24 @@ export function CodeLabel({ code, className }: { code: string; className?: strin
   );
 }
 
+/**
+ * A place as a tape chip: a fixed place's address ("Robolab-A-C"), a container's short name or
+ * code. The code is in the tooltip.
+ */
+export function PlaceTag({
+  place,
+  className,
+}: {
+  place: Pick<LocationSummary, 'movable' | 'address' | 'shortName' | 'code'>;
+  className?: string;
+}) {
+  return (
+    <span title={place.code} className="inline-flex">
+      <CodeLabel code={placeTag(place)} className={className} />
+    </span>
+  );
+}
+
 export function LocationPath({
   path,
   linkLast = true,
@@ -174,16 +193,22 @@ export function LocationPath({
   path: LocationSummary[];
   linkLast?: boolean;
 }) {
+  // On a phone, long paths keep the top and the last two levels: "Robotics lab › … › Shelf 3 › Box".
+  const collapse = path.length > 3;
   return (
     <span className="inline-flex flex-wrap items-center gap-x-1 gap-y-0.5 text-[13px] text-muted min-w-0">
       {path.map((p, i) => {
         const last = i === path.length - 1;
+        const middle = collapse && i > 0 && i < path.length - 2;
         return (
-          <span key={p.id} className="inline-flex items-center gap-1">
+          <span
+            key={p.id}
+            className={cx('items-center gap-1', middle ? 'hidden sm:inline-flex' : 'inline-flex')}
+          >
             {last && linkLast ? (
               <Link to={`/l/${p.code}`} className="inline-flex items-center gap-1 hover:underline">
                 <span className="text-ink">{p.name}</span>
-                <CodeLabel code={p.code} />
+                <PlaceTag place={p} />
               </Link>
             ) : (
               <Link to={`/l/${p.code}`} className="text-ink hover:underline">
@@ -191,6 +216,12 @@ export function LocationPath({
               </Link>
             )}
             {!last && <span aria-hidden>›</span>}
+            {collapse && i === 0 && (
+              <span aria-hidden className="inline-flex gap-1 sm:hidden">
+                <span>…</span>
+                <span>›</span>
+              </span>
+            )}
           </span>
         );
       })}

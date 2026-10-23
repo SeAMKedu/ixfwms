@@ -5,7 +5,7 @@ Parts inventory for the robotics lab: pneumatics, electrical parts, fasteners, f
 ## What it does
 
 - **Parts and stock:** parts with order numbers, categories, project tags, files (datasheets, STEP models) and stock in any number of places. Stock can be counted, weighed or length-measured (weighed fasteners show an estimated count), or just marked plenty / low / empty.
-- **Places:** a tree of any depth (building › lab › cabinet › shelf › box). Every place and part has a short code printed on its QR label. A cabinet can be copied with everything inside it, e.g. six more like it.
+- **Places:** a tree of any depth (building › lab › cabinet › shelf › box). Every place and part has a short code printed on its QR label. Fixed places have short, readable addresses like `Robolab-A-C` (lab, cabinet A, shelf C); containers (boxes, bins, pallets) are known by name and aren't part of addresses. Place types are set in Settings. A cabinet can be copied with everything inside it, e.g. six more like it.
 - **Phone first:** a camera QR scanner; moving things by scanning (pick up, walk, scan where it goes); quick-add inventory sessions with photos.
 - **Inbox:** new parts from imports or AI assistants arrive as drafts to review, merge or put away. Things carried for hours get flagged.
 - **Category fields:** e.g. thread and length for screws, colour (palette name + exact shade) for filament and wire. Search can filter on these fields, and a low-stock list is built in.
@@ -98,10 +98,10 @@ claude mcp add --transport http ixfwms http://localhost:3000/mcp --header "Autho
 
 Give assistants a token with the `inventory` scope. They can then create places, add drafts and move stock, but not confirm drafts.
 
-| Tools  |                                                                                                                                                                                    |
-| ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Read   | `search_parts`, `get_part`, `find_similar_parts`, `list_locations`, `get_location`, `list_categories`, `get_category_fields`, `list_tags`, `check_availability`, `get_upload_info` |
-| Change | `create_location`, `duplicate_location`, `create_part_drafts`, `update_part`, `add_stock`, `take_stock`, `set_stock_amount`, `move_stock`, `move_location`, `attach_file`          |
+| Tools  |                                                                                                                                                                                                           |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Read   | `search_parts`, `get_part`, `find_similar_parts`, `list_locations`, `list_location_types`, `get_location`, `list_categories`, `get_category_fields`, `list_tags`, `check_availability`, `get_upload_info` |
+| Change | `create_location`, `duplicate_location`, `create_part_drafts`, `update_part`, `add_stock`, `take_stock`, `set_stock_amount`, `move_stock`, `move_location`, `attach_file`                                 |
 
 See [docs/inventory-with-mcp.md](docs/inventory-with-mcp.md) for the initial-inventory workflow.
 
@@ -116,6 +116,7 @@ Reads are open on the lab network; writes need `Authorization: Bearer <token>`. 
 | `GET /api/locations?parent=&tree=1&flat=1` · `GET /api/locations/:code?recursive=1` · `POST /api/locations` · `PATCH` · `/move` · `/duplicate` · `/code` · `/swap-code`           | places                                                               |
 | `POST /api/stock` · `POST /api/stock/:lotId/take` · `/stocktake` · `/move`                                                                                                        | stock                                                                |
 | `GET /api/carry` · `GET /api/carry/all` · `POST /api/carry/pick` · `POST /api/carry/drop`                                                                                         | scan, carry, scan                                                    |
+| `GET` / `POST /api/location-types` · `PATCH` / `DELETE /api/location-types/:key`                                                                                                  | place types (movable or fixed)                                       |
 | `GET /api/categories` · `GET /api/categories/fields?path=` · `PUT /api/categories/fields` · `POST /api/categories/starter`                                                        | categories and their fields                                          |
 | `POST /api/files` (multipart `file`) · `GET /api/files/:id` · `POST /api/attachments`                                                                                             | files                                                                |
 | `GET /api/labels?codes=…` · `GET /api/labels.csv?location=…&recursive=1` · `GET /api/labels/:code/label.svg?tape=12` · `/qr.svg` · `/qr.dxf`                                      | labels                                                               |

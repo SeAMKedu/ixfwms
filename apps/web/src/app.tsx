@@ -14,6 +14,7 @@ import { ImportPage } from './pages/import';
 import { InboxPage } from './pages/inbox';
 import { LabelsPage } from './pages/labels';
 import { MapsPage } from './pages/maps';
+import { SettingsPage } from './pages/settings';
 import { LocationPage } from './pages/location';
 import { LoginPage } from './pages/login';
 import { NotFoundPage } from './pages/not-found';
@@ -41,6 +42,7 @@ const routes = [
       { path: '/carry', element: <CarryPage /> },
       { path: '/labels', element: <LabelsPage /> },
       { path: '/maps', element: <MapsPage /> },
+      { path: '/settings', element: <SettingsPage /> },
       { path: '/categories', element: <CategoriesPage /> },
       { path: '/import', element: <ImportPage /> },
       { path: '/bom', element: <BomPage /> },

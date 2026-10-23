@@ -76,9 +76,19 @@ export function qrSvg(text: string, opts: { sizeMm?: number; ecl?: ErrorCorrecti
 const textWidth = (text: string, fontMm: number, mono = false) =>
   text.length * fontMm * (mono ? 0.62 : 0.55);
 
+/** One line of label text; `small` is printed before the main text at a smaller size. */
+interface Line {
+  text: string;
+  size: number;
+  mono: boolean;
+  bold: boolean;
+  small?: string;
+}
+
 /**
- * A complete tape label in millimetres: QR on the left, code (and on wider tape, name and path) on the right.
- * 9 mm: QR + code. 12 mm: + name. 24 mm: + name and path.
+ * A complete tape label in millimetres: QR on the left, text on the right. Fixed places show their
+ * address ("Robolab-A-" small, "C" large); containers, parts and blank labels show the code.
+ * 9 mm: QR + address or code. 12 mm: + name. 24 mm: + name and path.
  */
 export function labelSvg(label: LabelData, tape: TapeWidth, ecl: ErrorCorrection = 'M'): string {
   const h = PRINTABLE_MM[tape];
@@ -87,31 +97,52 @@ export function labelSvg(label: LabelData, tape: TapeWidth, ecl: ErrorCorrection
   const mod = h / modules;
   const gap = h * 0.12;
   const x0 = h + gap;
-  const lines: { text: string; size: number; mono: boolean; bold: boolean }[] = [];
+  const byAddress = label.kind === 'location' && !label.movable && label.short !== '';
+  const main = (size: number): Line =>
+    byAddress
+      ? {
+          text: truncate(label.short, 12),
+          small: label.parent ? truncate(`${label.parent}-`, 24) : undefined,
+          size,
+          mono: true,
+          bold: true,
+        }
+      : { text: label.code, size, mono: true, bold: true };
+  const lines: Line[] = [];
   if (tape === 9) {
-    lines.push({ text: label.code, size: h * 0.5, mono: true, bold: true });
+    lines.push(main(h * 0.5));
   } else if (tape === 12) {
-    lines.push({ text: label.code, size: h * 0.38, mono: true, bold: true });
+    lines.push(main(h * 0.38));
     if (label.name)
       lines.push({ text: truncate(label.name, 28), size: h * 0.3, mono: false, bold: false });
   } else {
-    lines.push({ text: label.code, size: h * 0.26, mono: true, bold: true });
+    lines.push(main(h * 0.26));
     if (label.name)
       lines.push({ text: truncate(label.name, 32), size: h * 0.2, mono: false, bold: true });
-    if (label.path)
-      lines.push({ text: truncate(label.path, 48), size: h * 0.13, mono: false, bold: false });
+    const detail = [byAddress ? label.code : '', label.path].filter(Boolean).join(' · ');
+    if (detail)
+      lines.push({ text: truncate(detail, 48), size: h * 0.13, mono: false, bold: false });
   }
+  const smallSize = (l: Line) => l.size * 0.55;
+  const lineWidth = (l: Line) =>
+    textWidth(l.text, l.size, l.mono) + (l.small ? textWidth(l.small, smallSize(l), l.mono) : 0);
   const block = lines.reduce((sum, l) => sum + l.size * 1.15, 0);
   let y = (h - block) / 2;
   const texts = lines
     .map((l) => {
       y += l.size;
-      const t = `<text x="${fmt(x0)}" y="${fmt(y)}" font-size="${fmt(l.size)}" font-family="${l.mono ? 'IBM Plex Mono, Menlo, Consolas, monospace' : 'IBM Plex Sans, Arial, sans-serif'}"${l.bold ? ' font-weight="700"' : ''} fill="#000">${escapeXml(l.text)}</text>`;
+      const font = l.mono
+        ? 'IBM Plex Mono, Menlo, Consolas, monospace'
+        : 'IBM Plex Sans, Arial, sans-serif';
+      const body = l.small
+        ? `<tspan font-size="${fmt(smallSize(l))}" font-weight="400">${escapeXml(l.small)}</tspan>${escapeXml(l.text)}`
+        : escapeXml(l.text);
+      const t = `<text x="${fmt(x0)}" y="${fmt(y)}" font-size="${fmt(l.size)}" font-family="${font}"${l.bold ? ' font-weight="700"' : ''} fill="#000">${body}</text>`;
       y += l.size * 0.15;
       return t;
     })
     .join('');
-  const width = x0 + Math.max(...lines.map((l) => textWidth(l.text, l.size, l.mono))) + gap;
+  const width = x0 + Math.max(...lines.map(lineWidth)) + gap;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${fmt(width)}mm" height="${fmt(h)}mm" viewBox="0 0 ${fmt(width)} ${fmt(h)}">` +
     `<rect width="${fmt(width)}" height="${fmt(h)}" fill="#fff"/>` +
@@ -186,13 +217,15 @@ export function qrDxf(
 
 /**
  * CSV for P-touch Editor's database merge (File › Database › Connect). Starts with a UTF-8 BOM
- * so Windows tools read ä/ö correctly. Columns: code, qr, name, path, type.
+ * so Windows tools read ä/ö correctly. Columns: code, qr, name, path, type, then for places the
+ * address ("Robolab-A-C"), the part of it above the place ("Robolab-A") and its short name ("C"),
+ * so a template can print them in different sizes.
  */
 export function labelsCsv(labels: LabelData[]): string {
   const q = (s: string) => (/[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
   const rows = [
-    ['code', 'qr', 'name', 'path', 'type'],
-    ...labels.map((l) => [l.code, l.qr, l.name, l.path, l.type]),
+    ['code', 'qr', 'name', 'path', 'type', 'address', 'parent', 'short'],
+    ...labels.map((l) => [l.code, l.qr, l.name, l.path, l.type, l.address, l.parent, l.short]),
   ];
   return `\uFEFF${rows.map((r) => r.map(q).join(',')).join('\r\n')}\r\n`;
 }

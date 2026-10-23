@@ -1,5 +1,10 @@
 import {
+  addressOf,
+  BUILT_IN_LOCATION_TYPES,
   DEFAULT_LOCATION_TYPES,
+  LocationTypeInput,
+  nextShortName,
+  type LocationTypeInfo,
   isValidCode,
   normalizeCode,
   nextFreeName,
@@ -32,11 +37,17 @@ export class LocationService {
     const existing = await this.db.select().from(locationTypes).all();
     const keys = new Set(existing.map((t) => t.key));
     let sort = existing.length;
-    for (const t of [...DEFAULT_LOCATION_TYPES, { key: 'in_transit', name: 'Being carried' }]) {
-      if (!keys.has(t.key)) {
+    const defaults = [
+      ...DEFAULT_LOCATION_TYPES,
+      { key: 'in_transit', name: 'Being carried', movable: false },
+    ];
+    // Only for a new database: types removed in the app on purpose stay removed.
+    const fresh = existing.length === 0;
+    for (const t of defaults) {
+      if (!keys.has(t.key) && (fresh || BUILT_IN_LOCATION_TYPES.some((b) => b === t.key))) {
         await this.db
           .insert(locationTypes)
-          .values({ id: newId(), key: t.key, name: t.name, sort: sort++ });
+          .values({ id: newId(), key: t.key, name: t.name, movable: t.movable, sort: sort++ });
       }
     }
     const inbox = await this.db.select().from(locations).where(eq(locations.kind, 'inbox')).get();
@@ -78,6 +89,7 @@ export class LocationService {
         kind: 'normal',
         description: input.description ?? null,
         code: input.code ?? null,
+        shortName: input.shortName ?? null,
       });
       await audit(tx, who, 'create', 'location', row.id, {
         name: row.name,
@@ -97,6 +109,10 @@ export class LocationService {
       const loc = await this.resolve(ref, tx);
       const patch: Partial<LocationRow> = { updatedAt: nowIso() };
       if (input.name !== undefined) patch.name = input.name;
+      if (input.shortName !== undefined) {
+        patch.shortName = input.shortName ?? null;
+        await this.checkShortName(tx, loc.parentId, patch.shortName, loc.id);
+      }
       if (input.description !== undefined) patch.description = input.description ?? null;
       if (input.type !== undefined) patch.typeId = (await this.typeByKey(tx, input.type)).id;
       await tx.update(locations).set(patch).where(eq(locations.id, loc.id));
@@ -148,15 +164,22 @@ export class LocationService {
       );
       const copies: LocationSummary[] = [];
       let previous = original.name;
+      let shortRoot = original.shortName;
       for (let n = 0; n < count; n++) {
-        const siblings = await tx
-          .select({ name: locations.name })
+        const siblingRows = await tx
+          .select()
           .from(locations)
           .where(parentId ? eq(locations.parentId, parentId) : isNull(locations.parentId))
           .all();
-        const taken = siblings.map((s) => s.name);
+        const taken = siblingRows.map((s) => s.name);
         const copyName = name && n === 0 ? name : nextFreeName(previous, taken);
         previous = copyName;
+        // A set short name steps on too (A → B); a guessed one follows the new name by itself.
+        if (shortRoot) {
+          const shorts = (await this.summaries(tx, siblingRows)).map((x) => x.short.toLowerCase());
+          do shortRoot = nextShortName(shortRoot);
+          while (shorts.includes(shortRoot.toLowerCase()));
+        }
         const pairs = new Map<string, string>();
         // Parents come before children when sorted by path length.
         for (const row of [...inside].sort((a, b) => a.path.length - b.path.length)) {
@@ -167,6 +190,7 @@ export class LocationService {
             typeKey: types.get(row.typeId) ?? 'box',
             kind: 'normal',
             description: row.description,
+            shortName: isRoot ? shortRoot : row.shortName,
           });
           pairs.set(row.id, copy.id);
           if (isRoot) copies.push(await this.summarize(tx, copy));
@@ -300,14 +324,150 @@ export class LocationService {
   }
 
   async summaries(ex: Executor, rows: LocationRow[]): Promise<LocationSummary[]> {
-    const types = new Map((await ex.select().from(locationTypes).all()).map((t) => [t.id, t.key]));
-    return rows.map((r) => ({
-      id: r.id,
-      code: r.code,
+    const types = new Map((await ex.select().from(locationTypes).all()).map((t) => [t.id, t]));
+    // Addresses need every place on the way down.
+    const known = new Map(rows.map((r) => [r.id, r]));
+    const missing = [
+      ...new Set(rows.flatMap((r) => r.path.split('/').filter((id) => id && !known.has(id)))),
+    ];
+    for (let i = 0; i < missing.length; i += 500) {
+      const batch = missing.slice(i, i + 500);
+      for (const r of await ex.select().from(locations).where(inArray(locations.id, batch)).all())
+        known.set(r.id, r);
+    }
+    const part = (r: LocationRow) => ({
       name: r.name,
-      type: types.get(r.typeId) ?? 'unknown',
-      kind: r.kind,
-    }));
+      shortName: r.shortName,
+      movable: types.get(r.typeId)?.movable ?? false,
+    });
+    return rows.map((r) => {
+      const path = r.path
+        .split('/')
+        .filter(Boolean)
+        .map((id) => known.get(id))
+        .filter((x): x is LocationRow => x != null);
+      const { parent, short, address } = addressOf(path.map(part));
+      return {
+        id: r.id,
+        code: r.code,
+        name: r.name,
+        type: types.get(r.typeId)?.key ?? 'unknown',
+        kind: r.kind,
+        shortName: r.shortName,
+        short,
+        movable: part(r).movable,
+        address,
+        within: parent,
+      };
+    });
+  }
+
+  /** Fixed places next to `loc` whose short name is the same, so their addresses are too. */
+  async clashes(loc: LocationRow): Promise<LocationSummary[]> {
+    const siblings = await this.db
+      .select()
+      .from(locations)
+      .where(loc.parentId ? eq(locations.parentId, loc.parentId) : isNull(locations.parentId))
+      .all();
+    const all = await this.summaries(this.db, siblings);
+    const own = all.find((s) => s.id === loc.id);
+    if (!own || own.movable) return [];
+    return all.filter((s) => s.id !== loc.id && !s.movable && s.short === own.short);
+  }
+
+  // --- place types ---------------------------------------------------------------------------
+
+  async types(): Promise<LocationTypeInfo[]> {
+    const rows = await this.db.select().from(locationTypes).orderBy(asc(locationTypes.sort)).all();
+    const counts = await this.db
+      .select({ typeId: locations.typeId, n: sql<number>`count(*)` })
+      .from(locations)
+      .groupBy(locations.typeId)
+      .all();
+    const byType = new Map(counts.map((c) => [c.typeId, Number(c.n)]));
+    return rows
+      .filter((t) => !BUILT_IN_LOCATION_TYPES.some((b) => b === t.key))
+      .map((t) => ({
+        key: t.key,
+        name: t.name,
+        movable: t.movable,
+        sort: t.sort,
+        places: byType.get(t.id) ?? 0,
+      }));
+  }
+
+  async createType(input: LocationTypeInput, actor: Actor | null): Promise<LocationTypeInfo> {
+    const who = requireScope(actor, 'write');
+    const { name, movable, sort } = LocationTypeInput.parse(input);
+    const existing = await this.db.select().from(locationTypes).all();
+    const base = typeKey(name);
+    let key = base;
+    for (let n = 2; existing.some((t) => t.key === key); n++) key = `${base}_${n}`;
+    const next = Math.max(0, ...existing.map((t) => t.sort)) + 1;
+    await this.db
+      .insert(locationTypes)
+      .values({ id: newId(), key, name, movable, sort: sort ?? next });
+    await audit(this.db, who, 'create', 'location-type', key, { name, movable });
+    return (await this.types()).find((t) => t.key === key)!;
+  }
+
+  async updateType(
+    key: string,
+    input: Partial<LocationTypeInput>,
+    actor: Actor | null,
+  ): Promise<LocationTypeInfo> {
+    const who = requireScope(actor, 'write');
+    const type = await this.editableType(key);
+    const patch = LocationTypeInput.partial().parse(input);
+    await this.db
+      .update(locationTypes)
+      .set({
+        ...(patch.name !== undefined && { name: patch.name }),
+        ...(patch.movable !== undefined && { movable: patch.movable }),
+        ...(patch.sort !== undefined && { sort: patch.sort }),
+      })
+      .where(eq(locationTypes.id, type.id));
+    await audit(this.db, who, 'update', 'location-type', key, { ...patch });
+    return (await this.types()).find((t) => t.key === key)!;
+  }
+
+  async deleteType(key: string, actor: Actor | null): Promise<void> {
+    const who = requireScope(actor, 'write');
+    const type = await this.editableType(key);
+    const used = await this.db
+      .select({ id: locations.id })
+      .from(locations)
+      .where(eq(locations.typeId, type.id))
+      .limit(1)
+      .all();
+    if (used.length) throw invalid(`Places of type ${type.name} exist; change their type first`);
+    await this.db.delete(locationTypes).where(eq(locationTypes.id, type.id));
+    await audit(this.db, who, 'delete', 'location-type', key);
+  }
+
+  private async editableType(key: string) {
+    const type = await this.db.select().from(locationTypes).where(eq(locationTypes.key, key)).get();
+    if (!type || BUILT_IN_LOCATION_TYPES.some((b) => b === key)) throw notFound('Place type', key);
+    return type;
+  }
+
+  /** An explicitly set short name must differ from the fixed places next to it. */
+  private async checkShortName(
+    ex: Executor,
+    parentId: string | null,
+    shortName: string | null,
+    selfId: string | null,
+  ): Promise<void> {
+    if (!shortName) return;
+    const siblings = await ex
+      .select()
+      .from(locations)
+      .where(parentId ? eq(locations.parentId, parentId) : isNull(locations.parentId))
+      .all();
+    const taken = (await this.summaries(ex, siblings)).find(
+      (s) => s.id !== selfId && !s.movable && s.short.toLowerCase() === shortName.toLowerCase(),
+    );
+    if (taken) throw invalid(`${taken.name} next to it already has the short name ${taken.short}`);
   }
 
   private async typeByKey(ex: Executor, key: string) {
@@ -331,6 +491,7 @@ export class LocationService {
       description: string | null;
       ownerUserId?: string;
       code?: string | null;
+      shortName?: string | null;
     },
   ): Promise<LocationRow> {
     const type = await this.typeByKey(ex, input.typeKey);
@@ -338,6 +499,8 @@ export class LocationService {
     if (parent && parent.kind !== 'normal' && input.kind === 'normal') {
       throw new AppError('invalid', `Locations can't be created inside ${parent.name}`);
     }
+    if (type.movable === false)
+      await this.checkShortName(ex, parent?.id ?? null, input.shortName ?? null, null);
     const id = newId();
     const row = {
       id,
@@ -349,6 +512,7 @@ export class LocationService {
       description: input.description,
       path: `${parent?.path ?? '/'}${id}/`,
       ownerUserId: input.ownerUserId ?? null,
+      shortName: input.shortName ?? null,
     };
     await ex.insert(locations).values(row);
     return this.resolve(id, ex);
@@ -357,4 +521,16 @@ export class LocationService {
 
 function levelOf(path: string): number {
   return path.split('/').filter(Boolean).length;
+}
+
+/** "Tool cart" → "tool_cart": keys for new place types. */
+function typeKey(name: string): string {
+  const key = name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_|_$/g, '')
+    .slice(0, 30);
+  return key || 'type';
 }

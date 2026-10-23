@@ -11,3 +11,4 @@ export * from './bom.js';
 export * from './maps.js';
 export * from './colours.js';
 export * from './names.js';
+export * from './addresses.js';

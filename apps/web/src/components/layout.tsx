@@ -4,6 +4,7 @@ import {
   DatabaseBackup,
   FileSpreadsheet,
   History,
+  Settings,
   Smartphone,
   Users,
   Hand,
@@ -179,6 +180,7 @@ export function Layout() {
     { to: '/maps', label: t('nav.maps'), icon: MapIcon },
     { to: '/history', label: t('nav.history'), icon: History },
     { to: '/setup', label: t('nav.setup'), icon: Smartphone },
+    { to: '/settings', label: t('nav.settings'), icon: Settings },
     ...(can('admin')
       ? [
           { to: '/users', label: t('nav.users'), icon: Users },

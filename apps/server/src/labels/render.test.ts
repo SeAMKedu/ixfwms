@@ -8,6 +8,10 @@ const label: LabelData = {
   path: 'Robotics lab › Cabinet A › Shelf 3',
   type: 'box',
   qr: 'HTTPS://IXF.LOCAL/L/A3F9',
+  address: 'B7',
+  parent: 'RL-A-3',
+  short: 'B7',
+  movable: true,
 };
 
 describe('label rendering', () => {
@@ -24,6 +28,24 @@ describe('label rendering', () => {
     const wide = labelSvg(label, 24);
     expect(wide).toContain('height="18mm"');
     expect(wide).toContain('Robotics lab › Cabinet A › Shelf 3');
+  });
+
+  it('shows a fixed place by its address, the part above it smaller', () => {
+    const shelf = {
+      ...label,
+      name: 'Shelf C',
+      type: 'shelf',
+      address: 'Robolab-A-C',
+      parent: 'Robolab-A',
+      short: 'C',
+      movable: false,
+    };
+    const svg = labelSvg(shelf, 12);
+    expect(svg).toMatch(/<tspan font-size="[\d.]+" font-weight="400">Robolab-A-<\/tspan>C<\/text>/);
+    expect(svg).not.toContain('A3F9<');
+    expect(labelSvg(shelf, 24)).toContain('A3F9 · Robotics lab');
+    // Containers move around, so their labels keep the code.
+    expect(labelSvg(label, 12)).toContain('>A3F9</text>');
   });
 
   it('escapes text in SVG', () => {
@@ -43,7 +65,8 @@ describe('label rendering', () => {
 
   it('writes CSV for P-touch Editor with a BOM and quoting', () => {
     const csv = labelsCsv([label, { ...label, code: 'K7Q2', name: 'Fitting "L", 6 mm' }]);
-    expect(csv.startsWith('\uFEFFcode,qr,name,path,type\r\n')).toBe(true);
+    expect(csv.startsWith('\uFEFFcode,qr,name,path,type,address,parent,short\r\n')).toBe(true);
+    expect(csv).toContain(',box,B7,RL-A-3,B7\r\n');
     expect(csv).toContain('"Fitting ""L"", 6 mm"');
   });
 });

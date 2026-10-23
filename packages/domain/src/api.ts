@@ -12,6 +12,25 @@ export interface LocationSummary {
   name: string;
   type: string;
   kind: LocationKind;
+  /** Short name as set, or null when it's guessed from the name. */
+  shortName: string | null;
+  /** Short name in use, e.g. "C": set, or guessed for fixed places; "" for a container without one. */
+  short: string;
+  /** Containers (boxes, bins, pallets) move around and aren't part of addresses. */
+  movable: boolean;
+  /** "Robolab-A-C" for a fixed place; a movable one's is just its short name. */
+  address: string;
+  /** Address of the fixed place this is in ("Robolab-A"), or "" at the top. */
+  within: string;
+}
+
+export interface LocationTypeInfo {
+  key: string;
+  name: string;
+  movable: boolean;
+  sort: number;
+  /** How many places are of this type (a type in use can't be removed). */
+  places: number;
 }
 
 export interface LocationNode extends LocationSummary {
@@ -48,7 +67,7 @@ export interface PartSummary {
   category: string | null;
   identifiers: { kind: string; value: string }[];
   tags: string[];
-  stock: { display: string; location: string; locationCode: string }[];
+  stock: { display: string; location: string; locationCode: string; place: LocationSummary }[];
 }
 
 export interface MovementView {
@@ -95,6 +114,8 @@ export interface LocationDetail extends LocationSummary {
   children: (LocationSummary & { partCount: number })[];
   contents: LocationContentItem[];
   attachments: AttachmentView[];
+  /** Fixed places next to this one with the same short name, so the same address. */
+  clashes: LocationSummary[];
 }
 
 export interface SearchResult<T> {
@@ -147,6 +168,12 @@ export interface LabelData {
   type: string;
   /** What the QR code encodes. */
   qr: string;
+  /** Places: the address ("Robolab-A-C"; a container's short name), the fixed place's address it's
+   *  in ("Robolab-A") and its own short name ("C"). Empty for parts and blank labels. */
+  address: string;
+  parent: string;
+  short: string;
+  movable: boolean;
 }
 
 export interface CodeInfo {

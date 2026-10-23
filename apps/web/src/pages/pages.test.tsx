@@ -8,6 +8,8 @@ import { LocationPage } from './location';
 import { ScanPage } from './scan';
 import { SearchPage } from './search';
 
+const NO_ADDRESS = { shortName: null, short: '', movable: false, address: '', within: '' };
+
 const part = (over: Partial<PartSummary>): PartSummary => ({
   id: over.code ?? 'x',
   code: 'A3F9',
@@ -31,7 +33,21 @@ describe('search page', () => {
             code: 'K7Q2',
             name: 'Bellows suction cup Ø30',
             manufacturer: 'Schmalz',
-            stock: [{ display: '14 pcs', location: 'Box', locationCode: 'A3F9' }],
+            stock: [
+              {
+                display: '14 pcs',
+                location: 'Box',
+                locationCode: 'A3F9',
+                place: {
+                  id: 'b',
+                  code: 'A3F9',
+                  name: 'Box',
+                  type: 'box',
+                  kind: 'normal',
+                  ...NO_ADDRESS,
+                },
+              },
+            ],
           }),
           part({ code: 'P2X1', name: 'Vacuum generator VN-10', status: 'draft' }),
         ],
@@ -78,10 +94,26 @@ describe('location page', () => {
       name: 'Box: vacuum parts',
       type: 'box',
       kind: 'normal',
+      ...NO_ADDRESS,
+      clashes: [],
       description: null,
       path: [
-        { id: 'a', code: 'C4B1', name: 'Cabinet A', type: 'cabinet', kind: 'normal' },
-        { id: 'b', code: 'A3F9', name: 'Box: vacuum parts', type: 'box', kind: 'normal' },
+        {
+          id: 'a',
+          code: 'C4B1',
+          name: 'Cabinet A',
+          type: 'cabinet',
+          kind: 'normal',
+          ...NO_ADDRESS,
+        },
+        {
+          id: 'b',
+          code: 'A3F9',
+          name: 'Box: vacuum parts',
+          type: 'box',
+          kind: 'normal',
+          ...NO_ADDRESS,
+        },
       ],
       children: [],
       contents: [
@@ -118,6 +150,7 @@ describe('carry page', () => {
         name: 'Carried by demo',
         type: 'in_transit',
         kind: 'in_transit',
+        ...NO_ADDRESS,
       },
       since: '2026-10-23T08:00:00.000Z',
       items: [
@@ -143,8 +176,19 @@ describe('carry page', () => {
       name: 'Robot cell 2',
       type: 'zone',
       kind: 'normal',
+      ...NO_ADDRESS,
+      clashes: [],
       description: null,
-      path: [{ id: 'c', code: 'R2B4', name: 'Robot cell 2', type: 'zone', kind: 'normal' }],
+      path: [
+        {
+          id: 'c',
+          code: 'R2B4',
+          name: 'Robot cell 2',
+          type: 'zone',
+          kind: 'normal',
+          ...NO_ADDRESS,
+        },
+      ],
       children: [],
       contents: [],
       attachments: [],

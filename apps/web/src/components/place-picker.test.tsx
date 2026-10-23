@@ -12,6 +12,11 @@ const place = (code: string, path: string[], pathCodes: string[]): PlaceOption =
   name: path[path.length - 1]!,
   type: 'box',
   kind: 'normal',
+  shortName: null,
+  short: '',
+  movable: false,
+  address: '',
+  within: '',
   path,
   pathCodes,
 });

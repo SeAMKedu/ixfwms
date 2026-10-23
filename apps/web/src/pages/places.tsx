@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { useLocationTree } from '../api/queries';
 import { useSession } from '../auth/session';
-import { Button, Card, CodeLabel, Empty, ErrorBox, Loading, PageHeader } from '../components/ui';
+import { Button, Card, Empty, ErrorBox, Loading, PageHeader, PlaceTag } from '../components/ui';
 import { MapLayers } from '../components/svg-map';
 import { NewPlaceForm } from './location';
 
@@ -38,7 +38,7 @@ function Node({ node, depth }: { node: LocationNode; depth: number }) {
           <span className={`truncate ${node.kind !== 'normal' ? 'text-muted italic' : ''}`}>
             {node.name}
           </span>
-          <CodeLabel code={node.code} />
+          <PlaceTag place={node} />
         </Link>
       </div>
       {open && hasChildren && (

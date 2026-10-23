@@ -10,8 +10,22 @@ Set `IXF_PUBLIC_URL` (see `.env.example`) to the name the lab will use for good,
 `https://ixf.local` or `https://ixf.internal`. Without it, labels use whatever address the browser
 used, which may be an IP address that changes later.
 
-Labels never need reprinting when things move or get renamed: the code stays the same. Even if the
+The QR never needs reprinting when things move or get renamed: the code stays the same. Even if the
 server's name changes, the in-app scanner ignores the host part, so old labels keep working there.
+
+## Addresses on labels
+
+Fixed places (rooms, cabinets, shelves) have an address made of short names, for example
+`Robolab-A-C` for shelf C in cabinet A of the Robolab. The labels the app draws print it instead of
+the code: the part above the place small, the place's own short name large (`Robolab-A-` **C**).
+Short names are guessed from names ("Cabinet A" → `A`, "Shelf 3" → `3`) and can be set on the place
+page, e.g. a room number `A140.1`.
+
+Containers (boxes, bins, drawers, pallets; set in **More › Settings**) aren't part of addresses, so
+carrying them elsewhere never makes a label wrong. Their labels show the code, or a short name if one
+is set. Fixed places rarely move; if one does, its address label needs reprinting.
+
+To print labels by code instead, use the CSV and a template with `code`.
 
 The URL is printed in upper case on purpose. That lets the QR use a more compact encoding, so a
 typical label link fits a 25×25 QR code, which matters on 9 mm tape.
@@ -20,11 +34,28 @@ typical label link fits a 25×25 QR code, which matters on 9 mm tape.
 
 **Batches, from a PC (recommended):**
 
-1. In ixfwms, download a CSV: **Labels › Labels for a place**, or **Label › CSV: this and everything inside** on a place page. Columns: `code`, `qr`, `name`, `path`, `type`.
+1. In ixfwms, download a CSV: **Labels › Labels for a place**, or **Label › CSV: this and everything inside** on a place page. Columns:
+
+   | Column    | Example (a shelf)          | Example (a box)                     |
+   | --------- | -------------------------- | ----------------------------------- |
+   | `code`    | `BFH8`                     | `52QF`                              |
+   | `qr`      | `HTTPS://IXF.LOCAL/L/BFH8` | `HTTPS://IXF.LOCAL/L/52QF`          |
+   | `name`    | `Shelf C`                  | `Box: vacuum parts`                 |
+   | `path`    | `Robotics lab › Cabinet A` | `Robotics lab › Robot cell 2`       |
+   | `type`    | `shelf`                    | `box`                               |
+   | `address` | `Robolab-A-C`              | its short name, if set (else empty) |
+   | `parent`  | `Robolab-A`                | `Robolab-2` (where it is now)       |
+   | `short`   | `C`                        | its short name, if set (else empty) |
+
+   New columns are added at the end, so templates made for older CSVs keep working.
+
 2. In P-touch Editor, make one template per tape width (once):
-   - **9 mm**: QR code linked to `qr`, plus text linked to `code`.
-   - **12 mm**: QR + `code` + `name`.
-   - **24 mm**: QR + `code` + `name` + `path`.
+   - **9 mm**: QR code linked to `qr`, plus text linked to `short` (large) and `parent` (small),
+     or to `code`.
+   - **12 mm**: the same + `name`.
+   - **24 mm**: the same + `name` + `path`.
+
+   For boxes, use a template with `code` (or `short`) and `name` instead.
 
    Use QR error correction M, and keep the QR as large as the tape allows.
 

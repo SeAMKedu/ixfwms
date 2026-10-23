@@ -137,6 +137,18 @@ export function createMcpServer(
   );
 
   server.registerTool(
+    'list_location_types',
+    {
+      title: 'List place types',
+      description:
+        'Place types for create_location. Movable ones (boxes, bins, pallets) are containers that get carried around; the others make up addresses like "Robolab-A-C".',
+      inputSchema: {},
+      annotations: read,
+    },
+    tool(async () => locations.types()),
+  );
+
+  server.registerTool(
     'list_locations',
     {
       title: 'List places',
@@ -254,7 +266,15 @@ export function createMcpServer(
         type: z
           .string()
           .optional()
-          .describe('building, floor, room, zone, cabinet, shelf, drawer, box, bin, device'),
+          .describe(
+            'Place type key: building, floor, room, zone, cabinet, shelf, pallet, drawer, box, bin, device (the lab may have more; list_location_types)',
+          ),
+        shortName: z
+          .string()
+          .optional()
+          .describe(
+            'Short name for the address, e.g. "A" for Cabinet A; omit to guess it from the name',
+          ),
         description: z.string().optional(),
         code: z
           .string()
@@ -271,6 +291,7 @@ export function createMcpServer(
           type: a.type ?? 'box',
           description: a.description ?? null,
           code: a.code ?? null,
+          shortName: a.shortName ?? null,
         },
         actor,
       );

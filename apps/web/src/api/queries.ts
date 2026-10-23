@@ -20,6 +20,8 @@ import type {
   LocationDetail,
   LocationNode,
   LocationSummary,
+  LocationTypeInfo,
+  LocationTypeInput,
   DuplicateLocationInput,
   LotView,
   MapCheck,
@@ -260,6 +262,26 @@ export const useRenameDrawing = () =>
 
 export const useDeleteDrawing = () =>
   useChange((id: string) => api(`/api/map-drawings/${id}`, { method: 'DELETE' }));
+
+export const useLocationTypes = () =>
+  useQuery({
+    queryKey: ['locationTypes'],
+    queryFn: () => api<LocationTypeInfo[]>('/api/location-types'),
+    staleTime: 60_000,
+  });
+
+export const useCreateLocationType = () =>
+  useChange((input: LocationTypeInput) =>
+    api<LocationTypeInfo>('/api/location-types', { body: input }),
+  );
+
+export const useUpdateLocationType = () =>
+  useChange(({ key, ...input }: Partial<LocationTypeInput> & { key: string }) =>
+    api<LocationTypeInfo>(`/api/location-types/${key}`, { method: 'PATCH', body: input }),
+  );
+
+export const useDeleteLocationType = () =>
+  useChange((key: string) => api(`/api/location-types/${key}`, { method: 'DELETE' }));
 
 export const useDuplicateLocation = (code: string) =>
   useChange((input: DuplicateLocationInput) =>
