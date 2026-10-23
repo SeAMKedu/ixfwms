@@ -1,24 +1,30 @@
 import {
   ATTACHMENT_KINDS,
+  REPORT_KINDS,
   STOCK_LEVELS,
+  type ReportKind,
   normalizeCode,
   type AttachmentKind,
   type LotView,
   type PartDetail,
   type StockLevel,
 } from '@ixfwms/domain';
-import { ExternalLink, FileText, Map as MapIcon, Pencil, Upload } from 'lucide-react';
+import { ExternalLink, FileText, Map as MapIcon, Pencil, Undo2, Upload } from 'lucide-react';
 import { useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
 import { useShortcut } from '../lib/shortcuts';
 import {
   useAddStock,
+  useAddUnits,
   useAttach,
   useMergePart,
   useMoveStock,
+  useOpenMoveLot,
   usePart,
   usePick,
+  usePutBackLot,
+  useReport,
   useSetStatus,
   useStocktake,
   useTakeStock,
@@ -46,13 +52,15 @@ import {
   Pill,
   Select,
   StatusPill,
+  TextArea,
   TextInput,
   isNotFound,
 } from '../components/ui';
+import { GuestName, UnitList, useOpenActions } from '../components/units';
 import { formatBytes, formatDate, parseNumber } from '../lib/format';
 import { NotFoundPage } from './not-found';
 
-type LotAction = 'take' | 'move' | 'count' | 'carry' | null;
+type LotAction = 'take' | 'move' | 'count' | 'carry' | 'bench' | null;
 
 function LotRow({ lot, canEdit, first }: { lot: LotView; canEdit: boolean; first: boolean }) {
   const { t } = useTranslation();
@@ -66,8 +74,13 @@ function LotRow({ lot, canEdit, first }: { lot: LotView; canEdit: boolean; first
   const move = useMoveStock();
   const count = useStocktake();
   const pick = usePick();
-  const busy = take.isPending || move.isPending || count.isPending || pick.isPending;
-  const error = take.error ?? move.error ?? count.error ?? pick.error;
+  const bench = useOpenMoveLot();
+  const putBack = usePutBackLot();
+  const open = useOpenActions();
+  const busy =
+    take.isPending || move.isPending || count.isPending || pick.isPending || bench.isPending;
+  const error =
+    take.error ?? move.error ?? count.error ?? pick.error ?? bench.error ?? putBack.error;
   const isLevel = lot.amount.mode === 'level';
 
   const toggle = (a: LotAction) => {
@@ -76,6 +89,7 @@ function LotRow({ lot, canEdit, first }: { lot: LotView; canEdit: boolean; first
     move.reset();
     count.reset();
     pick.reset();
+    bench.reset();
   };
   // The first stock entry answers the part page's t / m / c shortcuts.
   useShortcut('t', t('shortcuts.take'), () => toggle('take'), first && canEdit);
@@ -99,6 +113,12 @@ function LotRow({ lot, canEdit, first }: { lot: LotView; canEdit: boolean; first
         quantity: parseNumber(qty),
       });
     if (action === 'carry') await pick.mutateAsync({ lotId: lot.id, quantity: parseNumber(qty) });
+    if (action === 'bench')
+      await bench.mutateAsync({
+        lotId: lot.id,
+        to: normalizeCode(dest),
+        quantity: parseNumber(qty),
+      });
     if (action === 'count') {
       const a = toAmountInput({ ...amount, unit: lot.amount.unit ?? amount.unit });
       if (a) await count.mutateAsync({ lotId: lot.id, amount: a });
@@ -126,8 +146,33 @@ function LotRow({ lot, canEdit, first }: { lot: LotView; canEdit: boolean; first
           {t('part.checked', { date: formatDate(lot.lastCheckedAt) })}
         </span>
       )}
+      {!canEdit && (open.toWorkstation || (open.putBack && lot.location.workstation)) && (
+        <div className="flex flex-wrap gap-1.5">
+          {open.putBack && lot.location.workstation && (
+            <Button small busy={putBack.isPending} onClick={() => putBack.mutate(lot.id)}>
+              <Undo2 className="size-4" aria-hidden />
+              {t('units.putBack')}
+            </Button>
+          )}
+          {open.toWorkstation && !lot.location.workstation && (
+            <Button
+              small
+              variant={action === 'bench' ? 'dark' : 'secondary'}
+              onClick={() => toggle('bench')}
+            >
+              {t('units.toWorkstation')}
+            </Button>
+          )}
+        </div>
+      )}
       {canEdit && (
         <div className="flex flex-wrap gap-1.5">
+          {lot.location.workstation && (
+            <Button small busy={putBack.isPending} onClick={() => putBack.mutate(lot.id)}>
+              <Undo2 className="size-4" aria-hidden />
+              {t('units.putBack')}
+            </Button>
+          )}
           <Button
             small
             variant={action === 'take' ? 'dark' : 'secondary'}
@@ -231,6 +276,34 @@ function LotRow({ lot, canEdit, first }: { lot: LotView; canEdit: boolean; first
               )}
             </>
           )}
+          {action === 'bench' && (
+            <>
+              <Field label={t('part.moveTo')} hint={t('units.workstationOnly')}>
+                {(id) => (
+                  <PlacePicker
+                    id={id}
+                    value={dest}
+                    onChange={setDest}
+                    autoFocus
+                    exclude={open.excludeDestination}
+                  />
+                )}
+              </Field>
+              {!isLevel && (
+                <Field label={t('part.moveQuantity')}>
+                  {(id) => (
+                    <TextInput
+                      id={id}
+                      inputMode="decimal"
+                      value={qty}
+                      onChange={(e) => setQty(e.target.value)}
+                    />
+                  )}
+                </Field>
+              )}
+              <GuestName />
+            </>
+          )}
           {action === 'count' && <AmountFields value={amount} onChange={setAmount} lockMode />}
           {action === 'carry' && !isLevel && (
             <Field label={t('carry.carryHow')}>
@@ -302,6 +375,124 @@ function AddStock({ part }: { part: PartDetail }) {
           disabled={!toAmountInput(amount)}
         >
           {t('common.add')}
+        </Button>
+        <Button onClick={() => setOpen(false)}>{t('common.cancel')}</Button>
+      </div>
+    </form>
+  );
+}
+
+function AddUnits({ part }: { part: PartDetail }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [rows, setRows] = useState('');
+  const [home, setHome] = useState(part.units[0]?.home?.code ?? '');
+  const add = useAddUnits();
+  useShortcut('a', t('units.add'), () => setOpen(true));
+  if (!open)
+    return (
+      <Button small onClick={() => setOpen(true)} className="self-start">
+        {t('units.add')}
+      </Button>
+    );
+  // One unit per line: "name; serial number", either may be empty; a bare number means that many.
+  const lines = rows
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const count = lines.length === 1 && /^\d+$/.test(lines[0]!) ? Number(lines[0]) : null;
+  const units = count
+    ? Array.from({ length: Math.min(count, 50) }, () => ({}))
+    : lines.map((l) => {
+        const [name, serial] = l.split(';').map((s) => s.trim());
+        return { name: name || null, serialNo: serial || null };
+      });
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    await add.mutateAsync({
+      part: part.code,
+      units: units.length ? units : [{}],
+      home: home ? normalizeCode(home) : null,
+    });
+    setOpen(false);
+    setRows('');
+  };
+  return (
+    <form
+      onSubmit={(e) => void submit(e)}
+      className="flex flex-col gap-2 rounded-lg bg-surface-2 p-3"
+    >
+      <Field label={t('units.addWhich')} hint={t('units.addWhichHint')}>
+        {(id) => (
+          <TextArea
+            id={id}
+            autoFocus
+            value={rows}
+            onChange={(e) => setRows(e.target.value)}
+            placeholder={t('units.addPlaceholder')}
+            className="font-mono"
+          />
+        )}
+      </Field>
+      <Field label={t('units.home')} hint={t('units.homeHint')}>
+        {(id) => (
+          <PlacePicker id={id} value={home} onChange={setHome} exclude={(p) => p.kind === 'away'} />
+        )}
+      </Field>
+      <ErrorBox error={add.error} />
+      <div className="flex gap-2">
+        <Button type="submit" variant="primary" busy={add.isPending}>
+          {t('units.addCount', { count: units.length || 1 })}
+        </Button>
+        <Button onClick={() => setOpen(false)}>{t('common.cancel')}</Button>
+      </div>
+    </form>
+  );
+}
+
+/** Anyone can report that an item is running low, has missing parts, or is broken. */
+function ReportItem({ part }: { part: PartDetail }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [kind, setKind] = useState<ReportKind>('running_low');
+  const [note, setNote] = useState('');
+  const report = useReport();
+  if (report.isSuccess && !open) return <p className="text-sm text-ok">{t('reports.thanks')}</p>;
+  if (!open)
+    return (
+      <Button small variant="ghost" className="self-start" onClick={() => setOpen(true)}>
+        {t('reports.report')}
+      </Button>
+    );
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    await report.mutateAsync({ owner: 'part', ref: part.code, kind, note: note || null });
+    setOpen(false);
+  };
+  return (
+    <form
+      onSubmit={(e) => void submit(e)}
+      className="flex flex-col gap-2 rounded-lg bg-surface-2 p-3"
+    >
+      <Field label={t('reports.whatsWrong')}>
+        {(id) => (
+          <Select id={id} value={kind} onChange={(e) => setKind(e.target.value as ReportKind)}>
+            {REPORT_KINDS.map((k) => (
+              <option key={k} value={k}>
+                {t(`reportKinds.${k}`)}
+              </option>
+            ))}
+          </Select>
+        )}
+      </Field>
+      <Field label={t('reports.note')} hint={t('common.optional')}>
+        {(id) => <TextArea id={id} value={note} onChange={(e) => setNote(e.target.value)} />}
+      </Field>
+      <GuestName />
+      <ErrorBox error={report.error} />
+      <div className="flex gap-2">
+        <Button type="submit" variant="primary" busy={report.isPending}>
+          {t('reports.send')}
         </Button>
         <Button onClick={() => setOpen(false)}>{t('common.cancel')}</Button>
       </div>
@@ -544,6 +735,7 @@ export function PartPage() {
           <>
             <CodeLabel code={p.code} />
             <StatusPill status={p.status} />
+            {p.kind !== 'part' && <Pill tone="info">{t(`partKinds.${p.kind}`)}</Pill>}
             {p.manufacturer && <span>{p.manufacturer}</span>}
           </>
         }
@@ -558,18 +750,26 @@ export function PartPage() {
       />
       {can('write') && p.status === 'draft' && <Review part={p} />}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card title={t('part.where')} className="md:col-span-2">
-          {p.lots.length === 0 ? (
-            <span className="text-sm text-muted">{t('part.notInStock')}</span>
-          ) : (
-            <ul className="flex flex-col gap-3">
-              {p.lots.map((lot, i) => (
-                <LotRow key={lot.id} lot={lot} canEdit={canEdit} first={i === 0} />
-              ))}
-            </ul>
-          )}
-          {canEdit && <AddStock part={p} />}
-        </Card>
+        {p.tracking === 'individual' ? (
+          <Card title={t('units.title')} className="md:col-span-2">
+            <UnitList units={p.units} />
+            {canEdit && <AddUnits part={p} />}
+          </Card>
+        ) : (
+          <Card title={t('part.where')} className="md:col-span-2">
+            {p.lots.length === 0 ? (
+              <span className="text-sm text-muted">{t('part.notInStock')}</span>
+            ) : (
+              <ul className="flex flex-col gap-3">
+                {p.lots.map((lot, i) => (
+                  <LotRow key={lot.id} lot={lot} canEdit={canEdit} first={i === 0} />
+                ))}
+              </ul>
+            )}
+            {canEdit && <AddStock part={p} />}
+            <ReportItem part={p} />
+          </Card>
+        )}
         <Card title={t('part.identifiers')}>
           {p.identifiers.length === 0 ? (
             <span className="text-sm text-muted">{t('part.noIdentifiers')}</span>
@@ -582,6 +782,11 @@ export function PartPage() {
                 </div>
               ))}
             </dl>
+          )}
+          {p.aliases.length > 0 && (
+            <p className="text-[13px] text-muted">
+              {t('part.alsoCalled', { names: p.aliases.join(', ') })}
+            </p>
           )}
           {p.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5">

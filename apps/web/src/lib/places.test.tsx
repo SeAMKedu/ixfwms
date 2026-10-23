@@ -16,6 +16,7 @@ const place = (code: string, ...path: string[]): PlaceOption => ({
   stayDays: null,
   dueAt: null,
   overdue: false,
+  workstation: false,
   path,
   pathCodes: [],
 });

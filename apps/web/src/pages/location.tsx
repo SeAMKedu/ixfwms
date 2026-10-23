@@ -5,11 +5,12 @@ import {
   normalizeCode,
   type LocationDetail,
 } from '@ixfwms/domain';
-import { ChevronRight, Copy, Hand, Pencil, Plus } from 'lucide-react';
+import { ChevronRight, Copy, Eraser, Hand, Pencil, Plus } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router';
 import {
+  useClearBench,
   useCodeInfo,
   useCreateLocation,
   useDuplicateLocation,
@@ -49,7 +50,60 @@ import {
   TextInput,
   isNotFound,
 } from '../components/ui';
+import { GuestName, UnitStatusPill, useOpenActions } from '../components/units';
 import { NotFoundPage } from './not-found';
+
+/** Clear the bench: units go home, stock back where it came from; the rest is listed. */
+function ClearBench({ place }: { place: LocationDetail }) {
+  const { t } = useTranslation();
+  const open = useOpenActions();
+  const clear = useClearBench(place.code);
+  const [asking, setAsking] = useState(false);
+  if (!open.toWorkstation) return null;
+  const things = place.units.length + place.contents.length + place.children.length;
+  const result = clear.data;
+  return (
+    <Card title={t('bench.title')}>
+      <p className="text-sm text-muted">{t('bench.intro')}</p>
+      {result && (
+        <div role="status" className="flex flex-col gap-1 rounded-lg bg-ok-soft px-3 py-2 text-sm">
+          <span className="text-ok">{t('bench.returned', { count: result.returned.length })}</span>
+          {result.returned.map((r, i) => (
+            <span key={i}>
+              {r.name} → <PlaceTag place={r.to} />
+            </span>
+          ))}
+          {result.left.length > 0 && (
+            <span className="text-warn">
+              {t('bench.left', { names: result.left.map((l) => l.name).join(', ') })}
+            </span>
+          )}
+        </div>
+      )}
+      {asking ? (
+        <div className="flex flex-col gap-2 rounded-lg bg-surface-2 p-3">
+          <GuestName />
+          <div className="flex gap-2">
+            <Button
+              variant="primary"
+              busy={clear.isPending}
+              onClick={() => void clear.mutateAsync().then(() => setAsking(false))}
+            >
+              {t('bench.clear')}
+            </Button>
+            <Button onClick={() => setAsking(false)}>{t('common.cancel')}</Button>
+          </div>
+        </div>
+      ) : (
+        <Button className="self-start" disabled={things === 0} onClick={() => setAsking(true)}>
+          <Eraser className="size-4" aria-hidden />
+          {t('bench.clear')}
+        </Button>
+      )}
+      <ErrorBox error={clear.error} />
+    </Card>
+  );
+}
 
 function TypeSelect({
   id,
@@ -621,8 +675,37 @@ export function LocationPage() {
               )
             }
           >
+            {d.units.length > 0 && (
+              <ul className="-mx-1 flex flex-col">
+                {d.units.map((u) => (
+                  <li key={u.id}>
+                    <Link
+                      to={`/u/${u.code}`}
+                      className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-md px-1 py-1.5 hover:bg-surface-2"
+                    >
+                      <span className="min-w-0">
+                        <span className="flex items-center gap-1.5">
+                          <span className="truncate">{u.name}</span>
+                          <UnitStatusPill status={u.status} />
+                        </span>
+                        {(u.in || (u.home && !u.atHome)) && (
+                          <span className="block truncate text-[12px] text-muted">
+                            {u.in && t('places.inSub', { name: u.in.name })}
+                            {u.in && u.home && !u.atHome && ' · '}
+                            {u.home &&
+                              !u.atHome &&
+                              t('units.belongsAtPlace', { place: u.home.address || u.home.name })}
+                          </span>
+                        )}
+                      </span>
+                      <CodeLabel code={u.code} />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
             {d.contents.length === 0 ? (
-              <Empty>{t('places.nothingHere')}</Empty>
+              d.units.length === 0 && <Empty>{t('places.nothingHere')}</Empty>
             ) : (
               <ul className="-mx-1 flex flex-col">
                 {d.contents.map((c) => (
@@ -659,6 +742,7 @@ export function LocationPage() {
           />
         )}
       </div>
+      {d.workstation && <ClearBench place={d} />}
       {canEdit && layers.data && (
         <MapManager code={d.code} layers={layers.data.filter((l) => l.location.code === d.code)} />
       )}

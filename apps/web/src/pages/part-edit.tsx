@@ -1,14 +1,18 @@
 import {
   IDENTIFIER_KINDS,
+  PART_KINDS,
   normalizeCode,
   type IdentifierKind,
   type PartDetail,
+  type PartKind,
+  type TrackingMode,
 } from '@ixfwms/domain';
 import { Trash2 } from 'lucide-react';
 import { useDeferredValue, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router';
 import {
+  useAddUnits,
   useCategories,
   useCategoryFields,
   useCreatePart,
@@ -32,6 +36,7 @@ import {
   Field,
   Loading,
   PageHeader,
+  Segmented,
   Select,
   TextArea,
   TextInput,
@@ -45,6 +50,9 @@ interface IdentRow {
 
 interface FormState {
   name: string;
+  kind: PartKind;
+  tracking: TrackingMode;
+  aliases: string;
   category: string;
   manufacturer: string;
   description: string;
@@ -56,8 +64,11 @@ interface FormState {
   source: string;
 }
 
-const fromPart = (p?: PartDetail): FormState => ({
+const fromPart = (p?: PartDetail, kind?: string | null): FormState => ({
   name: p?.name ?? '',
+  kind: p?.kind ?? (PART_KINDS.find((k) => k === kind) || 'part'),
+  tracking: p?.tracking ?? (kind === 'device' || kind === 'tool' ? 'individual' : 'bulk'),
+  aliases: p?.aliases.join(', ') ?? '',
   category: p?.category ?? '',
   manufacturer: p?.manufacturer ?? '',
   description: p?.description ?? '',
@@ -86,7 +97,8 @@ function PartForm({ part }: { part?: PartDetail }) {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const { can, user, checking } = useSession();
-  const [form, setForm] = useState<FormState>(() => fromPart(part));
+  const [form, setForm] = useState<FormState>(() => fromPart(part, params.get('kind')));
+  const [unitCount, setUnitCount] = useState('1');
   const [location, setLocation] = useState(params.get('location') ?? '');
   const [amount, setAmount] = useAmountState();
   const [reviewed, setReviewed] = useState(false);
@@ -95,6 +107,7 @@ function PartForm({ part }: { part?: PartDetail }) {
   const fields = useCategoryFields(category).data?.effective ?? [];
   const create = useCreatePart();
   const update = useUpdatePart(part?.code ?? '');
+  const addUnits = useAddUnits();
   const categories = useCategories().data ?? [];
   const tags = useTags().data ?? [];
 
@@ -115,6 +128,9 @@ function PartForm({ part }: { part?: PartDetail }) {
     const idents = form.identifiers.filter((i) => i.value.trim());
     const common = {
       name: form.name,
+      kind: form.kind,
+      tracking: form.tracking,
+      aliases: splitList(form.aliases),
       category: form.category || null,
       manufacturer: form.manufacturer || null,
       description: form.description || null,
@@ -142,7 +158,8 @@ function PartForm({ part }: { part?: PartDetail }) {
       });
       void navigate(`/p/${part.code}`);
     } else {
-      const a = toAmountInput(amount);
+      const individual = form.tracking === 'individual';
+      const a = individual ? null : toAmountInput(amount);
       const created = await create.mutateAsync({
         ...common,
         identifiers: idents.map((i) => ({ kind: i.kind, value: i.value.trim() })),
@@ -150,11 +167,21 @@ function PartForm({ part }: { part?: PartDetail }) {
         status: reviewed && can('write') ? 'active' : 'draft',
         stock: a ? { location: location ? normalizeCode(location) : null, amount: a } : null,
       });
+      const count = Math.min(50, Math.max(0, Math.round(parseNumber(unitCount) ?? 0)));
+      if (individual && count > 0) {
+        const home = location ? normalizeCode(location) : null;
+        await addUnits.mutateAsync({
+          part: created.code,
+          units: Array.from({ length: count }, () => ({})),
+          home,
+        });
+      }
       void navigate(`/p/${created.code}`, { replace: true });
     }
   };
 
-  const busy = create.isPending || update.isPending;
+  const busy = create.isPending || update.isPending || addUnits.isPending;
+  const individual = form.tracking === 'individual';
   return (
     <form onSubmit={(e) => void submit(e)} className="flex flex-col gap-4">
       <PageHeader title={part ? t('part.editTitle') : t('part.createTitle')} eyebrow={part?.name} />
@@ -167,6 +194,51 @@ function PartForm({ part }: { part?: PartDetail }) {
               autoFocus
               value={form.name}
               onChange={(e) => set({ name: e.target.value })}
+            />
+          )}
+        </Field>
+        <div className="grid gap-3 md:grid-cols-2">
+          <Field label={t('part.kind')}>
+            {(id) => (
+              <Select
+                id={id}
+                value={form.kind}
+                onChange={(e) => {
+                  const kind = e.target.value as PartKind;
+                  // New devices are almost always tracked one by one.
+                  set(!part && kind === 'device' ? { kind, tracking: 'individual' } : { kind });
+                }}
+              >
+                {PART_KINDS.map((k) => (
+                  <option key={k} value={k}>
+                    {t(`partKinds.${k}`)}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
+          <div className="flex flex-col gap-1">
+            <span className="text-[13px] font-medium">{t('part.tracking')}</span>
+            <Segmented<TrackingMode>
+              label={t('part.tracking')}
+              value={form.tracking}
+              onChange={(tracking) => set({ tracking })}
+              options={[
+                { value: 'bulk', label: t('part.trackingBulk') },
+                { value: 'individual', label: t('part.trackingIndividual') },
+              ]}
+            />
+            <span className="text-[12px] text-muted">
+              {individual ? t('part.trackingIndividualHint') : t('part.trackingBulkHint')}
+            </span>
+          </div>
+        </div>
+        <Field label={t('part.aliases')} hint={t('part.aliasesHint')}>
+          {(id) => (
+            <TextInput
+              id={id}
+              value={form.aliases}
+              onChange={(e) => set({ aliases: e.target.value })}
             />
           )}
         </Field>
@@ -303,12 +375,36 @@ function PartForm({ part }: { part?: PartDetail }) {
         </Field>
       </Card>
 
-      {!part && (
-        <Card title={t('part.initialStock')}>
-          <Field label={t('part.location')} hint={t('part.initialStockHint')}>
-            {(id) => <PlacePicker id={id} value={location} onChange={setLocation} />}
-          </Field>
-          <AmountFields value={amount} onChange={setAmount} />
+      {!part && individual && (
+        <Card title={t('units.title')}>
+          <div className="grid gap-3 md:grid-cols-[8rem_minmax(0,1fr)]">
+            <Field label={t('units.howMany')}>
+              {(id) => (
+                <TextInput
+                  id={id}
+                  inputMode="numeric"
+                  value={unitCount}
+                  onChange={(e) => setUnitCount(e.target.value)}
+                />
+              )}
+            </Field>
+            <Field label={t('units.home')} hint={t('units.homeHint')}>
+              {(id) => <PlacePicker id={id} value={location} onChange={setLocation} />}
+            </Field>
+          </div>
+          <p className="text-[12px] text-muted">{t('units.serialsLater')}</p>
+        </Card>
+      )}
+      {!part && (!individual || can('write')) && (
+        <Card title={individual ? undefined : t('part.initialStock')}>
+          {!individual && (
+            <>
+              <Field label={t('part.location')} hint={t('part.initialStockHint')}>
+                {(id) => <PlacePicker id={id} value={location} onChange={setLocation} />}
+              </Field>
+              <AmountFields value={amount} onChange={setAmount} />
+            </>
+          )}
           {can('write') && (
             <label className="flex items-center gap-2 text-sm">
               <input
@@ -322,7 +418,7 @@ function PartForm({ part }: { part?: PartDetail }) {
         </Card>
       )}
 
-      <ErrorBox error={create.error ?? update.error} />
+      <ErrorBox error={create.error ?? update.error ?? addUnits.error} />
       <div className="flex gap-2">
         <Button type="submit" variant="primary" busy={busy}>
           {t('common.save')}

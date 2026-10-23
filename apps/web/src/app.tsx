@@ -16,6 +16,7 @@ import { LabelsPage } from './pages/labels';
 import { MapsPage } from './pages/maps';
 import {
   CarryingSection,
+  GuestsSection,
   LabelsSection,
   MappingsSection,
   ServerSection,
@@ -33,9 +34,11 @@ import { ScanPage } from './pages/scan';
 import { SearchPage } from './pages/search';
 import { SessionPage } from './pages/session';
 import { SetupPage } from './pages/setup';
+import { UnitPage } from './pages/unit';
 import { UsersPage } from './pages/users';
+import { NetworkPage } from './pages/network';
 
-/** Paths match the QR label format: /L/<code> for places, /P/<code> for parts (case-insensitive). */
+/** Paths match the QR label format: /L/<code> for places, /P/<code> for items, /U/<code> for units (case-insensitive). */
 /** Pages that moved into Settings keep their old address working (with its query). */
 function Redirect({ to }: { to: string }) {
   const { search } = useLocation();
@@ -50,6 +53,7 @@ const routes = [
       { path: '/parts/new', element: <PartEditPage /> },
       { path: '/p/:code', element: <PartPage /> },
       { path: '/p/:code/edit', element: <PartEditPage /> },
+      { path: '/u/:code', element: <UnitPage /> },
       { path: '/places', element: <PlacesPage /> },
       { path: '/l/:code', element: <LocationPage /> },
       { path: '/l/:code/add', element: <SessionPage /> },
@@ -67,6 +71,7 @@ const routes = [
           { path: 'labels', element: <LabelsSection /> },
           { path: 'import', element: <MappingsSection /> },
           { path: 'users', element: <UsersPage /> },
+          { path: 'guests', element: <GuestsSection /> },
           { path: 'backups', element: <BackupsPage /> },
           { path: 'server', element: <ServerSection /> },
         ],
@@ -75,6 +80,7 @@ const routes = [
       { path: '/import', element: <ImportPage /> },
       { path: '/bom', element: <BomPage /> },
       { path: '/history', element: <HistoryPage /> },
+      { path: '/network', element: <NetworkPage /> },
       { path: '/users', element: <Redirect to="/settings/users" /> },
       { path: '/backups', element: <Redirect to="/settings/backups" /> },
       { path: '/setup', element: <SetupPage /> },

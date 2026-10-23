@@ -29,3 +29,10 @@ export function parseNumber(text: string): number | undefined {
   const n = Number(text.replace(',', '.'));
   return text.trim() === '' || Number.isNaN(n) ? undefined : n;
 }
+
+/** A calendar date ("2026-11-30") as the reader writes dates. */
+export function formatDay(day: string): string {
+  return new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' }).format(
+    new Date(`${day.slice(0, 10)}T12:00:00`),
+  );
+}

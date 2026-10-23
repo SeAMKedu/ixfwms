@@ -17,6 +17,7 @@ const NO_ADDRESS = {
   stayDays: null,
   dueAt: null,
   overdue: false,
+  workstation: false,
 };
 
 const part = (over: Partial<PartSummary>): PartSummary => ({
@@ -25,6 +26,10 @@ const part = (over: Partial<PartSummary>): PartSummary => ({
   name: 'Part',
   manufacturer: null,
   status: 'active',
+  kind: 'part',
+  tracking: 'bulk',
+  aliases: [],
+  units: [],
   category: null,
   identifiers: [],
   tags: [],
@@ -65,7 +70,7 @@ describe('search page', () => {
       '/api/tags': [],
     });
     expect((await screen.findAllByText('Bellows suction cup Ø30')).length).toBeGreaterThan(0);
-    expect(screen.getByText('2 parts')).toBeTruthy();
+    expect(screen.getByText('2 items')).toBeTruthy();
     expect(screen.getAllByText('14 pcs').length).toBeGreaterThan(0);
     expect(screen.getAllByText('draft').length).toBeGreaterThan(0);
   });
@@ -104,6 +109,7 @@ describe('location page', () => {
       type: 'box',
       kind: 'normal',
       ...NO_ADDRESS,
+      units: [],
       clashes: [],
       ownStayDays: null,
       typeStayDays: null,
@@ -190,6 +196,7 @@ describe('carry page', () => {
       type: 'zone',
       kind: 'normal',
       ...NO_ADDRESS,
+      units: [],
       clashes: [],
       ownStayDays: null,
       typeStayDays: null,

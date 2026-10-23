@@ -12,6 +12,7 @@ import {
   LogOut,
   MapPin,
   Map as MapIcon,
+  Network,
   QrCode,
   ScanLine,
   Search,
@@ -19,7 +20,7 @@ import {
 import { useState, type ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
-import { useCarry, useParts } from '../api/queries';
+import { useCarry, useParts, useReports } from '../api/queries';
 import { useSession } from '../auth/session';
 import { useShortcutRegistry } from '../lib/shortcuts';
 import { GlobalShortcuts } from './global-shortcuts';
@@ -35,9 +36,10 @@ interface NavItem {
 function useNavItems(): NavItem[] {
   const { t } = useTranslation();
   const drafts = useParts({ status: 'draft', limit: 1 }).data?.total ?? 0;
+  const reports = useReports().data?.length ?? 0;
   return [
     { to: '/', label: t('nav.parts'), icon: Search },
-    { to: '/inbox', label: t('nav.inbox'), icon: Inbox, badge: drafts },
+    { to: '/inbox', label: t('nav.inbox'), icon: Inbox, badge: drafts + reports },
     { to: '/scan', label: t('nav.scan'), icon: ScanLine },
     { to: '/places', label: t('nav.places'), icon: MapPin },
   ];
@@ -174,6 +176,7 @@ export function Layout() {
     { to: '/labels', label: t('nav.labels'), icon: QrCode },
     { to: '/maps', label: t('nav.maps'), icon: MapIcon },
     { to: '/history', label: t('nav.history'), icon: History },
+    { to: '/network', label: t('nav.network'), icon: Network },
     { to: '/setup', label: t('nav.setup'), icon: Smartphone },
     { to: '/settings', label: t('nav.settings'), icon: Settings },
   ];

@@ -159,6 +159,8 @@ export const CreatePartInput = z.object({
     .describe('Initial stock; location defaults to the Inbox'),
 });
 export type CreatePartInput = z.infer<typeof CreatePartInput>;
+/** What a client sends: fields with defaults (kind, tracking, aliases…) may be left out. */
+export type CreatePartRequest = z.input<typeof CreatePartInput>;
 
 export const UpdatePartInput = CreatePartInput.omit({
   stock: true,

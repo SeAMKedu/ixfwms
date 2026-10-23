@@ -110,7 +110,15 @@ export function CarryPage() {
                   onChange={() => toggle(item.id)}
                   aria-label={item.kind === 'lot' ? item.part.name : item.name}
                 />
-                {item.kind === 'location' ? (
+                {item.kind === 'unit' ? (
+                  <Link
+                    to={`/u/${item.code}`}
+                    className="flex min-w-0 flex-1 items-center justify-between gap-2"
+                  >
+                    <span className="truncate">{item.name}</span>
+                    <CodeLabel code={item.code} />
+                  </Link>
+                ) : item.kind === 'location' ? (
                   <Link
                     to={`/l/${item.code}`}
                     className="flex min-w-0 flex-1 items-center justify-between gap-2"

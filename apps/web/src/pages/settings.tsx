@@ -1,4 +1,4 @@
-import type { LocationTypeInfo } from '@ixfwms/domain';
+import { ANONYMOUS_ACTIONS, type LocationTypeInfo } from '@ixfwms/domain';
 import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -56,7 +56,10 @@ function useSections(): { group: string; sections: Section[] }[] {
     },
     {
       group: t('settings.groups.people'),
-      sections: [{ path: 'users', label: t('nav.users'), scope: 'admin' }],
+      sections: [
+        { path: 'users', label: t('nav.users'), scope: 'admin' },
+        { path: 'guests', label: t('settings.guests') },
+      ],
     },
     {
       group: t('settings.groups.system'),
@@ -263,6 +266,15 @@ function TypeRow({
           {t('settings.movable')}
         </label>
         <label className="flex items-center gap-1.5">
+          <input
+            type="checkbox"
+            checked={type.workstation}
+            disabled={!canEdit}
+            onChange={(e) => update.mutate({ key: type.key, workstation: e.target.checked })}
+          />
+          {t('settings.workstation')}
+        </label>
+        <label className="flex items-center gap-1.5">
           {t('settings.temporaryAfter')}
           <span className="w-16">
             <TextInput
@@ -396,6 +408,47 @@ export function CarryingSection() {
         ) : (
           <Loading />
         )}
+        <ErrorBox error={update.error ?? settings.error} />
+      </Card>
+    </>
+  );
+}
+
+/** What people without an account may do besides looking and reporting problems. */
+export function GuestsSection() {
+  const { t } = useTranslation();
+  const { can } = useSession();
+  const settings = useLabSettings();
+  const update = useUpdateSettings();
+  return (
+    <>
+      <PageHeader title={t('settings.guests')} />
+      <Card>
+        <p className="max-w-prose text-[13px] text-muted">{t('settings.guestsIntro')}</p>
+        {settings.data ? (
+          <fieldset className="flex flex-col gap-2" disabled={!can('write')}>
+            {ANONYMOUS_ACTIONS.map((level) => (
+              <label key={level} className="flex items-start gap-2 text-sm">
+                <input
+                  type="radio"
+                  name="anonymousActions"
+                  className="mt-1"
+                  checked={settings.data.anonymousActions === level}
+                  onChange={() => update.mutate({ anonymousActions: level })}
+                />
+                <span>
+                  <span className="font-medium">{t(`settings.guestLevels.${level}`)}</span>
+                  <span className="block text-[13px] text-muted">
+                    {t(`settings.guestLevelHints.${level}`)}
+                  </span>
+                </span>
+              </label>
+            ))}
+          </fieldset>
+        ) : (
+          <Loading />
+        )}
+        <p className="text-[13px] text-muted">{t('settings.guestsNever')}</p>
         <ErrorBox error={update.error ?? settings.error} />
       </Card>
     </>

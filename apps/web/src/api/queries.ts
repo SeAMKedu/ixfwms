@@ -1,5 +1,17 @@
 import type {
   AddStockInput,
+  AddUnitsInput,
+  ClearResult,
+  LendInput,
+  LoanView,
+  NetworkEntry,
+  ReportInput,
+  ReportView,
+  UnitAttention,
+  UnitBrief,
+  UnitDetail,
+  UnitLogInput,
+  UpdateUnitInput,
   AmountInput,
   AttachInput,
   AttributeField,
@@ -15,7 +27,7 @@ import type {
   LabelBatch,
   AttachmentView,
   CreateLocationInput,
-  CreatePartInput,
+  CreatePartRequest,
   FileUpload,
   LocationDetail,
   LocationNode,
@@ -33,6 +45,7 @@ import type {
   MapKind,
   MapLayer,
   PartDetail,
+  PartKind,
   PartStatus,
   PartSummary,
   PlaceOption,
@@ -48,6 +61,7 @@ import { api, qs } from './client';
 export interface PartFilters {
   q?: string;
   status?: PartStatus;
+  kind?: PartKind;
   category?: string;
   tag?: string;
   location?: string;
@@ -118,7 +132,7 @@ function useChange<I, O>(fn: (input: I) => Promise<O>) {
 }
 
 export const useCreatePart = () =>
-  useChange((input: CreatePartInput) => api<PartDetail>('/api/parts', { body: input }));
+  useChange((input: CreatePartRequest) => api<PartDetail>('/api/parts', { body: input }));
 export const useUpdatePart = (code: string) =>
   useChange((input: UpdatePartInput) =>
     api<PartDetail>(`/api/parts/${code}`, { method: 'PATCH', body: input }),
@@ -176,7 +190,7 @@ export const useCarry = (enabled: boolean) =>
   useQuery({ queryKey: ['carry'], queryFn: () => api<CarryState>('/api/carry'), enabled });
 
 export const usePick = () =>
-  useChange((input: { location?: string; lotId?: string; quantity?: number }) =>
+  useChange((input: { location?: string; lotId?: string; unit?: string; quantity?: number }) =>
     api<CarryState>('/api/carry/pick', { body: input }),
   );
 
@@ -387,4 +401,102 @@ export const useLabelBatches = (enabled: boolean) =>
 export const useRetireCodes = () =>
   useChange((codes: string[]) =>
     api<{ retired: number }>('/api/labels/retire', { body: { codes } }),
+  );
+
+// --- units, loans, problem reports ---------------------------------------------------------
+
+/** The name someone without an account gives, remembered on this device. */
+const GUEST_KEY = 'ixfwms.guestName';
+export function getGuestName(): string {
+  try {
+    return localStorage.getItem(GUEST_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+export function setGuestName(name: string): void {
+  try {
+    if (name.trim()) localStorage.setItem(GUEST_KEY, name.trim());
+    else localStorage.removeItem(GUEST_KEY);
+  } catch {
+    // remembered for this visit only
+  }
+}
+const guest = () => getGuestName() || null;
+
+export const useUnit = (code: string) =>
+  useQuery({
+    queryKey: ['unit', code],
+    queryFn: () => api<UnitDetail>(`/api/units/${code}`),
+    enabled: code !== '',
+  });
+
+export const useAddUnits = () =>
+  useChange((input: AddUnitsInput) => api<UnitBrief[]>('/api/units', { body: input }));
+
+export const useUpdateUnit = (code: string) =>
+  useChange((input: UpdateUnitInput) =>
+    api<UnitDetail>(`/api/units/${code}`, { method: 'PATCH', body: input }),
+  );
+
+export const useUnitLog = (code: string) =>
+  useChange((input: UnitLogInput) => api<UnitDetail>(`/api/units/${code}/log`, { body: input }));
+
+/** Moves and puts back work without an account too, as far as the lab allows. */
+export const useMoveUnit = (code: string) =>
+  useChange((to: string) =>
+    api<UnitDetail>(`/api/units/${code}/move`, { body: { to, name: guest() } }),
+  );
+
+export const usePutBackUnit = (code: string) =>
+  useChange(() => api<UnitDetail>(`/api/units/${code}/put-back`, { body: { name: guest() } }));
+
+export const useLendUnit = (code: string) =>
+  useChange((input: LendInput) => api<UnitDetail>(`/api/units/${code}/lend`, { body: input }));
+
+export const useReturnUnit = (code: string) =>
+  useChange((to: string | null) => api<UnitDetail>(`/api/units/${code}/return`, { body: { to } }));
+
+export const useOpenMoveLot = () =>
+  useChange((i: { lotId: string; to: string; quantity?: number }) =>
+    api<LotView>(`/api/stock/${i.lotId}/open-move`, {
+      body: { to: i.to, quantity: i.quantity, name: guest() },
+    }),
+  );
+
+export const usePutBackLot = () =>
+  useChange((lotId: string) =>
+    api<LotView>(`/api/stock/${lotId}/put-back`, { body: { name: guest() } }),
+  );
+
+export const useClearBench = (code: string) =>
+  useChange(() => api<ClearResult>(`/api/locations/${code}/clear`, { body: { name: guest() } }));
+
+export const useLoans = () =>
+  useQuery({ queryKey: ['loans'], queryFn: () => api<LoanView[]>('/api/loans?open=1') });
+
+export const useUnitAttention = () =>
+  useQuery({
+    queryKey: ['units', 'attention'],
+    queryFn: () => api<UnitAttention[]>('/api/units/attention'),
+  });
+
+export const useNetwork = (enabled: boolean) =>
+  useQuery({
+    queryKey: ['network'],
+    queryFn: () => api<NetworkEntry[]>('/api/network'),
+    enabled,
+  });
+
+export const useReports = () =>
+  useQuery({ queryKey: ['reports'], queryFn: () => api<ReportView[]>('/api/reports?open=1') });
+
+export const useReport = () =>
+  useChange((input: Omit<ReportInput, 'name'>) =>
+    api<ReportView>('/api/reports', { body: { ...input, name: guest() } }),
+  );
+
+export const useResolveReport = () =>
+  useChange((i: { id: string; resolution?: string | null }) =>
+    api<ReportView>(`/api/reports/${i.id}/resolve`, { body: { resolution: i.resolution ?? null } }),
   );

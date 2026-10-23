@@ -45,7 +45,7 @@ export function LabelPanel({
 }: {
   code: string;
   csvHref?: string;
-  fix?: 'location' | 'part';
+  fix?: 'location' | 'part' | 'unit';
 }) {
   const { t } = useTranslation();
   const settings = useLabSettings();

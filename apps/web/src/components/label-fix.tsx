@@ -10,7 +10,7 @@ import { Button, ErrorBox, Field, TextInput } from './ui';
  * "Wrong or lost label?": adopt the sticker that is actually on the thing, get a fresh code to
  * print, or (places) swap codes with the place whose sticker it got. Old codes are retired.
  */
-export function LabelFix({ kind, code }: { kind: 'location' | 'part'; code: string }) {
+export function LabelFix({ kind, code }: { kind: 'location' | 'part' | 'unit'; code: string }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -18,8 +18,9 @@ export function LabelFix({ kind, code }: { kind: 'location' | 'part'; code: stri
   const [other, setOther] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
-  const base = kind === 'location' ? `/api/locations/${code}` : `/api/parts/${code}`;
-  const page = (c: string) => (kind === 'location' ? `/l/${c}` : `/p/${c}`);
+  const base =
+    { location: '/api/locations', part: '/api/parts', unit: '/api/units' }[kind] + `/${code}`;
+  const page = (c: string) => `/${{ location: 'l', part: 'p', unit: 'u' }[kind]}/${c}`;
 
   const run = async (fn: () => Promise<string>) => {
     setBusy(true);

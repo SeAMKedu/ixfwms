@@ -4,7 +4,7 @@
     "tagline": "Lab inventory"
   },
   "nav": {
-    "parts": "Parts",
+    "parts": "Items",
     "places": "Places",
     "inbox": "Inbox",
     "scan": "Scan",
@@ -27,7 +27,8 @@
     "admin": "Admin",
     "more": "More",
     "maps": "Maps",
-    "settings": "Settings"
+    "settings": "Settings",
+    "network": "Network list"
   },
   "common": {
     "save": "Save",
@@ -73,12 +74,12 @@
     "approxPcs": "≈ {{count}} pcs"
   },
   "parts": {
-    "title": "Parts",
+    "title": "Items",
     "searchPlaceholder": "Search names, order numbers, codes…",
-    "searchLabel": "Search parts",
-    "total_one": "{{count}} part",
-    "total_other": "{{count}} parts",
-    "new": "New part",
+    "searchLabel": "Search items",
+    "total_one": "{{count}} item",
+    "total_other": "{{count}} items",
+    "new": "New item",
     "filters": {
       "all": "All",
       "drafts": "Drafts",
@@ -88,18 +89,20 @@
       "tag": "Tag",
       "anyCategory": "Any category",
       "anyTag": "Any tag",
-      "lowStock": "Low stock"
+      "lowStock": "Low stock",
+      "kind": "Kind",
+      "anyKind": "Any kind"
     },
     "columns": {
-      "part": "Part",
+      "part": "Item",
       "maker": "Maker",
       "orderNo": "Order no.",
       "where": "Where",
       "stock": "Stock",
       "tags": "Tags"
     },
-    "empty": "No parts match.",
-    "emptyAll": "No parts yet. Add one, or let an AI assistant fill the Inbox from order emails."
+    "empty": "No items match.",
+    "emptyAll": "No items yet. Add one, or let an AI assistant fill the Inbox from order emails."
   },
   "part": {
     "where": "Where",
@@ -124,8 +127,8 @@
     "confirm": "Mark as reviewed",
     "confirmHint": "This draft was added by an import or an AI assistant. Check it, then mark it as reviewed.",
     "merge": "Merge into…",
-    "mergeHint": "Merge this part into another one (its stock, order numbers, tags and files move over, then this one is deleted).",
-    "mergeTarget": "Code of the part to keep",
+    "mergeHint": "Merge this item into another one (its stock, units, order numbers, tags and files move over, then this one is deleted).",
+    "mergeTarget": "Code of the item to keep",
     "mergeDone": "Merged into {{code}}",
     "archive": "Archive",
     "addStock": "Add stock",
@@ -151,8 +154,8 @@
     "initialStock": "Initial stock",
     "initialStockHint": "Where it is. Leave empty for the Inbox.",
     "markReviewed": "Mark as reviewed right away",
-    "createTitle": "New part",
-    "editTitle": "Edit part",
+    "createTitle": "New item",
+    "editTitle": "Edit item",
     "created": "Created {{code}}",
     "reasons": {
       "add": "added",
@@ -161,7 +164,16 @@
       "stocktake": "counted",
       "move": "moved"
     },
-    "details": "Details"
+    "details": "Details",
+    "kind": "Kind",
+    "tracking": "Tracked",
+    "trackingBulk": "As amounts",
+    "trackingIndividual": "One by one",
+    "trackingBulkHint": "How many and where: screws, suction cups, filament.",
+    "trackingIndividualHint": "Each one has its own code, serial number, home place and log: tools, robots, PLC CPUs.",
+    "aliases": "Also called",
+    "aliasesHint": "Other names people use, separated by commas, e.g. impact driver, iskuporakone. Search finds these too.",
+    "alsoCalled": "Also called: {{names}}"
   },
   "identifierKinds": {
     "order_no": "Order no.",
@@ -169,7 +181,8 @@
     "gtin": "GTIN / EAN",
     "supplier_sku": "Supplier SKU",
     "din_iso": "DIN / ISO",
-    "internal": "Internal"
+    "internal": "Internal",
+    "erp": "ERP article no."
   },
   "attachmentKinds": {
     "photo": "Photo",
@@ -194,8 +207,8 @@
     "addItem": "Add item here",
     "moveHint": "Move this place, with everything in it, under another place.",
     "newParent": "Move under (empty = top level)",
-    "parts_one": "{{count}} part",
-    "parts_other": "{{count}} parts",
+    "parts_one": "{{count}} item",
+    "parts_other": "{{count}} items",
     "inSub": "in {{name}}",
     "empty": "No places yet. Start with the lab, then cabinets, shelves and boxes.",
     "types": {
@@ -211,7 +224,8 @@
       "device": "Device",
       "system": "System",
       "in_transit": "Being carried",
-      "pallet": "Pallet"
+      "pallet": "Pallet",
+      "workstation": "Workstation / table"
     },
     "unassignedTitle": "New place with code {{code}}",
     "unassignedText": "This code isn't used yet (maybe from a blank label). Register the place it's stuck on.",
@@ -219,8 +233,8 @@
     "create": "Create place",
     "addItems": "Add items",
     "copy": "Copy",
-    "copyHint_one": "Copies this place and the {{count}} place inside it, and all below, with new codes. Parts and stock aren't copied.",
-    "copyHint_other": "Copies this place and the {{count}} places inside it, and all below, with new codes. Parts and stock aren't copied.",
+    "copyHint_one": "Copies this place and the {{count}} place inside it, and all below, with new codes. Items and stock aren't copied.",
+    "copyHint_other": "Copies this place and the {{count}} places inside it, and all below, with new codes. Items and stock aren't copied.",
     "copyCount": "How many",
     "copyName": "Name",
     "copyNameHint": "Empty: numbered on from this one",
@@ -257,10 +271,10 @@
     "modePick": "Pick up",
     "modeDrop": "Put down",
     "modeLabel": "What scanning does",
-    "pickHint": "Scan boxes and places to pick them up. For parts, open the part and choose how many to carry.",
+    "pickHint": "Scan boxes, places and tools to pick them up. For items in stock, open the item and choose how many to carry.",
     "dropHint": "Scan where you are putting things down.",
     "picked": "Picked up {{name}}",
-    "partNeedsLot": "Opening the part: choose which stock and how many to carry.",
+    "partNeedsLot": "Opening the item: choose which stock and how many to carry.",
     "camera": "Camera",
     "cameraStart": "Start camera",
     "cameraStop": "Stop camera",
@@ -280,7 +294,7 @@
   "carry": {
     "title": "Carrying",
     "intro": "Things you picked up stay in the inventory as \"carried by you\" until you put them down, so nothing goes missing on the way.",
-    "empty": "You are not carrying anything. Scan a box with \"Pick up\", or use Carry on a part.",
+    "empty": "You are not carrying anything. Scan a box or a tool with \"Pick up\", or use Carry on an item.",
     "since": "since {{date}}",
     "box": "whole box",
     "scanDestination": "Scan destination",
@@ -312,7 +326,7 @@
     "placeCode": "Place",
     "include": "Include",
     "includeLocations": "Places",
-    "includeParts": "Parts stored there",
+    "includeParts": "Items stored there",
     "includeAll": "Both",
     "recursive": "Everything inside, too",
     "download": "Download CSV",
@@ -332,7 +346,7 @@
   },
   "session": {
     "title": "Add items",
-    "intro": "Quick add, one kind of part at a time. Details can be completed later.",
+    "intro": "Quick add, one kind of item at a time. Details can be completed later.",
     "photo": "Photo",
     "takePhoto": "Take or choose a photo",
     "photoChosen": "Photo: {{name}}",
@@ -367,9 +381,9 @@
   },
   "categories": {
     "title": "Categories",
-    "empty": "No categories yet. They are created when parts get one, or add the starter set.",
-    "pick": "Pick a category to see and edit the fields its parts have.",
-    "showParts": "Show its parts",
+    "empty": "No categories yet. They are created when items get one, or add the starter set.",
+    "pick": "Pick a category to see and edit the fields its items have.",
+    "showParts": "Show its items",
     "inherited": "Also has, from parent categories: {{fields}}",
     "ownFields": "Fields",
     "noFields": "No fields of its own yet.",
@@ -658,15 +672,15 @@
     "footer": "Shortcuts work when you are not typing in a field. Esc leaves a field.",
     "hint": "Press ? for keyboard shortcuts",
     "help": "Show this list",
-    "search": "Search parts",
-    "goParts": "Go to parts",
+    "search": "Search items",
+    "goParts": "Go to items",
     "goInbox": "Go to Inbox",
     "goPlaces": "Go to places",
     "goScan": "Go to scan",
     "goCarry": "Go to carrying",
     "goHistory": "Go to history",
     "goBom": "Go to “can we build it?”",
-    "newPart": "New part",
+    "newPart": "New item",
     "next": "Next result",
     "previous": "Previous result",
     "open": "Open the selected result",
@@ -753,7 +767,21 @@
     "version": "Version",
     "fromRequest": "(not set: taken from each request)",
     "serverIntro": "These are set where the server runs (environment variables or .env), and need a restart to change. Shown here for reference.",
-    "temporaryAfter": "Temporary after"
+    "temporaryAfter": "Temporary after",
+    "guests": "Without an account",
+    "guestsIntro": "Anyone on the lab network can look things up and report problems. Choose what else people without an account (students, visitors) may do. Everything they do is in the history, with the name they give.",
+    "guestLevels": {
+      "report": "Look and report problems",
+      "put_back": "… and put things back",
+      "workstation": "… and bring things to a workstation"
+    },
+    "guestLevelHints": {
+      "report": "Nothing moves without logging in.",
+      "put_back": "Tools back to their home places, stock back where it came from.",
+      "workstation": "Also gather tools and parts at a workstation, and clear it again."
+    },
+    "guestsNever": "Never without an account: lending, pallets, editing or deleting.",
+    "workstation": "Workstation"
   },
   "temporary": {
     "lastActivity": "last activity {{date}}",
@@ -773,5 +801,133 @@
     "overdue_other": "Untouched for longer than its {{count}} days",
     "due": "flagged after {{date}}",
     "stillNeeded": "Still needed"
+  },
+  "partKinds": {
+    "part": "Part",
+    "tool": "Tool",
+    "device": "Device / machine"
+  },
+  "unitStatus": {
+    "ok": "OK",
+    "needs_attention": "Needs attention",
+    "broken": "Broken",
+    "in_repair": "In repair",
+    "retired": "Retired"
+  },
+  "unitEvents": {
+    "note": "Note",
+    "maintenance": "Maintenance",
+    "firmware": "Firmware / software",
+    "problem": "Problem",
+    "repaired": "Repaired",
+    "created": "Registered",
+    "moved": "Moved",
+    "status": "Status",
+    "lent": "Lent out",
+    "returned": "Returned"
+  },
+  "reportKinds": {
+    "broken": "Broken",
+    "missing_parts": "Missing parts",
+    "running_low": "Running low",
+    "other": "Something else"
+  },
+  "reports": {
+    "title": "Problems",
+    "none": "No open problems.",
+    "resolve": "Done",
+    "resolution": "What was done",
+    "whatsWrong": "What's wrong?",
+    "note": "Details",
+    "send": "Send report",
+    "report": "Report a problem",
+    "thanks": "Thanks, the report is in the Inbox.",
+    "inboxTitle_one": "{{count}} problem reported",
+    "inboxTitle_other": "{{count}} problems reported"
+  },
+  "bench": {
+    "title": "Clear the bench",
+    "intro": "Tools go back to their home places and stock back where it came from. Whatever nobody knows a place for stays here.",
+    "returned_one": "Put back {{count}} thing:",
+    "returned_other": "Put back {{count}} things:",
+    "left": "Stayed (no known place): {{names}}",
+    "clear": "Clear the bench"
+  },
+  "network": {
+    "title": "Network list",
+    "intro": "Made from the IP addresses, host names and MAC addresses on units.",
+    "csv": "Download CSV",
+    "empty": "No unit has network details yet. Add them on a unit page.",
+    "thing": "Unit"
+  },
+  "units": {
+    "title": "Units",
+    "howMany": "How many",
+    "home": "Home place",
+    "homeHint": "Where it belongs; Put back takes it here.",
+    "serialsLater": "Serial numbers and names can be added on each unit afterwards.",
+    "count_one": "{{count}} unit",
+    "count_other": "{{count}} units",
+    "outCount_one": "{{count}} lent",
+    "outCount_other": "{{count}} lent",
+    "troubleCount_one": "{{count}} not OK",
+    "troubleCount_other": "{{count}} not OK",
+    "lentOut": "Lent out",
+    "dueBack": "back {{date}}",
+    "belongsAt": "belongs at",
+    "belongsAtPlace": "belongs at {{place}}",
+    "none": "No units registered yet.",
+    "serialShort": "S/N {{serial}}",
+    "guestName": "Your name",
+    "guestNameHint": "Optional, shown in the history. Remembered on this device.",
+    "guestBy": "{{name}} (no account)",
+    "guestAnonymous": "someone without an account",
+    "putBack": "Put back",
+    "toWorkstation": "Take to a workstation",
+    "workstationOnly": "Without an account, things can only be brought to a workstation.",
+    "lend": "Lend out of the lab",
+    "return": "Returned",
+    "returnTo": "Put it at",
+    "returnToHint": "Leave empty for its home place.",
+    "lentOutSince": "Lent out of the lab since {{date}}",
+    "responsible": "{{name}} is responsible",
+    "overdue": "overdue",
+    "now": "Now",
+    "atHome": "At home",
+    "noHome": "No home place set",
+    "lendWhat": "What for and where",
+    "lendWhatHint": "E.g. \"thesis tests at Company X, for Pekka V.\" Student names only here, as free text.",
+    "responsibleField": "Person responsible",
+    "responsibleHint": "User name of someone with an account, e.g. the supervising teacher. Empty = you.",
+    "dueField": "Expected back",
+    "status": "Status",
+    "serial": "Serial number",
+    "firmware": "Firmware / software",
+    "asOf": "as of {{date}}",
+    "nextCheck": "Next check",
+    "checkDue": "due",
+    "checkDueOn": "check due {{date}}",
+    "ip": "IP address",
+    "hostname": "Host name",
+    "mac": "MAC address",
+    "loginForNetwork": "Log in to see network details",
+    "ownName": "Own name",
+    "networkHint": "Network details are shown only to people who are logged in. Never store passwords here.",
+    "toPlace": "to {{place}}",
+    "addLog": "Write in the log",
+    "log": "Log",
+    "logKind": "Entry",
+    "firmwareVersion": "Version now installed",
+    "logText": "What was done or noticed",
+    "pastLoans": "Earlier loans",
+    "add": "Add units",
+    "addWhich": "Units",
+    "addWhichHint": "One per line: name; serial number (either may be empty). Or just a number for that many.",
+    "addPlaceholder": "Drill 1; SN-12345\nDrill 2; SN-12346",
+    "addCount_one": "Add {{count}} unit",
+    "addCount_other": "Add {{count}} units",
+    "onLoanTitle_one": "{{count}} lent out of the lab",
+    "onLoanTitle_other": "{{count}} lent out of the lab",
+    "attentionTitle": "Units needing attention"
   }
 }

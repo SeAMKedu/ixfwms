@@ -20,6 +20,7 @@ const place = (code: string, path: string[], pathCodes: string[]): PlaceOption =
   stayDays: null,
   dueAt: null,
   overdue: false,
+  workstation: false,
   path,
   pathCodes,
 });

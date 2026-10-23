@@ -1,4 +1,4 @@
-import type { PartStatus, PartSummary } from '@ixfwms/domain';
+import { PART_KINDS, type PartKind, type PartStatus, type PartSummary } from '@ixfwms/domain';
 import { Plus, Search } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -19,10 +19,12 @@ import {
   Select,
   StatusPill,
 } from '../components/ui';
+import { UnitCount } from '../components/units';
 
 const PAGE = 50;
 
 function StockSummary({ part }: { part: PartSummary }) {
+  if (part.tracking === 'individual') return <UnitCount units={part.units} />;
   if (part.stock.length === 0) return <AmountPill display="0" />;
   return (
     <span className="flex flex-wrap justify-end gap-1">
@@ -46,6 +48,7 @@ export function SearchPage() {
   const status = (params.get('status') as PartStatus | null) ?? undefined;
   const category = params.get('category') ?? undefined;
   const tag = params.get('tag') ?? undefined;
+  const kind = (params.get('kind') as PartKind | null) ?? undefined;
   const inStock = params.get('inStock') === '1' ? true : undefined;
   const lowStock = params.get('lowStock') === '1' ? true : undefined;
   const attr = params.getAll('attr');
@@ -73,6 +76,7 @@ export function SearchPage() {
     status,
     category,
     tag,
+    kind,
     inStock,
     lowStock,
     attr,
@@ -184,6 +188,19 @@ export function SearchPage() {
           {t('parts.filters.lowStock')}
         </button>
         <Select
+          aria-label={t('parts.filters.kind')}
+          value={kind ?? ''}
+          onChange={(e) => setParam('kind', e.target.value || undefined)}
+          className="!w-auto !py-1 text-[13px]"
+        >
+          <option value="">{t('parts.filters.anyKind')}</option>
+          {PART_KINDS.map((k) => (
+            <option key={k} value={k}>
+              {t(`partKinds.${k}`)}
+            </option>
+          ))}
+        </Select>
+        <Select
           aria-label={t('parts.filters.category')}
           value={category ?? ''}
           onChange={(e) => {
@@ -226,7 +243,7 @@ export function SearchPage() {
         <Loading />
       ) : parts.data && parts.data.items.length === 0 ? (
         <Empty>
-          {q || status || category || tag || inStock || lowStock
+          {q || status || category || tag || kind || inStock || lowStock
             ? t('parts.empty')
             : t('parts.emptyAll')}
         </Empty>
@@ -295,7 +312,14 @@ export function SearchPage() {
                       </td>
                       <td className="px-3 py-2">
                         <span className="flex flex-wrap gap-1">
-                          {[...new Map(p.stock.map((s) => [s.place.code, s.place])).values()]
+                          {[
+                            ...new Map(
+                              [
+                                ...p.stock.map((s) => s.place),
+                                ...p.units.map((u) => u.location),
+                              ].map((place) => [place.code, place]),
+                            ).values(),
+                          ]
                             .slice(0, 3)
                             .map((place) => (
                               <Link key={place.code} to={`/l/${place.code}`} title={place.name}>

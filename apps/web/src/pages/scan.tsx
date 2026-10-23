@@ -25,8 +25,8 @@ export function ScanPage() {
   const [busy, setBusy] = useState(false);
   const pick = usePick();
 
-  /** Bare typed codes can be a place or a part; codes are unique across both. */
-  const resolve = async (scanned: ScannedCode): Promise<'location' | 'part'> => {
+  /** Bare typed codes can be a place, an item or a unit; codes are unique across all of them. */
+  const resolve = async (scanned: ScannedCode): Promise<'location' | 'part' | 'unit'> => {
     if (scanned.target) return scanned.target;
     const info = await lookupCode(scanned.code);
     return info.assigned ?? 'location';
@@ -49,11 +49,16 @@ export function ScanPage() {
         const state = await pick.mutateAsync({ location: scanned.code });
         const item = state.items.find((i) => i.kind === 'location' && i.code === scanned.code);
         setNotice(t('scan.picked', { name: item?.kind === 'location' ? item.name : scanned.code }));
+      } else if (mode === 'pick' && target === 'unit') {
+        const state = await pick.mutateAsync({ unit: scanned.code });
+        const item = state.items.find((i) => i.kind === 'unit' && i.code === scanned.code);
+        setNotice(t('scan.picked', { name: item?.kind === 'unit' ? item.name : scanned.code }));
       } else if (mode === 'pick') {
         setNotice(t('scan.partNeedsLot'));
         void navigate(`/p/${scanned.code}`);
       } else {
-        void navigate(target === 'location' ? `/l/${scanned.code}` : `/p/${scanned.code}`);
+        const prefix = { location: 'l', part: 'p', unit: 'u' }[target];
+        void navigate(`/${prefix}/${scanned.code}`);
       }
       setText('');
     } catch (err) {

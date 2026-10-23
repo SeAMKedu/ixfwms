@@ -10,11 +10,16 @@ import {
   useParts,
   useSetStatus,
   useLabSettings,
+  useLoans,
   useOverdue,
+  useReports,
+  useResolveReport,
+  useUnitAttention,
 } from '../api/queries';
+import { UnitStatusPill, UnitWhere } from '../components/units';
 import { useSession } from '../auth/session';
 import { PlacePicker } from '../components/place-picker';
-import { formatDate } from '../lib/format';
+import { formatDate, formatDay } from '../lib/format';
 import {
   AmountPill,
   Button,
@@ -23,6 +28,7 @@ import {
   ErrorBox,
   Loading,
   PageHeader,
+  Pill,
   PlaceTag,
 } from '../components/ui';
 
@@ -74,6 +80,125 @@ function ConfirmButton({ code }: { code: string }) {
 }
 
 const HOUR_MS = 60 * 60 * 1000;
+
+const ownerPath = { unit: 'u', part: 'p', location: 'l' } as const;
+
+/** Problem reports from anyone, until someone resolves them. */
+function Problems() {
+  const { t } = useTranslation();
+  const { can } = useSession();
+  const reports = useReports();
+  const resolve = useResolveReport();
+  if (!reports.data?.length) return null;
+  return (
+    <Card title={t('reports.inboxTitle', { count: reports.data.length })}>
+      <ul className="flex flex-col gap-2 text-sm">
+        {reports.data.map((r) => (
+          <li
+            key={r.id}
+            className="flex flex-wrap items-start justify-between gap-2 border-t border-line pt-2 first:border-t-0 first:pt-0"
+          >
+            <span className="flex min-w-0 flex-col gap-0.5">
+              <span className="flex flex-wrap items-center gap-2">
+                <Link
+                  to={`/${ownerPath[r.owner]}/${r.target.code}`}
+                  className="font-medium hover:underline"
+                >
+                  {r.target.name}
+                </Link>
+                <Pill tone={r.kind === 'broken' ? 'crit' : 'warn'}>
+                  {t(`reportKinds.${r.kind}`)}
+                </Pill>
+              </span>
+              {r.note && <span className="whitespace-pre-wrap">{r.note}</span>}
+              <span className="text-[12px] text-muted">
+                {[
+                  r.guest
+                    ? r.by
+                      ? t('units.guestBy', { name: r.by })
+                      : t('units.guestAnonymous')
+                    : r.by,
+                  formatDate(r.createdAt),
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </span>
+            </span>
+            {can('inventory') && (
+              <Button small busy={resolve.isPending} onClick={() => resolve.mutate({ id: r.id })}>
+                {t('reports.resolve')}
+              </Button>
+            )}
+          </li>
+        ))}
+      </ul>
+      <ErrorBox error={resolve.error} />
+    </Card>
+  );
+}
+
+/** Units lent out of the lab, overdue ones first and in red. */
+function OutOnLoan() {
+  const { t } = useTranslation();
+  const loans = useLoans();
+  if (!loans.data?.length) return null;
+  const sorted = [...loans.data].sort((a, b) => Number(b.overdue) - Number(a.overdue));
+  return (
+    <Card title={t('units.onLoanTitle', { count: loans.data.length })}>
+      <ul className="flex flex-col gap-2 text-sm">
+        {sorted.map((l) => (
+          <li key={l.id} className="flex flex-col gap-0.5">
+            <span className="flex flex-wrap items-center gap-2">
+              <Link
+                to={`/u/${l.unit.code}`}
+                className={`font-medium hover:underline ${l.overdue ? 'text-crit' : ''}`}
+              >
+                {l.unit.name}
+              </Link>
+              {l.overdue && <Pill tone="crit">{t('units.overdue')}</Pill>}
+            </span>
+            <span className="text-[12px] text-muted">
+              {[
+                l.description,
+                t('units.responsible', { name: l.responsible }),
+                l.dueAt && t('units.dueBack', { date: formatDay(l.dueAt) }),
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+/** Broken, in repair or due for a check. */
+function UnitsAttention() {
+  const { t } = useTranslation();
+  const list = useUnitAttention();
+  if (!list.data?.length) return null;
+  return (
+    <Card title={t('units.attentionTitle')}>
+      <ul className="flex flex-col gap-2 text-sm">
+        {list.data.map((a) => (
+          <li key={a.unit.id} className="flex flex-col gap-0.5">
+            <span className="flex flex-wrap items-center gap-2">
+              <Link to={`/u/${a.unit.code}`} className="font-medium hover:underline">
+                {a.unit.name}
+              </Link>
+              <UnitStatusPill status={a.unit.status} />
+              {a.reason === 'check_due' && a.nextCheckAt && (
+                <Pill tone="warn">{t('units.checkDueOn', { date: formatDay(a.nextCheckAt) })}</Pill>
+              )}
+            </span>
+            <UnitWhere unit={a.unit} />
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
 
 /** Temporary places (pallets…) nobody has touched for longer than expected. */
 function NeedsAttention() {
@@ -156,7 +281,10 @@ export function InboxPage() {
     <>
       <PageHeader title={t('inbox.title')} />
       <p className="max-w-prose text-sm text-muted">{t('inbox.intro')}</p>
+      <Problems />
       <NeedsAttention />
+      <UnitsAttention />
+      <OutOnLoan />
       <StillCarried />
       <div className="grid gap-4 md:grid-cols-2">
         <Card title={t('inbox.unplaced')}>

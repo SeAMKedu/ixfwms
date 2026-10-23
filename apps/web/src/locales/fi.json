@@ -4,7 +4,7 @@
     "tagline": "Laboratorion varasto"
   },
   "nav": {
-    "parts": "Osat",
+    "parts": "Tavarat",
     "places": "Paikat",
     "inbox": "Saapuneet",
     "scan": "Skannaa",
@@ -27,7 +27,8 @@
     "admin": "Ylläpito",
     "more": "Lisää",
     "maps": "Kartat",
-    "settings": "Asetukset"
+    "settings": "Asetukset",
+    "network": "Verkkolista"
   },
   "common": {
     "save": "Tallenna",
@@ -73,12 +74,12 @@
     "approxPcs": "≈ {{count}} kpl"
   },
   "parts": {
-    "title": "Osat",
+    "title": "Tavarat",
     "searchPlaceholder": "Hae nimellä, tilausnumerolla tai koodilla…",
-    "searchLabel": "Hae osia",
-    "total_one": "{{count}} osa",
-    "total_other": "{{count}} osaa",
-    "new": "Uusi osa",
+    "searchLabel": "Hae tavaroita",
+    "total_one": "{{count}} tavara",
+    "total_other": "{{count}} tavaraa",
+    "new": "Uusi tavara",
     "filters": {
       "all": "Kaikki",
       "drafts": "Luonnokset",
@@ -88,18 +89,20 @@
       "tag": "Tunniste",
       "anyCategory": "Kaikki kategoriat",
       "anyTag": "Kaikki tunnisteet",
-      "lowStock": "Vähissä"
+      "lowStock": "Vähissä",
+      "kind": "Laji",
+      "anyKind": "Kaikki lajit"
     },
     "columns": {
-      "part": "Osa",
+      "part": "Tavara",
       "maker": "Valmistaja",
       "orderNo": "Tilausnro",
       "where": "Missä",
       "stock": "Saldo",
       "tags": "Tunnisteet"
     },
-    "empty": "Ei hakua vastaavia osia.",
-    "emptyAll": "Ei vielä osia. Lisää osa, tai anna AI-avustajan täyttää Saapuneet tilausvahvistuksista."
+    "empty": "Ei hakua vastaavia tavaroita.",
+    "emptyAll": "Ei vielä tavaroita. Lisää tavara, tai anna AI-avustajan täyttää Saapuneet tilausvahvistuksista."
   },
   "part": {
     "where": "Missä",
@@ -124,8 +127,8 @@
     "confirm": "Merkitse tarkistetuksi",
     "confirmHint": "Tämän luonnoksen lisäsi tuonti tai AI-avustaja. Tarkista se ja merkitse tarkistetuksi.",
     "merge": "Yhdistä toiseen…",
-    "mergeHint": "Yhdistä tämä osa toiseen (saldo, tilausnumerot, tunnisteet ja tiedostot siirtyvät, ja tämä osa poistetaan).",
-    "mergeTarget": "Säilytettävän osan koodi",
+    "mergeHint": "Yhdistä tämä tavara toiseen (saldo, yksilöt, tilausnumerot, tunnisteet ja tiedostot siirtyvät, ja tämä poistetaan).",
+    "mergeTarget": "Säilytettävän tavaran koodi",
     "mergeDone": "Yhdistetty osaan {{code}}",
     "archive": "Arkistoi",
     "addStock": "Lisää saldoa",
@@ -151,8 +154,8 @@
     "initialStock": "Alkusaldo",
     "initialStockHint": "Missä se on. Tyhjä = Saapuneet.",
     "markReviewed": "Merkitse heti tarkistetuksi",
-    "createTitle": "Uusi osa",
-    "editTitle": "Muokkaa osaa",
+    "createTitle": "Uusi tavara",
+    "editTitle": "Muokkaa tavaraa",
     "created": "Luotu {{code}}",
     "reasons": {
       "add": "lisätty",
@@ -161,7 +164,16 @@
       "stocktake": "laskettu",
       "move": "siirretty"
     },
-    "details": "Tiedot"
+    "details": "Tiedot",
+    "kind": "Laji",
+    "tracking": "Seuranta",
+    "trackingBulk": "Määrinä",
+    "trackingIndividual": "Yksilöinä",
+    "trackingBulkHint": "Montako ja missä: ruuvit, imukupit, filamentti.",
+    "trackingIndividualHint": "Jokaisella oma koodi, sarjanumero, kotipaikka ja loki: työkalut, robotit, logiikoiden CPU:t.",
+    "aliases": "Muut nimet",
+    "aliasesHint": "Muita käytettyjä nimiä pilkuilla erotettuina, esim. iskuporakone, akkuporakone. Haku löytää myös nämä.",
+    "alsoCalled": "Myös: {{names}}"
   },
   "identifierKinds": {
     "order_no": "Tilausnro",
@@ -169,7 +181,8 @@
     "gtin": "GTIN / EAN",
     "supplier_sku": "Toimittajan nro",
     "din_iso": "DIN / ISO",
-    "internal": "Sisäinen"
+    "internal": "Sisäinen",
+    "erp": "ERP-nimike"
   },
   "attachmentKinds": {
     "photo": "Kuva",
@@ -194,8 +207,8 @@
     "addItem": "Lisää osa tänne",
     "moveHint": "Siirrä tämä paikka sisältöineen toisen paikan alle.",
     "newParent": "Siirrä paikan alle (tyhjä = ylätaso)",
-    "parts_one": "{{count}} osa",
-    "parts_other": "{{count}} osaa",
+    "parts_one": "{{count}} tavara",
+    "parts_other": "{{count}} tavaraa",
     "inSub": "paikassa {{name}}",
     "empty": "Ei vielä paikkoja. Aloita laboratoriosta, sitten kaapit, hyllyt ja laatikot.",
     "types": {
@@ -211,7 +224,8 @@
       "device": "Laite",
       "system": "Järjestelmä",
       "in_transit": "Kannettavana",
-      "pallet": "Lava"
+      "pallet": "Lava",
+      "workstation": "Työpiste / pöytä"
     },
     "unassignedTitle": "Uusi paikka koodilla {{code}}",
     "unassignedText": "Tätä koodia ei ole vielä käytetty (ehkä tyhjästä tarrasta). Rekisteröi paikka, johon tarra on kiinnitetty.",
@@ -219,8 +233,8 @@
     "create": "Luo paikka",
     "addItems": "Lisää osia",
     "copy": "Kopioi",
-    "copyHint_one": "Kopioi tämän paikan ja sen sisällä olevan {{count}} paikan alempineen uusilla koodeilla. Osia ja varastoa ei kopioida.",
-    "copyHint_other": "Kopioi tämän paikan ja sen sisällä olevat {{count}} paikkaa alempineen uusilla koodeilla. Osia ja varastoa ei kopioida.",
+    "copyHint_one": "Kopioi tämän paikan ja sen sisällä olevan {{count}} paikan alempineen uusilla koodeilla. Tavaroita ja varastoa ei kopioida.",
+    "copyHint_other": "Kopioi tämän paikan ja sen sisällä olevat {{count}} paikkaa alempineen uusilla koodeilla. Tavaroita ja varastoa ei kopioida.",
     "copyCount": "Montako",
     "copyName": "Nimi",
     "copyNameHint": "Tyhjä: numeroidaan tästä eteenpäin",
@@ -257,10 +271,10 @@
     "modePick": "Ota mukaan",
     "modeDrop": "Laske",
     "modeLabel": "Mitä skannaus tekee",
-    "pickHint": "Skannaa laatikoita ja paikkoja ottaaksesi ne mukaan. Osissa avaa osa ja valitse, mitä ja montako otat mukaan.",
+    "pickHint": "Skannaa laatikoita, paikkoja ja työkaluja ottaaksesi ne mukaan. Varastotavaroissa avaa tavara ja valitse, mitä ja montako otat mukaan.",
     "dropHint": "Skannaa paikka, johon lasket tavarat.",
     "picked": "Otettu mukaan: {{name}}",
-    "partNeedsLot": "Avataan osa: valitse mistä saldosta ja montako otat mukaan.",
+    "partNeedsLot": "Avataan tavara: valitse mistä saldosta ja montako otat mukaan.",
     "camera": "Kamera",
     "cameraStart": "Käynnistä kamera",
     "cameraStop": "Pysäytä kamera",
@@ -280,7 +294,7 @@
   "carry": {
     "title": "Mukana",
     "intro": "Mukaan otetut tavarat pysyvät varastossa \"sinulla mukana\" kunnes lasket ne, joten mitään ei katoa matkalla.",
-    "empty": "Sinulla ei ole mitään mukana. Skannaa laatikko Ota mukaan -tilassa tai käytä osan Kanna-painiketta.",
+    "empty": "Sinulla ei ole mitään mukana. Skannaa laatikko tai työkalu Ota mukaan -tilassa tai käytä tavaran Kanna-painiketta.",
     "since": "{{date}} alkaen",
     "box": "koko laatikko",
     "scanDestination": "Skannaa kohde",
@@ -312,7 +326,7 @@
     "placeCode": "Paikka",
     "include": "Mukaan",
     "includeLocations": "Paikat",
-    "includeParts": "Siellä olevat osat",
+    "includeParts": "Siellä olevat tavarat",
     "includeAll": "Molemmat",
     "recursive": "Myös kaikki sisällä",
     "download": "Lataa CSV",
@@ -332,7 +346,7 @@
   },
   "session": {
     "title": "Lisää osia",
-    "intro": "Pikalisäys, yksi osatyyppi kerrallaan. Tarkemmat tiedot voi täydentää myöhemmin.",
+    "intro": "Pikalisäys, yksi tavaratyyppi kerrallaan. Tarkemmat tiedot voi täydentää myöhemmin.",
     "photo": "Kuva",
     "takePhoto": "Ota tai valitse kuva",
     "photoChosen": "Kuva: {{name}}",
@@ -367,9 +381,9 @@
   },
   "categories": {
     "title": "Kategoriat",
-    "empty": "Ei vielä kategorioita. Ne syntyvät, kun osille annetaan kategoria, tai lisää valmis aloituspaketti.",
-    "pick": "Valitse kategoria nähdäksesi ja muokataksesi sen osien kenttiä.",
-    "showParts": "Näytä sen osat",
+    "empty": "Ei vielä kategorioita. Ne syntyvät, kun tavaroille annetaan kategoria, tai lisää valmis aloituspaketti.",
+    "pick": "Valitse kategoria nähdäksesi ja muokataksesi sen tavaroiden kenttiä.",
+    "showParts": "Näytä sen tavarat",
     "inherited": "Lisäksi yläkategorioista: {{fields}}",
     "ownFields": "Kentät",
     "noFields": "Ei vielä omia kenttiä.",
@@ -658,15 +672,15 @@
     "footer": "Pikanäppäimet toimivat, kun et kirjoita kenttään. Esc poistuu kentästä.",
     "hint": "Paina ? nähdäksesi pikanäppäimet",
     "help": "Näytä tämä lista",
-    "search": "Hae osia",
-    "goParts": "Osiin",
+    "search": "Hae tavaroita",
+    "goParts": "Tavaroihin",
     "goInbox": "Saapuneisiin",
     "goPlaces": "Paikkoihin",
     "goScan": "Skannaukseen",
     "goCarry": "Mukana oleviin",
     "goHistory": "Historiaan",
     "goBom": "”Riittääkö varasto?” -sivulle",
-    "newPart": "Uusi osa",
+    "newPart": "Uusi tavara",
     "next": "Seuraava tulos",
     "previous": "Edellinen tulos",
     "open": "Avaa valittu tulos",
@@ -753,7 +767,21 @@
     "version": "Versio",
     "fromRequest": "(ei asetettu: otetaan kustakin pyynnöstä)",
     "serverIntro": "Nämä asetetaan palvelimen ympäristössä (ympäristömuuttujat tai .env), ja muutos vaatii uudelleenkäynnistyksen. Näytetään tässä tiedoksi.",
-    "temporaryAfter": "Tilapäinen, merkitään"
+    "temporaryAfter": "Tilapäinen, merkitään",
+    "guests": "Ilman tunnusta",
+    "guestsIntro": "Kuka tahansa labran verkossa voi etsiä tavaroita ja ilmoittaa ongelmista. Valitse, mitä muuta ilman tunnusta (opiskelijat, vierailijat) saa tehdä. Kaikki näkyy historiassa annetulla nimellä.",
+    "guestLevels": {
+      "report": "Katsoa ja ilmoittaa ongelmista",
+      "put_back": "… ja palauttaa tavaroita paikoilleen",
+      "workstation": "… ja tuoda tavaroita työpisteelle"
+    },
+    "guestLevelHints": {
+      "report": "Mikään ei siirry ilman kirjautumista.",
+      "put_back": "Työkalut kotipaikoilleen, tavarat sinne mistä ne tuotiin.",
+      "workstation": "Myös kerätä työkaluja ja osia työpisteelle ja siivota se taas."
+    },
+    "guestsNever": "Ei koskaan ilman tunnusta: lainaaminen, lavat, muokkaus tai poistaminen.",
+    "workstation": "Työpiste"
   },
   "temporary": {
     "lastActivity": "viimeksi käytetty {{date}}",
@@ -773,5 +801,133 @@
     "overdue_other": "Koskematta yli odotettujen {{count}} päivän",
     "due": "merkitään {{date}} jälkeen",
     "stillNeeded": "Tarvitaan yhä"
+  },
+  "partKinds": {
+    "part": "Osa",
+    "tool": "Työkalu",
+    "device": "Laite / kone"
+  },
+  "unitStatus": {
+    "ok": "OK",
+    "needs_attention": "Vaatii huomiota",
+    "broken": "Rikki",
+    "in_repair": "Korjattavana",
+    "retired": "Poistettu käytöstä"
+  },
+  "unitEvents": {
+    "note": "Muistiinpano",
+    "maintenance": "Huolto",
+    "firmware": "Laiteohjelmisto / ohjelma",
+    "problem": "Ongelma",
+    "repaired": "Korjattu",
+    "created": "Rekisteröity",
+    "moved": "Siirretty",
+    "status": "Tila",
+    "lent": "Lainattu",
+    "returned": "Palautettu"
+  },
+  "reportKinds": {
+    "broken": "Rikki",
+    "missing_parts": "Osia puuttuu",
+    "running_low": "Loppumassa",
+    "other": "Muu ongelma"
+  },
+  "reports": {
+    "title": "Ongelmat",
+    "none": "Ei avoimia ongelmia.",
+    "resolve": "Hoidettu",
+    "resolution": "Mitä tehtiin",
+    "whatsWrong": "Mikä on vialla?",
+    "note": "Lisätiedot",
+    "send": "Lähetä",
+    "report": "Ilmoita ongelmasta",
+    "thanks": "Kiitos, ilmoitus on Saapuneissa.",
+    "inboxTitle_one": "{{count}} ilmoitettu ongelma",
+    "inboxTitle_other": "{{count}} ilmoitettua ongelmaa"
+  },
+  "bench": {
+    "title": "Siivoa pöytä",
+    "intro": "Työkalut palaavat kotipaikoilleen ja tavarat sinne, mistä ne tuotiin. Se, jolle ei tiedetä paikkaa, jää tänne.",
+    "returned_one": "Palautettiin {{count}} asia:",
+    "returned_other": "Palautettiin {{count}} asiaa:",
+    "left": "Jäi paikalleen (ei tunnettua paikkaa): {{names}}",
+    "clear": "Siivoa pöytä"
+  },
+  "network": {
+    "title": "Verkkolista",
+    "intro": "Koottu yksilöiden IP-osoitteista, nimistä ja MAC-osoitteista.",
+    "csv": "Lataa CSV",
+    "empty": "Millään yksilöllä ei ole vielä verkkotietoja. Lisää ne yksilön sivulla.",
+    "thing": "Yksilö"
+  },
+  "units": {
+    "title": "Yksilöt",
+    "howMany": "Montako",
+    "home": "Kotipaikka",
+    "homeHint": "Mihin se kuuluu; Palauta vie sen tänne.",
+    "serialsLater": "Sarjanumerot ja nimet voi lisätä kullekin yksilölle jälkikäteen.",
+    "count_one": "{{count}} yksilö",
+    "count_other": "{{count}} yksilöä",
+    "outCount_one": "{{count}} lainassa",
+    "outCount_other": "{{count}} lainassa",
+    "troubleCount_one": "{{count}} ei kunnossa",
+    "troubleCount_other": "{{count}} ei kunnossa",
+    "lentOut": "Lainassa",
+    "dueBack": "takaisin {{date}}",
+    "belongsAt": "kuuluu",
+    "belongsAtPlace": "kuuluu paikkaan {{place}}",
+    "none": "Ei vielä rekisteröityjä yksilöitä.",
+    "serialShort": "S/N {{serial}}",
+    "guestName": "Nimesi",
+    "guestNameHint": "Vapaaehtoinen, näkyy historiassa. Muistetaan tällä laitteella.",
+    "guestBy": "{{name}} (ei tunnusta)",
+    "guestAnonymous": "joku ilman tunnusta",
+    "putBack": "Palauta paikalleen",
+    "toWorkstation": "Vie työpisteelle",
+    "workstationOnly": "Ilman tunnusta tavaroita voi viedä vain työpisteelle.",
+    "lend": "Lainaa labran ulkopuolelle",
+    "return": "Palautettu",
+    "returnTo": "Paikka",
+    "returnToHint": "Jätä tyhjäksi, niin se menee kotipaikkaansa.",
+    "lentOutSince": "Lainassa labran ulkopuolella {{date}} alkaen",
+    "responsible": "vastuussa {{name}}",
+    "overdue": "myöhässä",
+    "now": "Nyt",
+    "atHome": "Paikallaan",
+    "noHome": "Kotipaikkaa ei ole asetettu",
+    "lendWhat": "Mihin ja minne",
+    "lendWhatHint": "Esim. \"opinnäytetyön testit Yritys X:ssä, Pekka V.\" Opiskelijoiden nimet vain tähän vapaana tekstinä.",
+    "responsibleField": "Vastuuhenkilö",
+    "responsibleHint": "Tunnuksellisen käyttäjän nimi, esim. ohjaava opettaja. Tyhjä = sinä.",
+    "dueField": "Palautuu",
+    "status": "Tila",
+    "serial": "Sarjanumero",
+    "firmware": "Laiteohjelmisto",
+    "asOf": "{{date}} alkaen",
+    "nextCheck": "Seuraava tarkastus",
+    "checkDue": "erääntynyt",
+    "checkDueOn": "tarkastus {{date}}",
+    "ip": "IP-osoite",
+    "hostname": "Laitenimi",
+    "mac": "MAC-osoite",
+    "loginForNetwork": "Kirjaudu nähdäksesi verkkotiedot",
+    "ownName": "Oma nimi",
+    "networkHint": "Verkkotiedot näkyvät vain kirjautuneille. Älä tallenna salasanoja tänne.",
+    "toPlace": "paikkaan {{place}}",
+    "addLog": "Kirjaa lokiin",
+    "log": "Loki",
+    "logKind": "Merkintä",
+    "firmwareVersion": "Asennettu versio",
+    "logText": "Mitä tehtiin tai huomattiin",
+    "pastLoans": "Aiemmat lainat",
+    "add": "Lisää yksilöitä",
+    "addWhich": "Yksilöt",
+    "addWhichHint": "Yksi per rivi: nimi; sarjanumero (kumpi tahansa voi puuttua). Tai pelkkä luku, niin monta.",
+    "addPlaceholder": "Porakone 1; SN-12345\nPorakone 2; SN-12346",
+    "addCount_one": "Lisää {{count}} yksilö",
+    "addCount_other": "Lisää {{count}} yksilöä",
+    "onLoanTitle_one": "{{count}} lainassa labran ulkopuolella",
+    "onLoanTitle_other": "{{count}} lainassa labran ulkopuolella",
+    "attentionTitle": "Huomiota vaativat yksilöt"
   }
 }
