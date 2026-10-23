@@ -5,6 +5,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router';
 import { vi } from 'vitest';
 import { createQueryClient } from '../app';
 import { SessionProvider } from '../auth/session';
+import { ShortcutProvider } from '../lib/shortcuts';
 
 /** Renders a page at `path` with real routing and react-query, and a fake fetch for the API. */
 export function renderAt(
@@ -35,7 +36,9 @@ export function renderAt(
   const utils = render(
     <QueryClientProvider client={createQueryClient()}>
       <SessionProvider>
-        <RouterProvider router={router} />
+        <ShortcutProvider>
+          <RouterProvider router={router} />
+        </ShortcutProvider>
       </SessionProvider>
     </QueryClientProvider>,
   );

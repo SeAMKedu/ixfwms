@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createBrowserRouter, RouterProvider } from 'react-router';
 import { ApiError } from './api/client';
 import { SessionProvider } from './auth/session';
+import { ShortcutProvider } from './lib/shortcuts';
 import { Layout } from './components/layout';
 import { AccountPage } from './pages/account';
 import { BackupsPage } from './pages/backups';
@@ -72,7 +73,9 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <SessionProvider>
-        <RouterProvider router={router} />
+        <ShortcutProvider>
+          <RouterProvider router={router} />
+        </ShortcutProvider>
       </SessionProvider>
     </QueryClientProvider>
   );

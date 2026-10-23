@@ -2,7 +2,8 @@ import type { PartStatus, PartSummary } from '@ixfwms/domain';
 import { Plus, Search } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useSearchParams } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
+import { useShortcut } from '../lib/shortcuts';
 import { useCategories, useCategoryFields, useParts, useTags } from '../api/queries';
 import { FieldFilters } from '../components/field-filters';
 import { useSession } from '../auth/session';
@@ -50,6 +51,8 @@ export function SearchPage() {
   const attr = params.getAll('attr');
   const fields = useCategoryFields(category ?? '').data?.effective ?? [];
   const [limit, setLimit] = useState(PAGE);
+  const navigate = useNavigate();
+  const [selected, setSelected] = useState(-1);
 
   const setParam = (key: string, value: string | undefined) => {
     const next = new URLSearchParams(params);
@@ -82,6 +85,26 @@ export function SearchPage() {
     setParams(p, { replace: true });
     setLimit(PAGE);
   };
+  const count = parts.data?.items.length ?? 0;
+  /** j/k (or ↓ from the search box) move through results; Enter opens the selected one. */
+  const select = (i: number) => {
+    const next = Math.max(0, Math.min(count - 1, i));
+    setSelected(next);
+    // Both layouts render rows; scroll whichever one is visible.
+    for (const el of document.querySelectorAll(`[data-result="${next}"]`))
+      el.scrollIntoView?.({ block: 'nearest' });
+  };
+  useShortcut('j', t('shortcuts.next'), () => select(selected + 1), count > 0);
+  useShortcut('k', t('shortcuts.previous'), () => select(selected - 1), count > 0);
+  useShortcut(
+    'Enter',
+    t('shortcuts.open'),
+    () => {
+      const part = parts.data?.items[selected];
+      if (part) void navigate(`/p/${part.code}`);
+    },
+    selected >= 0,
+  );
   const categories = useCategories().data ?? [];
   const tags = useTags().data ?? [];
   const chip = (active: boolean) =>
@@ -105,8 +128,20 @@ export function SearchPage() {
         <Search className="size-4 text-muted" aria-hidden />
         <input
           type="search"
+          data-shortcut-search
+          autoFocus={params.get('focus') === '1'}
           value={text}
-          onChange={(e) => onType(e.target.value)}
+          onChange={(e) => {
+            onType(e.target.value);
+            setSelected(-1);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowDown' && (parts.data?.items.length ?? 0) > 0) {
+              e.preventDefault();
+              e.currentTarget.blur();
+              select(0);
+            }
+          }}
           placeholder={t('parts.searchPlaceholder')}
           aria-label={t('parts.searchLabel')}
           className="w-full bg-transparent py-2.5 text-[15px] outline-none"
@@ -200,8 +235,12 @@ export function SearchPage() {
           <>
             {/* Phone: compact rows */}
             <ul className="md:hidden overflow-hidden rounded-xl border border-line bg-surface">
-              {parts.data.items.map((p) => (
-                <li key={p.id} className="border-t border-line first:border-t-0">
+              {parts.data.items.map((p, i) => (
+                <li
+                  key={p.id}
+                  data-result={i}
+                  className={`border-t border-line first:border-t-0 ${i === selected ? 'bg-link-soft' : ''}`}
+                >
                   <Link
                     to={`/p/${p.code}`}
                     className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3 py-2.5"
@@ -235,8 +274,12 @@ export function SearchPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {parts.data.items.map((p) => (
-                    <tr key={p.id} className="border-t border-line hover:bg-surface-2">
+                  {parts.data.items.map((p, i) => (
+                    <tr
+                      key={p.id}
+                      data-result={i}
+                      className={`border-t border-line hover:bg-surface-2 ${i === selected ? 'bg-link-soft' : ''}`}
+                    >
                       <td className="px-3 py-2">
                         <Link
                           to={`/p/${p.code}`}

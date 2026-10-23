@@ -568,5 +568,33 @@
     "aiTitle": "Connect an AI assistant",
     "aiText": "Ask an admin for an API token (Users page), then add the server to Claude Code:",
     "baseUrl": "This server is reached at"
+  },
+  "shortcuts": {
+    "title": "Keyboard shortcuts",
+    "footer": "Shortcuts work when you are not typing in a field. Esc leaves a field.",
+    "hint": "Press ? for keyboard shortcuts",
+    "help": "Show this list",
+    "search": "Search parts",
+    "goParts": "Go to parts",
+    "goInbox": "Go to Inbox",
+    "goPlaces": "Go to places",
+    "goScan": "Go to scan",
+    "goCarry": "Go to carrying",
+    "goHistory": "Go to history",
+    "goBom": "Go to “can we build it?”",
+    "newPart": "New part",
+    "next": "Next result",
+    "previous": "Previous result",
+    "open": "Open the selected result",
+    "edit": "Edit",
+    "take": "Take from the first stock entry",
+    "move": "Move the first stock entry",
+    "carry": "Carry the first stock entry",
+    "addStock": "Add stock",
+    "review": "Mark as reviewed",
+    "addItems": "Add items here",
+    "editPlace": "Edit this place",
+    "movePlace": "Move this place",
+    "pickUp": "Pick up this place"
   }
 }

@@ -13,6 +13,7 @@ import {
   useUpdateLocation,
 } from '../api/queries';
 import { useSession } from '../auth/session';
+import { useShortcut } from '../lib/shortcuts';
 import { PlacePicker } from '../components/place-picker';
 import { LabelPanel } from '../components/label-panel';
 import { MapManager } from '../components/map-manager';
@@ -213,17 +214,26 @@ export function LocationPage() {
   const [description, setDescription] = useState('');
   const [parent, setParent] = useState('');
 
-  if (loc.isPending) return <Loading />;
-  if (isNotFound(loc.error)) return <Missing code={code} />;
-  if (!loc.data) return <ErrorBox error={loc.error} />;
-  const d = loc.data;
-  const canEdit = can('inventory') && d.kind === 'normal';
-  const open = (p: Panel) => {
+  /** Opens (or closes) the edit/move/new panel, prefilled from the place. */
+  const openPanel = (p: Panel) => {
+    const d = loc.data;
+    if (!d) return;
     setPanel((cur) => (cur === p ? null : p));
     setName(d.name);
     setDescription(d.description ?? '');
     setParent(d.path.length > 1 ? (d.path[d.path.length - 2]?.code ?? '') : '');
   };
+  const navigate = useNavigate();
+  const editable = can('inventory') && loc.data?.kind === 'normal';
+  useShortcut('a', t('shortcuts.addItems'), () => void navigate(`/l/${code}/add`), editable);
+  useShortcut('e', t('shortcuts.editPlace'), () => openPanel('edit'), editable);
+  useShortcut('m', t('shortcuts.movePlace'), () => openPanel('move'), editable);
+  useShortcut('p', t('shortcuts.pickUp'), () => pick.mutate({ location: code }), editable);
+  if (loc.isPending) return <Loading />;
+  if (isNotFound(loc.error)) return <Missing code={code} />;
+  if (!loc.data) return <ErrorBox error={loc.error} />;
+  const d = loc.data;
+  const canEdit = can('inventory') && d.kind === 'normal';
   const saveEdit = async (e: FormEvent) => {
     e.preventDefault();
     await update.mutateAsync({ name, description: description || null });
@@ -258,14 +268,14 @@ export function LocationPage() {
                 {t('carry.pickUpBox')}
               </Button>
               <Button
-                onClick={() => open('edit')}
+                onClick={() => openPanel('edit')}
                 variant={panel === 'edit' ? 'dark' : 'secondary'}
                 aria-label={t('common.edit')}
               >
                 <Pencil className="size-4" aria-hidden />
               </Button>
               <Button
-                onClick={() => open('move')}
+                onClick={() => openPanel('move')}
                 variant={panel === 'move' ? 'dark' : 'secondary'}
               >
                 {t('common.move')}

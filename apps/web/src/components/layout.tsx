@@ -20,6 +20,9 @@ import { useTranslation } from 'react-i18next';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { useCarry, useParts } from '../api/queries';
 import { useSession } from '../auth/session';
+import { useShortcutRegistry } from '../lib/shortcuts';
+import { GlobalShortcuts } from './global-shortcuts';
+import { ShortcutHelp } from './shortcut-help';
 
 interface NavItem {
   to: string;
@@ -94,9 +97,12 @@ function UserBox() {
 export function Layout() {
   const { t } = useTranslation();
   const { can } = useSession();
+  const { setHelpOpen } = useShortcutRegistry();
   const items = useNavItems();
   return (
     <div className="min-h-dvh md:grid md:grid-cols-[220px_minmax(0,1fr)]">
+      <GlobalShortcuts />
+      <ShortcutHelp />
       <aside className="hidden md:flex flex-col gap-1 border-r border-line bg-surface px-3 py-5 sticky top-0 h-dvh overflow-y-auto">
         <Link to="/" className="px-2 pb-4 font-display text-2xl font-bold">
           {t('app.name')}
@@ -199,6 +205,13 @@ export function Layout() {
         )}
         <div className="mt-auto flex flex-col gap-3 px-2">
           <CarryIndicator className="self-start" compact />
+          <button
+            type="button"
+            onClick={() => setHelpOpen(true)}
+            className="self-start text-[12px] text-muted hover:text-link"
+          >
+            {t('shortcuts.hint')}
+          </button>
           <UserBox />
         </div>
       </aside>

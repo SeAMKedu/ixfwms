@@ -568,5 +568,33 @@
     "aiTitle": "Yhdistä AI-avustaja",
     "aiText": "Pyydä ylläpitäjältä API-avain (Käyttäjät-sivu) ja lisää palvelin Claude Codeen:",
     "baseUrl": "Palvelimen osoite on"
+  },
+  "shortcuts": {
+    "title": "Pikanäppäimet",
+    "footer": "Pikanäppäimet toimivat, kun et kirjoita kenttään. Esc poistuu kentästä.",
+    "hint": "Paina ? nähdäksesi pikanäppäimet",
+    "help": "Näytä tämä lista",
+    "search": "Hae osia",
+    "goParts": "Osiin",
+    "goInbox": "Saapuneisiin",
+    "goPlaces": "Paikkoihin",
+    "goScan": "Skannaukseen",
+    "goCarry": "Mukana oleviin",
+    "goHistory": "Historiaan",
+    "goBom": "”Riittääkö varasto?” -sivulle",
+    "newPart": "Uusi osa",
+    "next": "Seuraava tulos",
+    "previous": "Edellinen tulos",
+    "open": "Avaa valittu tulos",
+    "edit": "Muokkaa",
+    "take": "Ota ensimmäisestä saldosta",
+    "move": "Siirrä ensimmäinen saldo",
+    "carry": "Ota ensimmäinen saldo mukaan",
+    "addStock": "Lisää saldoa",
+    "review": "Merkitse tarkistetuksi",
+    "addItems": "Lisää osia tänne",
+    "editPlace": "Muokkaa tätä paikkaa",
+    "movePlace": "Siirrä tämä paikka",
+    "pickUp": "Ota tämä paikka mukaan"
   }
 }

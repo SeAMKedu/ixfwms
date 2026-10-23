@@ -11,6 +11,7 @@ import { ExternalLink, FileText, Map as MapIcon, Pencil, Upload } from 'lucide-r
 import { useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
+import { useShortcut } from '../lib/shortcuts';
 import {
   useAddStock,
   useAttach,
@@ -53,7 +54,7 @@ import { NotFoundPage } from './not-found';
 
 type LotAction = 'take' | 'move' | 'count' | 'carry' | null;
 
-function LotRow({ lot, canEdit }: { lot: LotView; canEdit: boolean }) {
+function LotRow({ lot, canEdit, first }: { lot: LotView; canEdit: boolean; first: boolean }) {
   const { t } = useTranslation();
   const [action, setAction] = useState<LotAction>(null);
   const [showMap, setShowMap] = useState(false);
@@ -76,6 +77,15 @@ function LotRow({ lot, canEdit }: { lot: LotView; canEdit: boolean }) {
     count.reset();
     pick.reset();
   };
+  // The first stock entry answers the part page's t / m / c shortcuts.
+  useShortcut('t', t('shortcuts.take'), () => toggle('take'), first && canEdit);
+  useShortcut('m', t('shortcuts.move'), () => toggle('move'), first && canEdit);
+  useShortcut(
+    'c',
+    t('shortcuts.carry'),
+    () => toggle('carry'),
+    first && canEdit && lot.location.kind !== 'in_transit',
+  );
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (action === 'take')
@@ -254,6 +264,7 @@ function AddStock({ part }: { part: PartDetail }) {
   const [location, setLocation] = useState('');
   const [amount, setAmount] = useAmountState();
   const add = useAddStock();
+  useShortcut('a', t('shortcuts.addStock'), () => setOpen(true));
   if (!open) {
     return (
       <Button small onClick={() => setOpen(true)} className="self-start">
@@ -450,6 +461,12 @@ function Review({ part }: { part: PartDetail }) {
   const merge = useMergePart(part.code);
   const [target, setTarget] = useState('');
   const [mergeOpen, setMergeOpen] = useState(false);
+  useShortcut(
+    'r',
+    t('shortcuts.review'),
+    () => setStatus.mutate('active'),
+    part.status === 'draft',
+  );
   const doMerge = async (e: FormEvent) => {
     e.preventDefault();
     const kept = await merge.mutateAsync(normalizeCode(target));
@@ -505,6 +522,13 @@ export function PartPage() {
   const { code = '' } = useParams();
   const { can } = useSession();
   const part = usePart(code);
+  const navigate = useNavigate();
+  useShortcut(
+    'e',
+    t('shortcuts.edit'),
+    () => void navigate(`/p/${code}/edit`),
+    can('inventory') && !!part.data,
+  );
   if (part.isPending) return <Loading />;
   if (isNotFound(part.error)) return <NotFoundPage code={code} />;
   if (!part.data) return <ErrorBox error={part.error} />;
@@ -539,8 +563,8 @@ export function PartPage() {
             <span className="text-sm text-muted">{t('part.notInStock')}</span>
           ) : (
             <ul className="flex flex-col gap-3">
-              {p.lots.map((lot) => (
-                <LotRow key={lot.id} lot={lot} canEdit={canEdit} />
+              {p.lots.map((lot, i) => (
+                <LotRow key={lot.id} lot={lot} canEdit={canEdit} first={i === 0} />
               ))}
             </ul>
           )}
