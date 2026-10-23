@@ -1,6 +1,6 @@
 {
   "name": "ixfwms",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "private": true,
   "description": "Lab inventory / warehouse management for the robotics lab",
   "type": "module",

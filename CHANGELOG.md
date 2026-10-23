@@ -1,6 +1,21 @@
 # Changelog
 
 All notable changes to ixfwms.
+## 0.8.0 (2026-10-23)
+
+### Features
+- **server:** units, loans, problem reports and moves without an account
+- **web:** items with units, loans, problem reports and workstations
+- **labels:** tool and device labels show the home address instead of the code
+
+### Fixes
+- **server:** keep units, and ids made in the same millisecond, in creation order
+- **web:** list reported units once in the Inbox, clearer loan return button
+
+### Documentation
+- plan items with units, loans and reports, AMR fleet link, backlog ideas
+- tools, devices and units guide; README and plan for 0.8
+- plan status for 0.8
 ## 0.7.0 (2026-10-23)
 
 ### Features
