@@ -9,7 +9,7 @@ import { Button, Card, ErrorBox, Field, PageHeader, TextInput } from '../compone
 /** Your account, plus the pages that don't fit the phone's bottom tabs. */
 export function AccountPage() {
   const { t } = useTranslation();
-  const { user, checking, can, logout } = useSession();
+  const { user, checking, logout } = useSession();
   const change = useChangePassword();
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
@@ -26,16 +26,11 @@ export function AccountPage() {
   const links = [
     ['/history', t('nav.history')],
     ['/labels', t('nav.labels')],
-    ['/categories', t('nav.categories')],
+    ['/maps', t('nav.maps')],
     ['/import', t('nav.import')],
     ['/bom', t('nav.bom')],
     ['/setup', t('nav.setup')],
-    ...(can('admin')
-      ? [
-          ['/users', t('nav.users')],
-          ['/backups', t('nav.backups')],
-        ]
-      : []),
+    ['/settings', t('nav.settings')],
   ];
   return (
     <>

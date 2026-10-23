@@ -51,6 +51,12 @@ lost. Drawings can be renamed, replaced, and removed once no place uses them.
   lit up.
 - On a place page, the same for the place, plus its own drawing.
 - Linked shapes are clickable and open that place.
+- One map is shown at a time, with a tab per level (lab, cabinet…) and a 2D/3D switch. It opens
+  on the most detailed level showing the place, zoomed in around it (**Whole map** zooms out), and
+  can be expanded to fill the screen (Esc to go back). On a computer the map sits beside the
+  lists on a place page; on a phone it's behind a **Map** button.
+- Shapes standing for an overdue temporary place, or for something holding one (the floor zone a
+  forgotten pallet is on), are marked amber.
 
 ## Linking in the drawing tool instead
 

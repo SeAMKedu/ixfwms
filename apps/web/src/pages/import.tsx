@@ -18,11 +18,14 @@ import {
   TextInput,
 } from '../components/ui';
 import { guessColumns, mapRows, type Columns } from '../lib/import-map';
-import { readTable, type Table } from '../lib/table';
+import { parseDelimited, readTable, type Table } from '../lib/table';
 
 const ACTION_TONE = { create: 'info', add_stock: 'ok', skip: 'muted', error: 'crit' } as const;
 
 /** Spreadsheet import: pick a file, map its columns, preview, import as drafts. */
+/** Example file with the column names the import recognises; also the download template. */
+const EXAMPLE = '/samples/ixfwms-import-example.csv';
+
 export function ImportPage() {
   const { t } = useTranslation();
   const { user, checking } = useSession();
@@ -56,21 +59,27 @@ export function ImportPage() {
 
   if (!checking && !user) return <Navigate to="/login?next=/import" replace />;
 
-  const onFile = async (file: File | undefined) => {
-    if (!file) return;
+  const load = async (name: string, read: () => Promise<Table>) => {
     setError(null);
     setResults(null);
     setImported(false);
     try {
-      const data = await readTable(file);
+      const data = await read();
       setTable(data);
-      setFileName(file.name);
+      setFileName(name);
       setHeaderRow(1);
       setColumns(guessColumns(data[0] ?? []));
     } catch (err) {
       setError(err);
     }
   };
+  const onFile = async (file: File | undefined) => {
+    if (file) await load(file.name, () => readTable(file));
+  };
+  const tryExample = () =>
+    load(EXAMPLE.split('/').pop()!, async () =>
+      parseDelimited(await (await fetch(EXAMPLE)).text()),
+    );
 
   const run = async (dryRun: boolean) => {
     setBusy(true);
@@ -131,6 +140,10 @@ export function ImportPage() {
             <Upload className="size-4" aria-hidden />
             {t('import.chooseFile')}
           </Button>
+          <Button onClick={() => void tryExample()}>{t('import.tryExample')}</Button>
+          <a href={EXAMPLE} download className="text-[13px] text-link hover:underline">
+            {t('import.template')}
+          </a>
           {table && (
             <span className="text-sm text-muted">
               {t('import.fileInfo', {

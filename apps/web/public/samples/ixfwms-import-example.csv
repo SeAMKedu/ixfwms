@@ -1,0 +1,6 @@
+Name,Manufacturer,Order no,MPN,Category,Quantity,Unit,Level,Location,Tags,Notes
+Push-in fitting straight 6 mm,Festo,153032,QS-6,Pneumatics/Fittings,20,pcs,,,cell2,Example row: counted stock
+Hex socket screw M4x12 DIN 912,,,,Fasteners/Screws,250,g,,,,Example row: weighed stock
+PLA filament 1.75 mm black,Prusament,,,Filament,800,g,,,printing,
+Inductive proximity sensor M12 PNP,Sick,,IME12-04BPSZC0K,Electrical/Sensors,4,pcs,,,cell2,
+Cable ties 200 mm,,,,Consumables,,,plenty,,,Example row: stock level only

@@ -71,14 +71,21 @@ export class LocationViews {
       })
       .sort((a, b) => a.part.name.localeCompare(b.part.name));
 
+    const summary = await this.locations.summarize(this.db, loc);
+    const summaryType = summary.type;
     return {
-      ...(await this.locations.summarize(this.db, loc)),
+      ...summary,
       description: loc.description,
       path,
       children: children.map((c) => ({ ...c, partCount: counts.get(c.id) ?? 0 })),
       contents,
       attachments: await this.files.attachmentsOf('location', loc.id),
       clashes: await this.locations.clashes(loc),
+      ownStayDays: loc.stayDays,
+      typeStayDays:
+        (await this.locations.types()).find((ty) => ty.key === summaryType)?.stayDays ?? null,
+      contact: loc.contact,
+      lastActivityAt: loc.lastActivityAt ?? loc.updatedAt,
     };
   }
 }

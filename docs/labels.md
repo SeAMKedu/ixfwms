@@ -21,7 +21,7 @@ the code: the part above the place small, the place's own short name large (`Rob
 Short names are guessed from names ("Cabinet A" → `A`, "Shelf 3" → `3`) and can be set on the place
 page, e.g. a room number `A140.1`.
 
-Containers (boxes, bins, drawers, pallets; set in **More › Settings**) aren't part of addresses, so
+Containers (boxes, bins, drawers, pallets; set in **More › Settings › Place types**) aren't part of addresses, so
 carrying them elsewhere never makes a label wrong. Their labels show the code, or a short name if one
 is set. Fixed places rarely move; if one does, its address label needs reprinting.
 

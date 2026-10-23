@@ -53,6 +53,13 @@ export function registerLocationRoutes(app: FastifyInstance, { config, services 
     return reply.status(204).send();
   });
 
+  /** Temporary places left untouched longer than expected. */
+  app.get('/api/locations/overdue', async () => locations.overdue());
+
+  app.post('/api/locations/:ref/still-needed', async (request) =>
+    locations.stillNeeded(parse(RefParams, request.params).ref, request.actor),
+  );
+
   app.get('/api/locations/:ref', async (request) => {
     const { ref } = parse(RefParams, request.params);
     const { recursive } = parse(z.object({ recursive: QueryBool.optional() }), request.query);

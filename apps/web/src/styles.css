@@ -103,7 +103,10 @@ h3 {
   display: block;
   width: 100%;
   height: auto;
-  max-height: 70vh;
+  max-height: min(60vh, 480px);
+}
+.ixf-expanded .ixf-map svg {
+  max-height: calc(100dvh - 7rem);
 }
 .ixf-map .ixf-place {
   cursor: pointer;
@@ -121,6 +124,12 @@ h3 {
 .ixf-map .ixf-target :is(rect, path, polygon, circle, ellipse) {
   fill: color-mix(in srgb, var(--link) 45%, transparent) !important;
   stroke-width: 3px !important;
+}
+.ixf-map .ixf-attention:is(rect, path, polygon, circle, ellipse),
+.ixf-map .ixf-attention :is(rect, path, polygon, circle, ellipse) {
+  fill: color-mix(in srgb, var(--warn) 25%, transparent) !important;
+  stroke: var(--warn) !important;
+  stroke-width: 2px !important;
 }
 @media (prefers-reduced-motion: no-preference) {
   .ixf-map .ixf-target {

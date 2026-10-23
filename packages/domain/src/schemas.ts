@@ -20,9 +20,20 @@ export const ShortNameSchema = z
   .nullish()
   .describe('Short name used in the address, e.g. "A" for Cabinet A or "A140.1" for a room');
 
+/** Expected stay of a temporary place in days: null = as its type says, 0 = not temporary. */
+export const StayDaysSchema = z
+  .number()
+  .int()
+  .min(0)
+  .max(3650)
+  .nullish()
+  .describe('Temporary place: expected stay in days; 0 = not temporary, null = as its type says');
+
 export const CreateLocationInput = z.object({
   name: z.string().trim().min(1).max(200),
   shortName: ShortNameSchema,
+  stayDays: StayDaysSchema,
+  contact: z.string().trim().max(200).nullish().describe('Who to ask about a temporary place'),
   parent: RefSchema.nullish().describe('Parent location id or code; omit for a top-level location'),
   type: z
     .string()
@@ -62,6 +73,8 @@ export type DuplicateLocationInput = z.input<typeof DuplicateLocationInput>;
 export const UpdateLocationInput = z.object({
   name: z.string().trim().min(1).max(200).optional(),
   shortName: ShortNameSchema,
+  stayDays: StayDaysSchema,
+  contact: z.string().trim().max(200).nullish(),
   type: z.string().trim().min(1).max(40).optional(),
   description: z.string().trim().max(2000).nullish(),
 });
@@ -188,6 +201,20 @@ export type AttachInput = z.infer<typeof AttachInput>;
 export const LocationTypeInput = z.object({
   name: z.string().trim().min(1).max(60),
   movable: z.boolean().default(false),
+  stayDays: z.number().int().min(1).max(3650).nullable().default(null),
   sort: z.number().int().min(0).max(1000).optional(),
 });
 export type LocationTypeInput = z.input<typeof LocationTypeInput>;
+
+export const LabSettings = z.object({
+  /** Things carried longer than this are flagged as probably forgotten. */
+  carryForgottenHours: z
+    .number()
+    .int()
+    .min(1)
+    .max(24 * 14)
+    .default(4),
+  /** Tape width the label panels start with. */
+  labelTape: z.enum(['9', '12', '24']).default('12'),
+});
+export type LabSettings = z.infer<typeof LabSettings>;

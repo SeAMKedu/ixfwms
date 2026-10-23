@@ -17,6 +17,9 @@ const place = (code: string, path: string[], pathCodes: string[]): PlaceOption =
   movable: false,
   address: '',
   within: '',
+  stayDays: null,
+  dueAt: null,
+  overdue: false,
   path,
   pathCodes,
 });

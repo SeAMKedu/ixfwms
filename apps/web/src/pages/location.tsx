@@ -13,6 +13,7 @@ import {
   useCodeInfo,
   useCreateLocation,
   useDuplicateLocation,
+  useStillNeeded,
   useLocation,
   useLocationTypes,
   useMapLayers,
@@ -22,6 +23,7 @@ import {
 } from '../api/queries';
 import { useSession } from '../auth/session';
 import { useShortcut } from '../lib/shortcuts';
+import { formatDate } from '../lib/format';
 import { useTypeName } from '../lib/place-types';
 import { placeTag } from '../lib/places';
 import { PlacePicker } from '../components/place-picker';
@@ -187,19 +189,6 @@ function Missing({ code }: { code: string }) {
   return <NotFoundPage code={code} />;
 }
 
-/** Maps on the way down to this place, plus upload/replace for its own drawing. */
-function LocationMaps({ code, canEdit }: { code: string; canEdit: boolean }) {
-  const layers = useMapLayers(code);
-  if (!layers.data) return null;
-  const own = layers.data.filter((l) => l.location.code === code);
-  return (
-    <>
-      <MapLayers code={code} layers={layers.data} />
-      {canEdit && <MapManager code={code} layers={own} />}
-    </>
-  );
-}
-
 /** Children of a place get a sensible default type: inside a cabinet you usually add shelves, and so on. */
 const NEXT_TYPE: Record<string, string> = {
   building: 'floor',
@@ -213,6 +202,36 @@ const NEXT_TYPE: Record<string, string> = {
 };
 
 type Panel = 'new' | 'edit' | 'move' | 'copy' | null;
+
+/** A temporary place: how long it's expected to stay, when it was last touched, whose it is. */
+function TemporaryNote({ place, canEdit }: { place: LocationDetail; canEdit: boolean }) {
+  const { t } = useTranslation();
+  const still = useStillNeeded(place.code);
+  return (
+    <div
+      className={`flex max-w-prose flex-wrap items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm ${place.overdue ? 'bg-warn-soft text-warn' : 'bg-surface-2'}`}
+    >
+      <span>
+        {[
+          t(place.overdue ? 'temporary.overdue' : 'temporary.note', {
+            count: place.stayDays ?? 0,
+          }),
+          t('temporary.lastActivity', { date: formatDate(place.lastActivityAt) }),
+          place.dueAt && !place.overdue && t('temporary.due', { date: formatDate(place.dueAt) }),
+          place.contact && t('temporary.contactIs', { contact: place.contact }),
+        ]
+          .filter(Boolean)
+          .join(' · ')}
+      </span>
+      {canEdit && (
+        <Button small busy={still.isPending} onClick={() => still.mutate()}>
+          {t('temporary.stillNeeded')}
+        </Button>
+      )}
+      <ErrorBox error={still.error} />
+    </div>
+  );
+}
 
 /** Copies of a place with everything below it, e.g. the other six cabinets like this one. */
 function CopyPlaceForm({ place, onDone }: { place: LocationDetail; onDone: () => void }) {
@@ -298,12 +317,16 @@ export function LocationPage() {
   const [recursive, setRecursive] = useState(false);
   const [panel, setPanel] = useState<Panel>(null);
   const loc = useLocation(code, recursive);
+  const layers = useMapLayers(code);
   const update = useUpdateLocation(code);
   const move = useMoveLocation(code);
   const pick = usePick();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [shortName, setShortName] = useState('');
+  const [stay, setStay] = useState<'type' | 'none' | 'days'>('type');
+  const [stayDays, setStayDays] = useState('');
+  const [contact, setContact] = useState('');
   const typeName = useTypeName();
   const [parent, setParent] = useState('');
 
@@ -315,6 +338,9 @@ export function LocationPage() {
     setName(d.name);
     setDescription(d.description ?? '');
     setShortName(d.shortName ?? '');
+    setStay(d.ownStayDays === null ? 'type' : d.ownStayDays === 0 ? 'none' : 'days');
+    setStayDays(d.ownStayDays ? String(d.ownStayDays) : '');
+    setContact(d.contact ?? '');
     setParent(d.path.length > 1 ? (d.path[d.path.length - 2]?.code ?? '') : '');
   };
   const navigate = useNavigate();
@@ -329,9 +355,17 @@ export function LocationPage() {
   if (!loc.data) return <ErrorBox error={loc.error} />;
   const d = loc.data;
   const canEdit = can('inventory') && d.kind === 'normal';
+  const hasMap = (layers.data?.length ?? 0) > 0;
   const saveEdit = async (e: FormEvent) => {
     e.preventDefault();
-    await update.mutateAsync({ name, shortName, description: description || null });
+    const days = Math.round(Number(stayDays));
+    await update.mutateAsync({
+      name,
+      shortName,
+      description: description || null,
+      contact: contact || null,
+      stayDays: stay === 'type' ? null : stay === 'none' || !(days > 0) ? 0 : days,
+    });
     setPanel(null);
   };
   const saveMove = async (e: FormEvent) => {
@@ -393,6 +427,7 @@ export function LocationPage() {
         }
       />
       {d.description && <p className="max-w-prose whitespace-pre-wrap text-sm">{d.description}</p>}
+      {d.stayDays !== null && <TemporaryNote place={d} canEdit={canEdit} />}
       {d.clashes.length > 0 && (
         <p className="max-w-prose rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn">
           {t('places.clash', {
@@ -428,6 +463,44 @@ export function LocationPage() {
                   placeholder={autoShortName(name || d.name)}
                   onChange={(e) => setShortName(e.target.value.replace(/[\s-]/g, ''))}
                 />
+              )}
+            </Field>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <Field label={t('temporary.expectedStay')} hint={t('temporary.expectedStayHint')}>
+              {(id) => (
+                <div className="flex gap-2">
+                  <Select
+                    id={id}
+                    value={stay}
+                    onChange={(e) => setStay(e.target.value as typeof stay)}
+                  >
+                    <option value="type">
+                      {d.typeStayDays
+                        ? t('temporary.asTypeDays', { count: d.typeStayDays })
+                        : t('temporary.asTypeNone')}
+                    </option>
+                    <option value="none">{t('temporary.notTemporary')}</option>
+                    <option value="days">{t('temporary.ownDays')}</option>
+                  </Select>
+                  {stay === 'days' && (
+                    <TextInput
+                      aria-label={t('temporary.days')}
+                      type="number"
+                      min={1}
+                      max={3650}
+                      required
+                      className="w-24"
+                      value={stayDays}
+                      onChange={(e) => setStayDays(e.target.value)}
+                    />
+                  )}
+                </div>
+              )}
+            </Field>
+            <Field label={t('temporary.contact')} hint={t('common.optional')}>
+              {(id) => (
+                <TextInput id={id} value={contact} onChange={(e) => setContact(e.target.value)} />
               )}
             </Field>
           </div>
@@ -477,96 +550,118 @@ export function LocationPage() {
 
       {panel === 'copy' && <CopyPlaceForm place={d} onDone={() => setPanel(null)} />}
 
-      <div className="grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-        <Card
-          title={t('places.inside')}
-          actions={
-            canEdit && (
-              <Button
-                small
-                variant="ghost"
-                onClick={() => setPanel(panel === 'new' ? null : 'new')}
-              >
-                <Plus className="size-4" aria-hidden />
-                {t('places.newInside')}
-              </Button>
-            )
+      <div
+        className={
+          hasMap ? 'grid gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:items-start' : ''
+        }
+      >
+        <div
+          className={
+            hasMap
+              ? 'grid gap-4 md:grid-cols-2 lg:grid-cols-1'
+              : 'grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]'
           }
         >
-          {panel === 'new' && (
-            <NewPlaceForm
-              parent={d.code}
-              defaultType={NEXT_TYPE[d.type] ?? 'box'}
-              onDone={() => setPanel(null)}
-            />
-          )}
-          {d.children.length === 0 ? (
-            panel !== 'new' && <span className="text-sm text-muted">—</span>
-          ) : (
-            <ul className="-mx-1 flex flex-col">
-              {d.children.map((c) => (
-                <li key={c.id}>
-                  <Link
-                    to={`/l/${c.code}`}
-                    className="flex items-center justify-between gap-2 rounded-md px-1 py-1.5 hover:bg-surface-2"
-                  >
-                    <span className="min-w-0 truncate">{c.name}</span>
-                    <span className="flex shrink-0 items-center gap-2 text-[12px] text-muted">
-                      {t('places.parts', { count: c.partCount })}
-                      <PlaceTag place={c} />
-                      <ChevronRight className="size-4" aria-hidden />
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-        <Card
-          title={t('places.contents')}
-          actions={
-            d.children.length > 0 && (
-              <label className="flex items-center gap-1.5 text-[13px] text-muted">
-                <input
-                  type="checkbox"
-                  checked={recursive}
-                  onChange={(e) => setRecursive(e.target.checked)}
-                />
-                {t('places.includeSub')}
-              </label>
-            )
-          }
-        >
-          {d.contents.length === 0 ? (
-            <Empty>{t('places.nothingHere')}</Empty>
-          ) : (
-            <ul className="-mx-1 flex flex-col">
-              {d.contents.map((c) => (
-                <li key={c.lotId}>
-                  <Link
-                    to={`/p/${c.part.code}`}
-                    className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-md px-1 py-1.5 hover:bg-surface-2"
-                  >
-                    <span className="min-w-0">
-                      <span className="flex items-center gap-1.5">
-                        <span className="truncate">{c.part.name}</span>
-                        <StatusPill status={c.part.status} />
+          <Card
+            title={t('places.inside')}
+            actions={
+              canEdit && (
+                <Button
+                  small
+                  variant="ghost"
+                  onClick={() => setPanel(panel === 'new' ? null : 'new')}
+                >
+                  <Plus className="size-4" aria-hidden />
+                  {t('places.newInside')}
+                </Button>
+              )
+            }
+          >
+            {panel === 'new' && (
+              <NewPlaceForm
+                parent={d.code}
+                defaultType={NEXT_TYPE[d.type] ?? 'box'}
+                onDone={() => setPanel(null)}
+              />
+            )}
+            {d.children.length === 0 ? (
+              panel !== 'new' && <span className="text-sm text-muted">—</span>
+            ) : (
+              <ul className="-mx-1 flex flex-col">
+                {d.children.map((c) => (
+                  <li key={c.id}>
+                    <Link
+                      to={`/l/${c.code}`}
+                      className="flex items-center justify-between gap-2 rounded-md px-1 py-1.5 hover:bg-surface-2"
+                    >
+                      <span className="min-w-0 truncate">{c.name}</span>
+                      <span className="flex shrink-0 items-center gap-2 text-[12px] text-muted">
+                        {t('places.parts', { count: c.partCount })}
+                        <PlaceTag place={c} />
+                        <ChevronRight className="size-4" aria-hidden />
                       </span>
-                      {c.in && (
-                        <span className="block truncate text-[12px] text-muted">
-                          {t('places.inSub', { name: c.in.name })}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+          <Card
+            title={t('places.contents')}
+            actions={
+              d.children.length > 0 && (
+                <label className="flex items-center gap-1.5 text-[13px] text-muted">
+                  <input
+                    type="checkbox"
+                    checked={recursive}
+                    onChange={(e) => setRecursive(e.target.checked)}
+                  />
+                  {t('places.includeSub')}
+                </label>
+              )
+            }
+          >
+            {d.contents.length === 0 ? (
+              <Empty>{t('places.nothingHere')}</Empty>
+            ) : (
+              <ul className="-mx-1 flex flex-col">
+                {d.contents.map((c) => (
+                  <li key={c.lotId}>
+                    <Link
+                      to={`/p/${c.part.code}`}
+                      className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-md px-1 py-1.5 hover:bg-surface-2"
+                    >
+                      <span className="min-w-0">
+                        <span className="flex items-center gap-1.5">
+                          <span className="truncate">{c.part.name}</span>
+                          <StatusPill status={c.part.status} />
                         </span>
-                      )}
-                    </span>
-                    <AmountPill display={c.display} />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
+                        {c.in && (
+                          <span className="block truncate text-[12px] text-muted">
+                            {t('places.inSub', { name: c.in.name })}
+                          </span>
+                        )}
+                      </span>
+                      <AmountPill display={c.display} />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </div>
+        {hasMap && (
+          <MapLayers
+            code={d.code}
+            layers={layers.data}
+            collapsible
+            className="lg:sticky lg:top-4"
+          />
+        )}
       </div>
-      <LocationMaps code={d.code} canEdit={canEdit} />
+      {canEdit && layers.data && (
+        <MapManager code={d.code} layers={layers.data.filter((l) => l.location.code === d.code)} />
+      )}
       {d.kind === 'normal' && (
         <LabelPanel
           code={d.code}

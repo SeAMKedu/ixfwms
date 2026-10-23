@@ -8,7 +8,16 @@ import { LocationPage } from './location';
 import { ScanPage } from './scan';
 import { SearchPage } from './search';
 
-const NO_ADDRESS = { shortName: null, short: '', movable: false, address: '', within: '' };
+const NO_ADDRESS = {
+  shortName: null,
+  short: '',
+  movable: false,
+  address: '',
+  within: '',
+  stayDays: null,
+  dueAt: null,
+  overdue: false,
+};
 
 const part = (over: Partial<PartSummary>): PartSummary => ({
   id: over.code ?? 'x',
@@ -96,6 +105,10 @@ describe('location page', () => {
       kind: 'normal',
       ...NO_ADDRESS,
       clashes: [],
+      ownStayDays: null,
+      typeStayDays: null,
+      contact: null,
+      lastActivityAt: '2026-10-23T08:00:00.000Z',
       description: null,
       path: [
         {
@@ -178,6 +191,10 @@ describe('carry page', () => {
       kind: 'normal',
       ...NO_ADDRESS,
       clashes: [],
+      ownStayDays: null,
+      typeStayDays: null,
+      contact: null,
+      lastActivityAt: '2026-10-23T08:00:00.000Z',
       description: null,
       path: [
         {

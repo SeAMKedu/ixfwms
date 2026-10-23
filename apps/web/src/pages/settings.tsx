@@ -1,16 +1,185 @@
 import type { LocationTypeInfo } from '@ixfwms/domain';
-import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link, Navigate, NavLink, Outlet, useMatch } from 'react-router';
 import {
   useCreateLocationType,
+  useDeleteImportMapping,
   useDeleteLocationType,
+  useImportMappings,
+  useLabSettings,
   useLocationTypes,
+  useSystemInfo,
   useUpdateLocationType,
+  useUpdateSettings,
 } from '../api/queries';
 import { useSession } from '../auth/session';
-import { Button, Card, ErrorBox, Field, Loading, PageHeader, TextInput } from '../components/ui';
+import {
+  Button,
+  Card,
+  CodeLabel,
+  Empty,
+  ErrorBox,
+  Field,
+  Loading,
+  PageHeader,
+  Segmented,
+  TextInput,
+} from '../components/ui';
 import { useTypeName } from '../lib/place-types';
+import type { Scope } from '@ixfwms/domain';
+
+interface Section {
+  path: string;
+  label: string;
+  /** Who sees the section at all (everyone else can read the open ones). */
+  scope?: Scope;
+}
+
+function useSections(): { group: string; sections: Section[] }[] {
+  const { t } = useTranslation();
+  const { can } = useSession();
+  const groups: { group: string; sections: Section[] }[] = [
+    {
+      group: t('settings.groups.inventory'),
+      sections: [
+        { path: 'types', label: t('settings.types') },
+        { path: 'categories', label: t('nav.categories') },
+        { path: 'carrying', label: t('settings.carrying') },
+      ],
+    },
+    { group: t('settings.groups.labels'), sections: [{ path: 'labels', label: t('nav.labels') }] },
+    {
+      group: t('settings.groups.import'),
+      sections: [{ path: 'import', label: t('settings.mappings') }],
+    },
+    {
+      group: t('settings.groups.people'),
+      sections: [{ path: 'users', label: t('nav.users'), scope: 'admin' }],
+    },
+    {
+      group: t('settings.groups.system'),
+      sections: [
+        { path: 'backups', label: t('nav.backups'), scope: 'admin' },
+        { path: 'server', label: t('settings.server'), scope: 'admin' },
+      ],
+    },
+  ];
+  return groups
+    .map((g) => ({ ...g, sections: g.sections.filter((s) => !s.scope || can(s.scope)) }))
+    .filter((g) => g.sections.length > 0);
+}
+
+function SectionNav() {
+  const groups = useSections();
+  return (
+    <nav className="flex flex-col gap-3">
+      {groups.map((g) => (
+        <div key={g.group} className="flex flex-col gap-0.5">
+          <span className="px-2 font-mono text-[11px] tracking-[0.08em] text-muted uppercase">
+            {g.group}
+          </span>
+          {g.sections.map((s) => (
+            <NavLink
+              key={s.path}
+              to={`/settings/${s.path}`}
+              className={({ isActive }) =>
+                `flex items-center justify-between rounded-md px-2 py-2 text-[14px] lg:py-1.5 ${isActive ? 'bg-link-soft font-semibold text-link' : 'hover:bg-surface-2'}`
+              }
+            >
+              {s.label}
+              <ChevronRight className="size-4 text-muted lg:hidden" aria-hidden />
+            </NavLink>
+          ))}
+        </div>
+      ))}
+    </nav>
+  );
+}
+
+/**
+ * Settings: sections grouped down the side on a computer; on a phone the list first, then one
+ * section at a time with a way back.
+ */
+export function SettingsLayout() {
+  const { t } = useTranslation();
+  const atIndex = useMatch('/settings') !== null;
+  return (
+    <div className="grid gap-6 lg:grid-cols-[14rem_minmax(0,1fr)]">
+      <div className={atIndex ? 'flex flex-col gap-3' : 'hidden lg:flex lg:flex-col lg:gap-3'}>
+        <PageHeader title={t('settings.title')} />
+        <SectionNav />
+      </div>
+      <div className="flex min-w-0 flex-col gap-4">
+        {!atIndex && (
+          <Link
+            to="/settings"
+            className="inline-flex items-center gap-1 self-start text-sm text-link lg:hidden"
+          >
+            <ChevronLeft className="size-4" aria-hidden />
+            {t('settings.title')}
+          </Link>
+        )}
+        <Outlet />
+      </div>
+    </div>
+  );
+}
+
+/** On a computer the first section opens straight away; a phone shows the list. */
+export function SettingsIndex() {
+  const wide = window.matchMedia('(min-width: 1024px)').matches;
+  return wide ? <Navigate to="/settings/types" replace /> : null;
+}
+
+/** A number field that saves when it loses focus or Enter is pressed. */
+function NumberSetting({
+  label,
+  hint,
+  value,
+  min,
+  max,
+  disabled,
+  allowEmpty,
+  onSave,
+}: {
+  label: string;
+  hint?: string;
+  value: number | null;
+  min: number;
+  max: number;
+  disabled?: boolean;
+  allowEmpty?: boolean;
+  onSave: (value: number | null) => void;
+}) {
+  const [text, setText] = useState(value === null ? '' : String(value));
+  const save = () => {
+    const n = text.trim() === '' ? null : Number(text);
+    if (n === value) return;
+    if (n === null ? allowEmpty : Number.isInteger(n) && n >= min && n <= max) onSave(n);
+    else setText(value === null ? '' : String(value));
+  };
+  return (
+    <Field label={label} hint={hint}>
+      {(id) => (
+        <TextInput
+          id={id}
+          type="number"
+          inputMode="numeric"
+          min={min}
+          max={max}
+          value={text}
+          disabled={disabled}
+          className="w-28"
+          onChange={(e) => setText(e.target.value)}
+          onBlur={save}
+          onKeyDown={(e) => e.key === 'Enter' && save()}
+        />
+      )}
+    </Field>
+  );
+}
 
 function TypeRow({
   type,
@@ -24,15 +193,23 @@ function TypeRow({
   const { t } = useTranslation();
   const typeName = useTypeName();
   const [name, setName] = useState(typeName(type.key));
+  const [stay, setStay] = useState(type.stayDays === null ? '' : String(type.stayDays));
   const update = useUpdateLocationType();
   const remove = useDeleteLocationType();
   const saveName = () => {
     if (name.trim() && name.trim() !== typeName(type.key))
       update.mutate({ key: type.key, name: name.trim() });
   };
+  const saveStay = () => {
+    const n = stay.trim() === '' ? null : Number(stay);
+    if (n === type.stayDays) return;
+    if (n === null || (Number.isInteger(n) && n >= 1 && n <= 3650))
+      update.mutate({ key: type.key, stayDays: n });
+    else setStay(type.stayDays === null ? '' : String(type.stayDays));
+  };
   return (
-    <li className="flex flex-col gap-1 border-t border-line py-2 first:border-t-0">
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:grid-cols-[minmax(0,1fr)_9rem_6rem_auto]">
+    <li className="flex flex-col gap-1.5 border-t border-line py-3 first:border-t-0">
+      <div className="flex items-center gap-2">
         <TextInput
           aria-label={t('settings.typeName')}
           value={name}
@@ -41,20 +218,8 @@ function TypeRow({
           onBlur={saveName}
           onKeyDown={(e) => e.key === 'Enter' && saveName()}
         />
-        <label className="flex items-center gap-1.5 text-sm">
-          <input
-            type="checkbox"
-            checked={type.movable}
-            disabled={!canEdit}
-            onChange={(e) => update.mutate({ key: type.key, movable: e.target.checked })}
-          />
-          {t('settings.movable')}
-        </label>
-        <span className="text-[13px] text-muted">
-          {t('settings.placeCount', { count: type.places })}
-        </span>
         {canEdit && (
-          <span className="flex items-center justify-end">
+          <span className="flex shrink-0 items-center">
             <Button
               small
               variant="ghost"
@@ -87,13 +252,46 @@ function TypeRow({
           </span>
         )}
       </div>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
+        <label className="flex items-center gap-1.5">
+          <input
+            type="checkbox"
+            checked={type.movable}
+            disabled={!canEdit}
+            onChange={(e) => update.mutate({ key: type.key, movable: e.target.checked })}
+          />
+          {t('settings.movable')}
+        </label>
+        <label className="flex items-center gap-1.5">
+          {t('settings.temporaryAfter')}
+          <span className="w-16">
+            <TextInput
+              type="number"
+              min={1}
+              max={3650}
+              inputMode="numeric"
+              placeholder="—"
+              value={stay}
+              disabled={!canEdit}
+              className="px-2 py-1"
+              onChange={(e) => setStay(e.target.value)}
+              onBlur={saveStay}
+              onKeyDown={(e) => e.key === 'Enter' && saveStay()}
+            />
+          </span>
+          {t('settings.days')}
+        </label>
+        <span className="text-[13px] text-muted">
+          {t('settings.placeCount', { count: type.places })}
+        </span>
+      </div>
       <ErrorBox error={update.error ?? remove.error} />
     </li>
   );
 }
 
-/** Lab-wide settings: for now the place types and which of them are movable containers. */
-export function SettingsPage() {
+/** Place types: names, which are movable containers, which are temporary and for how long. */
+export function TypesSection() {
   const { t } = useTranslation();
   const { can } = useSession();
   const canEdit = can('write');
@@ -119,16 +317,17 @@ export function SettingsPage() {
   };
   return (
     <>
-      <PageHeader title={t('settings.title')} />
-      <Card title={t('settings.types')}>
+      <PageHeader title={t('settings.types')} />
+      <Card>
         <p className="max-w-prose text-[13px] text-muted">{t('settings.typesIntro')}</p>
+        <p className="max-w-prose text-[13px] text-muted">{t('settings.stayIntro')}</p>
         {types.isPending ? (
           <Loading />
         ) : (
           <ul className="flex flex-col">
             {list.map((ty, i) => (
               <TypeRow
-                key={`${ty.key}-${ty.sort}`}
+                key={`${ty.key}-${ty.sort}-${ty.stayDays}`}
                 type={ty}
                 canEdit={canEdit}
                 onMove={{
@@ -170,6 +369,156 @@ export function SettingsPage() {
           </form>
         )}
         <ErrorBox error={create.error ?? update.error ?? types.error} />
+      </Card>
+    </>
+  );
+}
+
+export function CarryingSection() {
+  const { t } = useTranslation();
+  const { can } = useSession();
+  const settings = useLabSettings();
+  const update = useUpdateSettings();
+  return (
+    <>
+      <PageHeader title={t('settings.carrying')} />
+      <Card>
+        {settings.data ? (
+          <NumberSetting
+            label={t('settings.forgottenHours')}
+            hint={t('settings.forgottenHint')}
+            value={settings.data.carryForgottenHours}
+            min={1}
+            max={336}
+            disabled={!can('write')}
+            onSave={(n) => n !== null && update.mutate({ carryForgottenHours: n })}
+          />
+        ) : (
+          <Loading />
+        )}
+        <ErrorBox error={update.error ?? settings.error} />
+      </Card>
+    </>
+  );
+}
+
+export function LabelsSection() {
+  const { t } = useTranslation();
+  const { can } = useSession();
+  const settings = useLabSettings();
+  const update = useUpdateSettings();
+  return (
+    <>
+      <PageHeader title={t('nav.labels')} />
+      <Card>
+        <p className="max-w-prose text-[13px] text-muted">{t('settings.labelsIntro')}</p>
+        {settings.data ? (
+          <div className="w-56">
+            <Segmented<'9' | '12' | '24'>
+              label={t('settings.defaultTape')}
+              value={settings.data.labelTape}
+              onChange={(labelTape) => can('write') && update.mutate({ labelTape })}
+              options={(['9', '12', '24'] as const).map((mm) => ({
+                value: mm,
+                label: t('labels.tapeMm', { mm }),
+              }))}
+            />
+          </div>
+        ) : (
+          <Loading />
+        )}
+        <p className="text-[13px]">
+          <Link to="/labels" className="text-link hover:underline">
+            {t('settings.toLabels')}
+          </Link>
+        </p>
+        <ErrorBox error={update.error ?? settings.error} />
+      </Card>
+    </>
+  );
+}
+
+export function MappingsSection() {
+  const { t } = useTranslation();
+  const { can } = useSession();
+  const mappings = useImportMappings();
+  const remove = useDeleteImportMapping();
+  return (
+    <>
+      <PageHeader title={t('settings.mappings')} />
+      <Card>
+        <p className="max-w-prose text-[13px] text-muted">{t('settings.mappingsIntro')}</p>
+        {mappings.isPending ? (
+          <Loading />
+        ) : !mappings.data?.length ? (
+          <Empty>{t('settings.noMappings')}</Empty>
+        ) : (
+          <ul className="flex flex-col">
+            {mappings.data.map((m) => (
+              <li
+                key={m.name}
+                className="flex flex-wrap items-center justify-between gap-2 border-t border-line py-2 first:border-t-0"
+              >
+                <span className="flex min-w-0 flex-col">
+                  <span className="font-medium">{m.name}</span>
+                  <span className="truncate text-[12px] text-muted">
+                    {Object.entries(m.mapping.columns)
+                      .map(([field, column]) => `${column} → ${t(`import.fields.${field}`)}`)
+                      .join(' · ')}
+                  </span>
+                </span>
+                {can('inventory') && (
+                  <Button small variant="ghost" onClick={() => remove.mutate(m.name)}>
+                    <Trash2 className="size-4" aria-hidden />
+                    {t('common.remove')}
+                  </Button>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+        <ErrorBox error={remove.error ?? mappings.error} />
+      </Card>
+    </>
+  );
+}
+
+/** What the server was started with: set in the environment (.env), shown here for reference. */
+export function ServerSection() {
+  const { t } = useTranslation();
+  const { can } = useSession();
+  const info = useSystemInfo(can('admin'));
+  const rows: [string, string][] = info.data
+    ? [
+        [t('settings.version'), info.data.version],
+        ['IXF_PUBLIC_URL', info.data.publicUrl ?? t('settings.fromRequest')],
+        ['IXF_DATA_DIR', info.data.dataDir],
+        ['IXF_BACKUP_HOUR', String(info.data.backupHour)],
+        ['IXF_BACKUP_KEEP', String(info.data.backupKeep)],
+        ['IXF_MAX_UPLOAD_MB', String(info.data.maxUploadMb)],
+        ['Node.js', info.data.node],
+      ]
+    : [];
+  return (
+    <>
+      <PageHeader title={t('settings.server')} />
+      <Card>
+        <p className="max-w-prose text-[13px] text-muted">{t('settings.serverIntro')}</p>
+        {info.isPending ? (
+          <Loading />
+        ) : (
+          <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-sm">
+            {rows.map(([k, v]) => (
+              <div key={k} className="contents">
+                <dt>
+                  <CodeLabel code={k} />
+                </dt>
+                <dd className="break-all">{v}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+        <ErrorBox error={info.error} />
       </Card>
     </>
   );

@@ -357,6 +357,10 @@ export class MapService {
         ),
       )
       .all();
+    // Shapes standing for an overdue temporary place, or for something that holds one.
+    const late = new Set(
+      (await this.locations.overdue()).flatMap((o) => o.path.map((p) => p.code)),
+    );
     const layers: MapLayer[] = [];
     for (const [i, place] of path.entries()) {
       // 3D first when a place has both: it's usually the richer view of the same room.
@@ -372,6 +376,7 @@ export class MapService {
           href: await this.href(drawing.fileId),
           highlight: path.slice(i + 1).map((p) => p.code),
           links: Object.fromEntries(check.links.map((l) => [l.elementKey, l.code])),
+          attention: check.links.map((l) => l.code).filter((c) => late.has(c)),
         });
       }
     }

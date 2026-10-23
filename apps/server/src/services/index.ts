@@ -15,6 +15,7 @@ import { LocationViews } from './location-views.js';
 import { LocationService } from './locations.js';
 import { MapService } from './maps.js';
 import { PartResolver, PartService } from './parts.js';
+import { SettingsService } from './settings.js';
 import { StockService } from './stock.js';
 
 export type { Actor } from './context.js';
@@ -33,6 +34,7 @@ export interface Services {
   locationViews: LocationViews;
   maps: MapService;
   parts: PartService;
+  settings: SettingsService;
   stock: StockService;
 }
 
@@ -60,6 +62,7 @@ export function createServices(
     locationViews: new LocationViews(db, locations, parts, files),
     maps: new MapService(db, locations, files),
     parts,
+    settings: new SettingsService(db),
     stock,
   };
 }

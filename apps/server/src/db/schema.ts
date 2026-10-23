@@ -71,6 +71,8 @@ export const locationTypes = sqliteTable('location_types', {
   sort: integer('sort').notNull().default(0),
   /** Containers that get carried around; left out of addresses. */
   movable: integer('movable', { mode: 'boolean' }).notNull().default(false),
+  /** Places of this type are temporary: expected to be gone (or touched) within this many days. */
+  stayDays: integer('stay_days'),
 });
 
 export const locations = sqliteTable(
@@ -86,6 +88,12 @@ export const locations = sqliteTable(
     name: text('name').notNull(),
     /** For the address ("A" in "Robolab-A-C"); null = guessed from the name. */
     shortName: text('short_name'),
+    /** Expected stay in days: null = the type's, 0 = not temporary. */
+    stayDays: integer('stay_days'),
+    /** Who to ask about a temporary place ("whose pallet is this?"). */
+    contact: text('contact'),
+    /** Last time stock went in or out (here or inside), it moved, or someone said it's still needed. */
+    lastActivityAt: text('last_activity_at'),
     description: text('description'),
     /** Materialised path of ids, e.g. "/a/b/c/" (includes this location), for subtree queries. */
     path: text('path').notNull(),
@@ -354,3 +362,11 @@ export const mapLinks = sqliteTable(
     uniqueIndex('map_links_target').on(t.usageId, t.targetId),
   ],
 );
+
+/** Lab-wide settings changed in the app (server settings stay in the environment). */
+export const settings = sqliteTable('settings', {
+  key: text('key').primaryKey(),
+  value: text('value', { mode: 'json' }).notNull(),
+  updatedBy: text('updated_by').references(() => users.id),
+  updatedAt: updatedAt(),
+});

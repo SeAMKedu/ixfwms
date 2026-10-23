@@ -336,6 +336,7 @@ export class StockService {
     },
   ): Promise<void> {
     const lot = await ex.select().from(stockLots).where(eq(stockLots.id, lotId)).get();
+    await this.locations.touch(ex, [m.from, m.to, lot?.locationId]);
     await ex.insert(stockMovements).values({
       id: newId(),
       partId: m.partId ?? lot!.partId,

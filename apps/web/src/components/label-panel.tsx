@@ -2,6 +2,7 @@ import { Download } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { saveBlob } from '../api/client';
+import { useLabSettings } from '../api/queries';
 import { LabelFix } from './label-fix';
 import { Button, Card, ErrorBox, Segmented } from './ui';
 
@@ -47,7 +48,9 @@ export function LabelPanel({
   fix?: 'location' | 'part';
 }) {
   const { t } = useTranslation();
-  const [tape, setTape] = useState<Tape>('12');
+  const settings = useLabSettings();
+  const [chosen, setTape] = useState<Tape | null>(null);
+  const tape = chosen ?? settings.data?.labelTape ?? '12';
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
   const svgUrl = `/api/labels/${code}/label.svg?tape=${tape}`;

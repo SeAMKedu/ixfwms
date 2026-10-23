@@ -1,12 +1,10 @@
 import {
   ChevronDown,
   ChevronRight,
-  DatabaseBackup,
   FileSpreadsheet,
   History,
   Settings,
   Smartphone,
-  Users,
   Hand,
   Inbox,
   ListChecks,
@@ -17,7 +15,6 @@ import {
   QrCode,
   ScanLine,
   Search,
-  Tags,
 } from 'lucide-react';
 import { useState, type ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -166,11 +163,9 @@ function MoreLinks({ links }: { links: SideLinkItem[] }) {
 /** Desktop: sidebar. Phone: top bar plus bottom tabs with Scan in the middle, as in the plan's sketch. */
 export function Layout() {
   const { t } = useTranslation();
-  const { can } = useSession();
   const { setHelpOpen } = useShortcutRegistry();
   const items = useNavItems();
   const secondary: SideLinkItem[] = [
-    { to: '/categories', label: t('nav.categories'), icon: Tags },
     { to: '/import', label: t('nav.import'), icon: FileSpreadsheet },
     { to: '/bom', label: t('nav.bom'), icon: ListChecks },
   ];
@@ -181,12 +176,6 @@ export function Layout() {
     { to: '/history', label: t('nav.history'), icon: History },
     { to: '/setup', label: t('nav.setup'), icon: Smartphone },
     { to: '/settings', label: t('nav.settings'), icon: Settings },
-    ...(can('admin')
-      ? [
-          { to: '/users', label: t('nav.users'), icon: Users },
-          { to: '/backups', label: t('nav.backups'), icon: DatabaseBackup },
-        ]
-      : []),
   ];
   return (
     <div className="min-h-dvh md:grid md:grid-cols-[220px_minmax(0,1fr)]">

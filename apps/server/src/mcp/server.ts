@@ -149,6 +149,18 @@ export function createMcpServer(
   );
 
   server.registerTool(
+    'list_overdue_places',
+    {
+      title: 'Overdue temporary places',
+      description:
+        'Temporary places (pallets, deliveries…) nobody has touched for longer than expected, with who to ask.',
+      inputSchema: {},
+      annotations: read,
+    },
+    tool(async () => locations.overdue()),
+  );
+
+  server.registerTool(
     'list_locations',
     {
       title: 'List places',
@@ -276,6 +288,15 @@ export function createMcpServer(
             'Short name for the address, e.g. "A" for Cabinet A; omit to guess it from the name',
           ),
         description: z.string().optional(),
+        stayDays: z
+          .number()
+          .int()
+          .min(0)
+          .optional()
+          .describe(
+            'Temporary place (e.g. a delivery pallet): expected stay in days; 0 = not temporary',
+          ),
+        contact: z.string().optional().describe('Who to ask about a temporary place'),
         code: z
           .string()
           .optional()
@@ -292,6 +313,8 @@ export function createMcpServer(
           description: a.description ?? null,
           code: a.code ?? null,
           shortName: a.shortName ?? null,
+          stayDays: a.stayDays,
+          contact: a.contact ?? null,
         },
         actor,
       );

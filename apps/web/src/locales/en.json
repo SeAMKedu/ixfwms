@@ -45,7 +45,8 @@
     "code": "Code",
     "open": "Open",
     "none": "None",
-    "readOnlyHint": "Log in to make changes."
+    "readOnlyHint": "Log in to make changes.",
+    "close": "Close"
   },
   "errors": {
     "generic": "Something went wrong: {{message}}",
@@ -243,7 +244,8 @@
     "putAwayTo": "Put away to",
     "carrying": "Still being carried",
     "carryingItem_one": "{{user}}: {{count}} thing since {{date}}",
-    "carryingItem_other": "{{user}}: {{count}} things since {{date}}"
+    "carryingItem_other": "{{user}}: {{count}} things since {{date}}",
+    "attention": "Needs attention"
   },
   "scan": {
     "title": "Scan",
@@ -445,7 +447,9 @@
       "level": "Level",
       "location": "Place",
       "unitMassG": "Mass per piece (g)"
-    }
+    },
+    "tryExample": "Try with an example",
+    "template": "Download a template (CSV)"
   },
   "bom": {
     "title": "Can we build it?",
@@ -485,7 +489,9 @@
       "unknown": "probably",
       "short": "short",
       "missing": "missing"
-    }
+    },
+    "tryExample": "Try with an example",
+    "template": "Download an example parts list (CSV)"
   },
   "maps": {
     "title": "Where on the map",
@@ -540,7 +546,15 @@
     "drawingName": "Drawing name",
     "openFile": "file",
     "unused": "Not used by any place.",
-    "brokenHint": "Some links point at shapes that are no longer in the drawing. Open the place and link them again."
+    "brokenHint": "Some links point at shapes that are no longer in the drawing. Open the place and link them again.",
+    "short": {
+      "svg_2d": "2D",
+      "gltf_3d": "3D"
+    },
+    "zoomIn": "Zoom to it",
+    "whole": "Whole map",
+    "expand": "Expand map",
+    "shrink": "Back to page"
   },
   "users": {
     "title": "Users",
@@ -716,6 +730,48 @@
     "moveDown": "Move down",
     "inUse": "Places of this type exist",
     "newType": "New type",
-    "newTypeExample": "e.g. Tool cart"
+    "newTypeExample": "e.g. Tool cart",
+    "groups": {
+      "inventory": "Inventory",
+      "labels": "Labels",
+      "import": "Import",
+      "people": "People and access",
+      "system": "System"
+    },
+    "carrying": "Carrying",
+    "mappings": "Saved column mappings",
+    "server": "Server",
+    "days": "days",
+    "stayIntro": "Give a type an expected stay to make its places temporary: a place nobody has touched for that many days (no stock in or out, not moved, nobody pressed Still needed) is flagged amber and listed in the Inbox. Leave it empty for places that stay.",
+    "forgottenHours": "Flag carried things after (hours)",
+    "forgottenHint": "Things picked up and not put down for this long are shown as probably forgotten in the Inbox.",
+    "labelsIntro": "Labels pages start with this tape width.",
+    "defaultTape": "Default tape",
+    "toLabels": "Print and manage labels",
+    "mappingsIntro": "Column mappings saved on the Import page, for spreadsheets that come in the same layout again (a supplier's order export, say).",
+    "noMappings": "No saved mappings yet. Save one on the Import page.",
+    "version": "Version",
+    "fromRequest": "(not set: taken from each request)",
+    "serverIntro": "These are set where the server runs (environment variables or .env), and need a restart to change. Shown here for reference.",
+    "temporaryAfter": "Temporary after"
+  },
+  "temporary": {
+    "lastActivity": "last activity {{date}}",
+    "contactIs": "ask {{contact}}",
+    "expectedStay": "Temporary?",
+    "expectedStayHint": "Flagged if left untouched this long",
+    "asTypeDays_one": "As its type: {{count}} day",
+    "asTypeDays_other": "As its type: {{count}} days",
+    "asTypeNone": "As its type: stays",
+    "notTemporary": "Not temporary",
+    "ownDays": "Own expected stay…",
+    "days": "Days",
+    "contact": "Contact",
+    "note_one": "Temporary: expected to stay {{count}} day",
+    "note_other": "Temporary: expected to stay {{count}} days",
+    "overdue_one": "Untouched for longer than its {{count}} day",
+    "overdue_other": "Untouched for longer than its {{count}} days",
+    "due": "flagged after {{date}}",
+    "stillNeeded": "Still needed"
   }
 }

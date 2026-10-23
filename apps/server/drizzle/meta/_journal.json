@@ -64,6 +64,13 @@
       "when": 1792769190541,
       "tag": "0008_place_addresses",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1792785192544,
+      "tag": "0009_settings_and_temporary_places",
+      "breakpoints": true
     }
   ]
 }

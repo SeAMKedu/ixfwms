@@ -22,6 +22,10 @@ import type {
   LocationSummary,
   LocationTypeInfo,
   LocationTypeInput,
+  LabSettings,
+  ImportMapping,
+  OverduePlace,
+  SystemInfo,
   DuplicateLocationInput,
   LotView,
   MapCheck,
@@ -282,6 +286,41 @@ export const useUpdateLocationType = () =>
 
 export const useDeleteLocationType = () =>
   useChange((key: string) => api(`/api/location-types/${key}`, { method: 'DELETE' }));
+
+export const useLabSettings = () =>
+  useQuery({
+    queryKey: ['settings'],
+    queryFn: () => api<LabSettings>('/api/settings'),
+    staleTime: 60_000,
+  });
+
+export const useUpdateSettings = () =>
+  useChange((patch: Partial<LabSettings>) =>
+    api<LabSettings>('/api/settings', { method: 'PATCH', body: patch }),
+  );
+
+export const useSystemInfo = (enabled: boolean) =>
+  useQuery({ queryKey: ['system'], queryFn: () => api<SystemInfo>('/api/system'), enabled });
+
+export const useOverdue = () =>
+  useQuery({
+    queryKey: ['overdue'],
+    queryFn: () => api<OverduePlace[]>('/api/locations/overdue'),
+  });
+
+export const useStillNeeded = (code: string) =>
+  useChange(() => api<LocationSummary>(`/api/locations/${code}/still-needed`, { body: {} }));
+
+export const useImportMappings = () =>
+  useQuery({
+    queryKey: ['importMappings'],
+    queryFn: () => api<{ name: string; mapping: ImportMapping }[]>('/api/import/mappings'),
+  });
+
+export const useDeleteImportMapping = () =>
+  useChange((name: string) =>
+    api(`/api/import/mappings/${encodeURIComponent(name)}`, { method: 'DELETE' }),
+  );
 
 export const useDuplicateLocation = (code: string) =>
   useChange((input: DuplicateLocationInput) =>

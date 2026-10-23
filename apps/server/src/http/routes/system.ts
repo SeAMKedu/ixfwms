@@ -1,7 +1,7 @@
-import type { ServerInfo } from '@ixfwms/domain';
+import { LabSettings, type ServerInfo, type SystemInfo } from '@ixfwms/domain';
 import type { FastifyInstance } from 'fastify';
 import { requireScope } from '../../services/context.js';
-import { baseUrl, type AppDeps } from '../context.js';
+import { baseUrl, parse, type AppDeps } from '../context.js';
 
 export function registerSystemRoutes(
   app: FastifyInstance,
@@ -18,6 +18,26 @@ export function registerSystemRoutes(
       mcpUrl: `${base}/mcp`,
       inboxCode: (await services.locations.inbox()).code,
       you: request.actor ? { name: request.actor.name, scopes: request.actor.scopes } : null,
+    };
+  });
+
+  app.get('/api/settings', () => services.settings.get());
+
+  app.patch('/api/settings', async (request) =>
+    services.settings.update(parse(LabSettings.partial(), request.body), request.actor),
+  );
+
+  /** Server settings from the environment, read-only (admins). */
+  app.get('/api/system', (request): SystemInfo => {
+    requireScope(request.actor, 'admin');
+    return {
+      version,
+      publicUrl: config.publicUrl,
+      dataDir: config.dataDir,
+      backupHour: config.backupHour,
+      backupKeep: config.backupKeep,
+      maxUploadMb: config.maxUploadMb,
+      node: process.version,
     };
   });
 

@@ -98,6 +98,8 @@ export interface MapLayer {
   highlight: string[];
   /** Element id / object name → place code. */
   links: Record<string, string>;
+  /** Linked places that are, or hold, a temporary place left untouched too long. */
+  attention: string[];
 }
 
 /** A drawing in the shared library and the places that use it. */

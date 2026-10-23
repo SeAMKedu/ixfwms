@@ -5,6 +5,7 @@ import {
   LocationTypeInput,
   nextShortName,
   type LocationTypeInfo,
+  type OverduePlace,
   isValidCode,
   normalizeCode,
   nextFreeName,
@@ -28,6 +29,7 @@ export type LocationRow = typeof locations.$inferSelect;
 export type { LocationNode, LocationSummary };
 
 const INBOX_NAME = 'Inbox';
+const DAY_MS = 86_400_000;
 
 export class LocationService {
   constructor(private readonly db: Db) {}
@@ -39,15 +41,20 @@ export class LocationService {
     let sort = existing.length;
     const defaults = [
       ...DEFAULT_LOCATION_TYPES,
-      { key: 'in_transit', name: 'Being carried', movable: false },
+      { key: 'in_transit', name: 'Being carried', movable: false, stayDays: null },
     ];
     // Only for a new database: types removed in the app on purpose stay removed.
     const fresh = existing.length === 0;
     for (const t of defaults) {
       if (!keys.has(t.key) && (fresh || BUILT_IN_LOCATION_TYPES.some((b) => b === t.key))) {
-        await this.db
-          .insert(locationTypes)
-          .values({ id: newId(), key: t.key, name: t.name, movable: t.movable, sort: sort++ });
+        await this.db.insert(locationTypes).values({
+          id: newId(),
+          key: t.key,
+          name: t.name,
+          movable: t.movable,
+          stayDays: t.stayDays,
+          sort: sort++,
+        });
       }
     }
     const inbox = await this.db.select().from(locations).where(eq(locations.kind, 'inbox')).get();
@@ -90,6 +97,8 @@ export class LocationService {
         description: input.description ?? null,
         code: input.code ?? null,
         shortName: input.shortName ?? null,
+        stayDays: input.stayDays ?? null,
+        contact: input.contact ?? null,
       });
       await audit(tx, who, 'create', 'location', row.id, {
         name: row.name,
@@ -109,6 +118,8 @@ export class LocationService {
       const loc = await this.resolve(ref, tx);
       const patch: Partial<LocationRow> = { updatedAt: nowIso() };
       if (input.name !== undefined) patch.name = input.name;
+      if (input.stayDays !== undefined) patch.stayDays = input.stayDays ?? null;
+      if (input.contact !== undefined) patch.contact = input.contact ?? null;
       if (input.shortName !== undefined) {
         patch.shortName = input.shortName ?? null;
         await this.checkShortName(tx, loc.parentId, patch.shortName, loc.id);
@@ -227,6 +238,7 @@ export class LocationService {
       .update(locations)
       .set({ parentId: parent?.id ?? null, updatedAt: nowIso() })
       .where(eq(locations.id, loc.id));
+    await this.touch(tx, [loc.id, loc.parentId, parent?.id]);
     await tx.insert(locationMoves).values({
       id: newId(),
       locationId: loc.id,
@@ -335,6 +347,7 @@ export class LocationService {
       for (const r of await ex.select().from(locations).where(inArray(locations.id, batch)).all())
         known.set(r.id, r);
     }
+    const now = Date.now();
     const part = (r: LocationRow) => ({
       name: r.name,
       shortName: r.shortName,
@@ -347,6 +360,12 @@ export class LocationService {
         .map((id) => known.get(id))
         .filter((x): x is LocationRow => x != null);
       const { parent, short, address } = addressOf(path.map(part));
+      const stayDays =
+        r.kind !== 'normal' || r.stayDays === 0
+          ? null
+          : (r.stayDays ?? types.get(r.typeId)?.stayDays ?? null);
+      const since = Date.parse(r.lastActivityAt ?? r.updatedAt);
+      const due = stayDays ? since + stayDays * DAY_MS : null;
       return {
         id: r.id,
         code: r.code,
@@ -358,8 +377,58 @@ export class LocationService {
         movable: part(r).movable,
         address,
         within: parent,
+        stayDays,
+        dueAt: due ? new Date(due).toISOString() : null,
+        overdue: due !== null && now > due,
       };
     });
+  }
+
+  /**
+   * Notes activity at places (stock in or out, a move, "still needed"), and at everything they're
+   * in: taking screws out of a box on a pallet is activity on the pallet too.
+   */
+  async touch(ex: Executor, ids: (string | null | undefined)[]): Promise<void> {
+    const wanted = [...new Set(ids.filter((id): id is string => !!id))];
+    if (!wanted.length) return;
+    const rows = await ex
+      .select({ path: locations.path })
+      .from(locations)
+      .where(inArray(locations.id, wanted))
+      .all();
+    const all = [...new Set(rows.flatMap((r) => r.path.split('/').filter(Boolean)))];
+    if (all.length)
+      await ex
+        .update(locations)
+        .set({ lastActivityAt: nowIso() })
+        .where(inArray(locations.id, all));
+  }
+
+  /** "Still needed": restarts a temporary place's clock. */
+  async stillNeeded(ref: string, actor: Actor | null): Promise<LocationSummary> {
+    const who = requireScope(actor, 'inventory');
+    const loc = await this.resolve(ref);
+    await this.touch(this.db, [loc.id]);
+    await audit(this.db, who, 'still-needed', 'location', loc.id);
+    return this.summarize(this.db, await this.resolve(loc.id));
+  }
+
+  /** Temporary places left untouched longer than expected, longest overdue first. */
+  async overdue(): Promise<OverduePlace[]> {
+    const rows = await this.db.select().from(locations).where(eq(locations.kind, 'normal')).all();
+    const summaries = await this.summaries(this.db, rows);
+    const late = summaries
+      .map((s, i) => ({ s, row: rows[i]! }))
+      .filter(({ s }) => s.overdue)
+      .sort((a, b) => a.s.dueAt!.localeCompare(b.s.dueAt!));
+    return Promise.all(
+      late.map(async ({ s, row }) => ({
+        place: s,
+        path: await this.pathOf(row),
+        contact: row.contact,
+        lastActivityAt: row.lastActivityAt ?? row.updatedAt,
+      })),
+    );
   }
 
   /** Fixed places next to `loc` whose short name is the same, so their addresses are too. */
@@ -391,6 +460,7 @@ export class LocationService {
         key: t.key,
         name: t.name,
         movable: t.movable,
+        stayDays: t.stayDays,
         sort: t.sort,
         places: byType.get(t.id) ?? 0,
       }));
@@ -398,7 +468,7 @@ export class LocationService {
 
   async createType(input: LocationTypeInput, actor: Actor | null): Promise<LocationTypeInfo> {
     const who = requireScope(actor, 'write');
-    const { name, movable, sort } = LocationTypeInput.parse(input);
+    const { name, movable, stayDays, sort } = LocationTypeInput.parse(input);
     const existing = await this.db.select().from(locationTypes).all();
     const base = typeKey(name);
     let key = base;
@@ -406,7 +476,7 @@ export class LocationService {
     const next = Math.max(0, ...existing.map((t) => t.sort)) + 1;
     await this.db
       .insert(locationTypes)
-      .values({ id: newId(), key, name, movable, sort: sort ?? next });
+      .values({ id: newId(), key, name, movable, stayDays, sort: sort ?? next });
     await audit(this.db, who, 'create', 'location-type', key, { name, movable });
     return (await this.types()).find((t) => t.key === key)!;
   }
@@ -424,6 +494,7 @@ export class LocationService {
       .set({
         ...(patch.name !== undefined && { name: patch.name }),
         ...(patch.movable !== undefined && { movable: patch.movable }),
+        ...(patch.stayDays !== undefined && { stayDays: patch.stayDays }),
         ...(patch.sort !== undefined && { sort: patch.sort }),
       })
       .where(eq(locationTypes.id, type.id));
@@ -492,6 +563,8 @@ export class LocationService {
       ownerUserId?: string;
       code?: string | null;
       shortName?: string | null;
+      stayDays?: number | null;
+      contact?: string | null;
     },
   ): Promise<LocationRow> {
     const type = await this.typeByKey(ex, input.typeKey);
@@ -513,6 +586,9 @@ export class LocationService {
       path: `${parent?.path ?? '/'}${id}/`,
       ownerUserId: input.ownerUserId ?? null,
       shortName: input.shortName ?? null,
+      stayDays: input.stayDays ?? null,
+      contact: input.contact ?? null,
+      lastActivityAt: nowIso(),
     };
     await ex.insert(locations).values(row);
     return this.resolve(id, ex);

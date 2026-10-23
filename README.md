@@ -7,7 +7,8 @@ Parts inventory for the robotics lab: pneumatics, electrical parts, fasteners, f
 - **Parts and stock:** parts with order numbers, categories, project tags, files (datasheets, STEP models) and stock in any number of places. Stock can be counted, weighed or length-measured (weighed fasteners show an estimated count), or just marked plenty / low / empty.
 - **Places:** a tree of any depth (building › lab › cabinet › shelf › box). Every place and part has a short code printed on its QR label. Fixed places have short, readable addresses like `Robolab-A-C` (lab, cabinet A, shelf C); containers (boxes, bins, pallets) are known by name and aren't part of addresses. Place types are set in Settings. A cabinet can be copied with everything inside it, e.g. six more like it.
 - **Phone first:** a camera QR scanner; moving things by scanning (pick up, walk, scan where it goes); quick-add inventory sessions with photos.
-- **Inbox:** new parts from imports or AI assistants arrive as drafts to review, merge or put away. Things carried for hours get flagged.
+- **Inbox:** new parts from imports or AI assistants arrive as drafts to review, merge or put away. Things carried for hours get flagged, and so do temporary places (a delivery pallet, say) nobody has touched for longer than expected.
+- **Settings:** place types (movable, temporary), categories and their fields, carrying and label defaults, saved import mappings, users, backups, and what the server was started with.
 - **Category fields:** e.g. thread and length for screws, colour (palette name + exact shade) for filament and wire. Search can filter on these fields, and a low-stock list is built in.
 - **Labels:** CSV for P-touch Editor, PNG for phone printing, SVG/DXF for laser marking, and batches of blank labels. Lost or misplaced labels can be retired, reassigned or swapped.
 - **Lab maps:** SVG floor plans and 3D models (`.glb` from Blender). Shapes are linked to places by clicking them (or by naming them `loc-<code>`), light up for "where is it?" and are clickable. One drawing can serve many identical cabinets, and a check lists links broken by a changed drawing.
@@ -16,7 +17,7 @@ Parts inventory for the robotics lab: pneumatics, electrical parts, fasteners, f
 - **AI assistants (MCP):** Claude and other assistants can search, check parts lists and do the initial inventory from order emails and photos.
 - **Everyday use:** login for changes (reading is open on the lab network), users and API tokens, history with undo for moves, nightly backups, English and Finnish, keyboard shortcuts.
 
-See [PLAN.md](PLAN.md) for the background and roadmap, and [CHANGELOG.md](CHANGELOG.md) for releases. How-tos: [labels](docs/labels.md), [lab maps](docs/maps.md), [initial inventory with an AI assistant](docs/inventory-with-mcp.md).
+See [PLAN.md](PLAN.md) for the background and roadmap, and [CHANGELOG.md](CHANGELOG.md) for releases. How-tos: [labels](docs/labels.md), [spreadsheets](docs/import.md), [lab maps](docs/maps.md), [initial inventory with an AI assistant](docs/inventory-with-mcp.md).
 
 ## Run it
 
@@ -36,7 +37,7 @@ Then either:
 - **Use it:** `npm run build && npm start`. Everything is at <http://localhost:3000>.
 - **Develop it:** `npm run dev` (API on :3000) plus `npm run dev:web` (web app with hot reload on <http://localhost:5173>, proxying the API).
 
-Log in with the admin you created. Other people and API tokens for scripts or AI assistants are added on the **Users** page (under **More** in the sidebar). Roles: `viewer` (read only), `member` (add, move, edit, confirm drafts), `admin` (everything).
+Log in with the admin you created. Other people and API tokens for scripts or AI assistants are added under **More › Settings › Users**. Roles: `viewer` (read only), `member` (add, move, edit, confirm drafts), `admin` (everything).
 
 Data lives in `./data`: the SQLite database, uploaded files and backups.
 
@@ -98,10 +99,10 @@ claude mcp add --transport http ixfwms http://localhost:3000/mcp --header "Autho
 
 Give assistants a token with the `inventory` scope. They can then create places, add drafts and move stock, but not confirm drafts.
 
-| Tools  |                                                                                                                                                                                                           |
-| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Read   | `search_parts`, `get_part`, `find_similar_parts`, `list_locations`, `list_location_types`, `get_location`, `list_categories`, `get_category_fields`, `list_tags`, `check_availability`, `get_upload_info` |
-| Change | `create_location`, `duplicate_location`, `create_part_drafts`, `update_part`, `add_stock`, `take_stock`, `set_stock_amount`, `move_stock`, `move_location`, `attach_file`                                 |
+| Tools  |                                                                                                                                                                                                                                  |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Read   | `search_parts`, `get_part`, `find_similar_parts`, `list_locations`, `list_location_types`, `list_overdue_places`, `get_location`, `list_categories`, `get_category_fields`, `list_tags`, `check_availability`, `get_upload_info` |
+| Change | `create_location`, `duplicate_location`, `create_part_drafts`, `update_part`, `add_stock`, `take_stock`, `set_stock_amount`, `move_stock`, `move_location`, `attach_file`                                                        |
 
 See [docs/inventory-with-mcp.md](docs/inventory-with-mcp.md) for the initial-inventory workflow.
 
@@ -116,6 +117,8 @@ Reads are open on the lab network; writes need `Authorization: Bearer <token>`. 
 | `GET /api/locations?parent=&tree=1&flat=1` · `GET /api/locations/:code?recursive=1` · `POST /api/locations` · `PATCH` · `/move` · `/duplicate` · `/code` · `/swap-code`           | places                                                               |
 | `POST /api/stock` · `POST /api/stock/:lotId/take` · `/stocktake` · `/move`                                                                                                        | stock                                                                |
 | `GET /api/carry` · `GET /api/carry/all` · `POST /api/carry/pick` · `POST /api/carry/drop`                                                                                         | scan, carry, scan                                                    |
+| `GET /api/locations/overdue` · `POST /api/locations/:code/still-needed`                                                                                                           | temporary places                                                     |
+| `GET` / `PATCH /api/settings` · `GET /api/system` (admin) · `DELETE /api/import/mappings/:name`                                                                                   | settings                                                             |
 | `GET` / `POST /api/location-types` · `PATCH` / `DELETE /api/location-types/:key`                                                                                                  | place types (movable or fixed)                                       |
 | `GET /api/categories` · `GET /api/categories/fields?path=` · `PUT /api/categories/fields` · `POST /api/categories/starter`                                                        | categories and their fields                                          |
 | `POST /api/files` (multipart `file`) · `GET /api/files/:id` · `POST /api/attachments`                                                                                             | files                                                                |

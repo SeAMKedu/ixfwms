@@ -9,11 +9,22 @@ import {
   useMoveStock,
   useParts,
   useSetStatus,
+  useLabSettings,
+  useOverdue,
 } from '../api/queries';
 import { useSession } from '../auth/session';
 import { PlacePicker } from '../components/place-picker';
 import { formatDate } from '../lib/format';
-import { AmountPill, Button, Card, Empty, ErrorBox, Loading, PageHeader } from '../components/ui';
+import {
+  AmountPill,
+  Button,
+  Card,
+  Empty,
+  ErrorBox,
+  Loading,
+  PageHeader,
+  PlaceTag,
+} from '../components/ui';
 
 function PutAway({ item }: { item: LocationContentItem }) {
   const { t } = useTranslation();
@@ -62,19 +73,57 @@ function ConfirmButton({ code }: { code: string }) {
   );
 }
 
-const FORGOTTEN_AFTER_MS = 4 * 60 * 60 * 1000;
+const HOUR_MS = 60 * 60 * 1000;
+
+/** Temporary places (pallets…) nobody has touched for longer than expected. */
+function NeedsAttention() {
+  const { t } = useTranslation();
+  const overdue = useOverdue();
+  if (!overdue.data?.length) return null;
+  return (
+    <Card title={t('inbox.attention')}>
+      <ul className="flex flex-col gap-2 text-sm">
+        {overdue.data.map((o) => (
+          <li key={o.place.id} className="flex flex-col gap-0.5">
+            <span className="flex flex-wrap items-center gap-2">
+              <Link to={`/l/${o.place.code}`} className="font-medium text-warn hover:underline">
+                {o.place.name}
+              </Link>
+              <PlaceTag place={o.place} />
+            </span>
+            <span className="text-[12px] text-muted">
+              {[
+                o.path.length > 1 &&
+                  o.path
+                    .slice(0, -1)
+                    .map((p) => p.name)
+                    .join(' › '),
+                t('temporary.lastActivity', { date: formatDate(o.lastActivityAt) }),
+                o.contact && t('temporary.contactIs', { contact: o.contact }),
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
 
 /** Things picked up and not put down: after a few hours they were probably forgotten. */
 function StillCarried() {
   const { t } = useTranslation();
   const carrying = useEveryoneCarrying();
+  const settings = useLabSettings();
+  const forgottenMs = (settings.data?.carryForgottenHours ?? 4) * HOUR_MS;
   if (!carrying.data?.length) return null;
   return (
     <Card title={t('inbox.carrying')}>
       <ul className="flex flex-col gap-1 text-sm">
         {carrying.data.map((c) => {
           // eslint-disable-next-line react-hooks/purity -- a slightly stale "now" is fine for this hint
-          const old = Date.now() - Date.parse(c.since) > FORGOTTEN_AFTER_MS;
+          const old = Date.now() - Date.parse(c.since) > forgottenMs;
           return (
             <li key={c.location.id}>
               <Link
@@ -107,6 +156,7 @@ export function InboxPage() {
     <>
       <PageHeader title={t('inbox.title')} />
       <p className="max-w-prose text-sm text-muted">{t('inbox.intro')}</p>
+      <NeedsAttention />
       <StillCarried />
       <div className="grid gap-4 md:grid-cols-2">
         <Card title={t('inbox.unplaced')}>

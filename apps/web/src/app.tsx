@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { createBrowserRouter, RouterProvider } from 'react-router';
+import { createBrowserRouter, Navigate, RouterProvider, useLocation } from 'react-router';
 import { ApiError } from './api/client';
 import { SessionProvider } from './auth/session';
 import { ShortcutProvider } from './lib/shortcuts';
@@ -14,7 +14,15 @@ import { ImportPage } from './pages/import';
 import { InboxPage } from './pages/inbox';
 import { LabelsPage } from './pages/labels';
 import { MapsPage } from './pages/maps';
-import { SettingsPage } from './pages/settings';
+import {
+  CarryingSection,
+  LabelsSection,
+  MappingsSection,
+  ServerSection,
+  SettingsIndex,
+  SettingsLayout,
+  TypesSection,
+} from './pages/settings';
 import { LocationPage } from './pages/location';
 import { LoginPage } from './pages/login';
 import { NotFoundPage } from './pages/not-found';
@@ -28,6 +36,12 @@ import { SetupPage } from './pages/setup';
 import { UsersPage } from './pages/users';
 
 /** Paths match the QR label format: /L/<code> for places, /P/<code> for parts (case-insensitive). */
+/** Pages that moved into Settings keep their old address working (with its query). */
+function Redirect({ to }: { to: string }) {
+  const { search } = useLocation();
+  return <Navigate to={`${to}${search}`} replace />;
+}
+
 const routes = [
   {
     element: <Layout />,
@@ -42,13 +56,27 @@ const routes = [
       { path: '/carry', element: <CarryPage /> },
       { path: '/labels', element: <LabelsPage /> },
       { path: '/maps', element: <MapsPage /> },
-      { path: '/settings', element: <SettingsPage /> },
-      { path: '/categories', element: <CategoriesPage /> },
+      {
+        path: '/settings',
+        element: <SettingsLayout />,
+        children: [
+          { index: true, element: <SettingsIndex /> },
+          { path: 'types', element: <TypesSection /> },
+          { path: 'categories', element: <CategoriesPage /> },
+          { path: 'carrying', element: <CarryingSection /> },
+          { path: 'labels', element: <LabelsSection /> },
+          { path: 'import', element: <MappingsSection /> },
+          { path: 'users', element: <UsersPage /> },
+          { path: 'backups', element: <BackupsPage /> },
+          { path: 'server', element: <ServerSection /> },
+        ],
+      },
+      { path: '/categories', element: <Redirect to="/settings/categories" /> },
       { path: '/import', element: <ImportPage /> },
       { path: '/bom', element: <BomPage /> },
       { path: '/history', element: <HistoryPage /> },
-      { path: '/users', element: <UsersPage /> },
-      { path: '/backups', element: <BackupsPage /> },
+      { path: '/users', element: <Redirect to="/settings/users" /> },
+      { path: '/backups', element: <Redirect to="/settings/backups" /> },
       { path: '/setup', element: <SetupPage /> },
       { path: '/account', element: <AccountPage /> },
       { path: '/inbox', element: <InboxPage /> },

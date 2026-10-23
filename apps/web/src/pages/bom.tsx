@@ -28,6 +28,9 @@ const STATUS_TONE: Record<BomStatus, 'ok' | 'warn' | 'crit' | 'info'> = {
 };
 
 /** "Can we build this?" for a parts list pasted from a spreadsheet or exported from CAD/EPLAN/TIA Portal. */
+/** A Solid Edge style parts list (Item Number, Document Number, Title, Quantity). */
+const EXAMPLE = '/samples/ixfwms-parts-list-example.csv';
+
 export function BomPage() {
   const { t } = useTranslation();
   const { can } = useSession();
@@ -114,6 +117,22 @@ export function BomPage() {
             <Upload className="size-4" aria-hidden />
             {t('bom.chooseFile')}
           </Button>
+          <Button
+            onClick={() =>
+              void fetch(EXAMPLE)
+                .then((r) => r.text())
+                .then((text) => {
+                  setPasted(text);
+                  load(parseDelimited(text));
+                })
+                .catch(setError)
+            }
+          >
+            {t('bom.tryExample')}
+          </Button>
+          <a href={EXAMPLE} download className="self-center text-[13px] text-link hover:underline">
+            {t('bom.template')}
+          </a>
         </div>
       </Card>
 

@@ -13,7 +13,7 @@ import type { Db } from '../db/client.js';
 import { importMappings, locations, partIdentifiers, parts } from '../db/schema.js';
 import { AppError } from '../lib/errors.js';
 import { nowIso } from '../lib/ids.js';
-import { requireScope, type Actor } from './context.js';
+import { audit, requireScope, type Actor } from './context.js';
 import type { LocationRow, LocationService } from './locations.js';
 import type { PartService } from './parts.js';
 import type { StockService } from './stock.js';
@@ -117,6 +117,14 @@ export class ImportService {
 
   private async plan(rows: ImportRow[], options: ImportOptions): Promise<Plan[]> {
     const all = await this.db.select().from(locations).all();
+    const summaries = await this.locations.summaries(this.db, all);
+    const byAddress = new Map<string, LocationRow | null>();
+    for (const [i, s] of summaries.entries()) {
+      if (!s.address) continue;
+      const key = s.address.toLowerCase();
+      // Two places with the same address: neither is meant.
+      byAddress.set(key, byAddress.has(key) ? null : all[i]!);
+    }
     const defaultLocation = options.defaultLocation
       ? await this.locations.resolve(options.defaultLocation)
       : null;
@@ -135,7 +143,8 @@ export class ImportService {
         amount: amountOf(input),
       };
       if (input.location) {
-        const found = findLocation(all, input.location);
+        const found =
+          byAddress.get(input.location.trim().toLowerCase()) ?? findLocation(all, input.location);
         if (!found)
           return {
             ...plan,
@@ -193,6 +202,12 @@ export class ImportService {
       .orderBy(asc(importMappings.name))
       .all();
     return rows.map((r) => ({ name: r.name, mapping: ImportMapping.parse(r.mapping) }));
+  }
+
+  async deleteMapping(name: string, actor: Actor | null): Promise<void> {
+    const who = requireScope(actor, 'inventory');
+    await this.db.delete(importMappings).where(eq(importMappings.name, name));
+    await audit(this.db, who, 'delete', 'import-mapping', name);
   }
 
   async saveMapping(name: string, mapping: ImportMapping, actor: Actor | null): Promise<void> {

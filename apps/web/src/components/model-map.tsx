@@ -10,6 +10,7 @@ import type { MapEditing } from './svg-map';
 import { ErrorBox } from './ui';
 
 const HIT = new THREE.Color('#1d5ea8');
+const ATTENTION = new THREE.Color('#c27a12');
 const CLICK_TOLERANCE_PX = 5;
 
 /** The object's name as in Blender (three.js tidies `name`, the loader keeps the original). */
@@ -30,17 +31,17 @@ function codeOf(
 }
 
 /** Tints every mesh under `root` (on its own copy of the material, so other objects keep theirs). */
-function tint(root: THREE.Object3D, strength: number) {
+function tint(root: THREE.Object3D, strength: number, color = HIT) {
   root.traverse((o) => {
     if (!(o instanceof THREE.Mesh)) return;
     const materials = (Array.isArray(o.material) ? o.material : [o.material]) as THREE.Material[];
     const tinted = materials.map((m) => {
       const copy = m.clone();
       if ('emissive' in copy && copy.emissive instanceof THREE.Color) {
-        copy.emissive = HIT.clone();
+        copy.emissive = color.clone();
         (copy as THREE.MeshStandardMaterial).emissiveIntensity = strength;
       } else if ('color' in copy && copy.color instanceof THREE.Color) {
-        copy.color.lerp(HIT, strength);
+        copy.color.lerp(color, strength);
       }
       return copy;
     });
@@ -86,12 +87,18 @@ export default function ModelMap({
   links,
   title,
   editing,
+  tall = false,
+  attention = [],
 }: {
   href: string;
   highlight: string[];
   links: Record<string, string>;
   title: string;
   editing?: MapEditing;
+  /** Fill the screen height (expanded view). */
+  tall?: boolean;
+  /** Places to tint amber (overdue temporary places, or what holds them). */
+  attention?: string[];
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -109,9 +116,14 @@ export default function ModelMap({
   const selected = editing?.selected ?? null;
   // Picking must not rebuild the scene, so the callback and named objects live in refs.
   const onSelect = useRef(editing?.onSelect);
+  const tallRef = useRef(tall);
+  const refit = useRef<(() => void) | null>(null);
   useEffect(() => {
     onSelect.current = editing?.onSelect;
+    tallRef.current = tall;
   });
+  // Expanding may not change the width, so the size is redone explicitly.
+  useEffect(() => refit.current?.(), [tall]);
   const sceneRef = useRef<{ scene: THREE.Scene; named: Map<string, THREE.Object3D> } | null>(null);
 
   useEffect(() => {
@@ -131,7 +143,14 @@ export default function ModelMap({
     if (!container || !names) return;
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const width = () => container.clientWidth || 600;
-    const height = () => Math.min(480, Math.max(280, Math.round(width() * 0.6)));
+    const height = () =>
+      tallRef.current
+        ? Math.max(280, window.innerHeight - 120)
+        : Math.min(
+            480,
+            Math.max(260, Math.round(width() * 0.6)),
+            Math.round(window.innerHeight * 0.6),
+          );
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -173,6 +192,9 @@ export default function ModelMap({
         });
         sceneRef.current = { scene, named };
         pickable = isEditing ? [gltf.scene] : [...linked.values()];
+        for (const code of attention)
+          if (!highlight.includes(code) && linked.has(code))
+            tint(linked.get(code)!, 0.5, ATTENTION);
         if (isEditing) {
           for (const o of linked.values()) tint(o, 0.3);
           frame(camera, controls, new THREE.Box3().setFromObject(gltf.scene), 1.1);
@@ -243,12 +265,14 @@ export default function ModelMap({
     renderer.domElement.addEventListener('pointerup', onUp);
     renderer.domElement.addEventListener('pointermove', onMove);
 
-    const resize = new ResizeObserver(() => {
+    const fit = () => {
       renderer.setSize(width(), height());
       labels.setSize(width(), height());
       camera.aspect = width() / height();
       camera.updateProjectionMatrix();
-    });
+    };
+    refit.current = fit;
+    const resize = new ResizeObserver(fit);
     resize.observe(container);
 
     renderer.setAnimationLoop(() => {
@@ -260,6 +284,7 @@ export default function ModelMap({
     return () => {
       disposed = true;
       sceneRef.current = null;
+      refit.current = null;
       renderer.setAnimationLoop(null);
       resize.disconnect();
       controls.dispose();
@@ -277,7 +302,7 @@ export default function ModelMap({
     };
     // Rebuild only when the model, its links or the highlighted path change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [href, highlightKey, linksKey, title, names, isEditing]);
+  }, [href, highlightKey, linksKey, title, names, isEditing, attention.join(',')]);
 
   return (
     <div className="flex flex-col gap-1">

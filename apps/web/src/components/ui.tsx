@@ -176,12 +176,16 @@ export function PlaceTag({
   place,
   className,
 }: {
-  place: Pick<LocationSummary, 'movable' | 'address' | 'shortName' | 'code'>;
+  place: Pick<LocationSummary, 'movable' | 'address' | 'shortName' | 'code'> &
+    Partial<Pick<LocationSummary, 'overdue'>>;
   className?: string;
 }) {
   return (
     <span title={place.code} className="inline-flex">
-      <CodeLabel code={placeTag(place)} className={className} />
+      <CodeLabel
+        code={placeTag(place)}
+        className={cx(place.overdue && 'border-warn bg-warn-soft text-warn', className)}
+      />
     </span>
   );
 }

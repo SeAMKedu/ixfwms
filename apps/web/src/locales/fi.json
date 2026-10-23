@@ -45,7 +45,8 @@
     "code": "Koodi",
     "open": "Avaa",
     "none": "Ei mitään",
-    "readOnlyHint": "Kirjaudu sisään tehdäksesi muutoksia."
+    "readOnlyHint": "Kirjaudu sisään tehdäksesi muutoksia.",
+    "close": "Sulje"
   },
   "errors": {
     "generic": "Jokin meni pieleen: {{message}}",
@@ -243,7 +244,8 @@
     "putAwayTo": "Vie paikkaan",
     "carrying": "Yhä kannettavana",
     "carryingItem_one": "{{user}}: {{count}} asia {{date}} alkaen",
-    "carryingItem_other": "{{user}}: {{count}} asiaa {{date}} alkaen"
+    "carryingItem_other": "{{user}}: {{count}} asiaa {{date}} alkaen",
+    "attention": "Vaatii huomiota"
   },
   "scan": {
     "title": "Skannaa",
@@ -445,7 +447,9 @@
       "level": "Taso",
       "location": "Paikka",
       "unitMassG": "Kappaleen paino (g)"
-    }
+    },
+    "tryExample": "Kokeile esimerkillä",
+    "template": "Lataa pohja (CSV)"
   },
   "bom": {
     "title": "Riittääkö varasto?",
@@ -485,7 +489,9 @@
       "unknown": "todennäköisesti",
       "short": "liian vähän",
       "missing": "puuttuu"
-    }
+    },
+    "tryExample": "Kokeile esimerkillä",
+    "template": "Lataa esimerkkiosaluettelo (CSV)"
   },
   "maps": {
     "title": "Kartalla",
@@ -540,7 +546,15 @@
     "drawingName": "Piirroksen nimi",
     "openFile": "tiedosto",
     "unused": "Ei minkään paikan käytössä.",
-    "brokenHint": "Osa yhteyksistä osoittaa muotoihin, joita piirroksessa ei enää ole. Avaa paikka ja yhdistä ne uudelleen."
+    "brokenHint": "Osa yhteyksistä osoittaa muotoihin, joita piirroksessa ei enää ole. Avaa paikka ja yhdistä ne uudelleen.",
+    "short": {
+      "svg_2d": "2D",
+      "gltf_3d": "3D"
+    },
+    "zoomIn": "Lähennä kohteeseen",
+    "whole": "Koko kartta",
+    "expand": "Suurenna kartta",
+    "shrink": "Takaisin sivulle"
   },
   "users": {
     "title": "Käyttäjät",
@@ -716,6 +730,48 @@
     "moveDown": "Siirrä alas",
     "inUse": "Tämän tyyppisiä paikkoja on olemassa",
     "newType": "Uusi tyyppi",
-    "newTypeExample": "esim. Työkaluvaunu"
+    "newTypeExample": "esim. Työkaluvaunu",
+    "groups": {
+      "inventory": "Varasto",
+      "labels": "Tarrat",
+      "import": "Tuonti",
+      "people": "Käyttäjät ja oikeudet",
+      "system": "Järjestelmä"
+    },
+    "carrying": "Kuljettaminen",
+    "mappings": "Tallennetut sarakemääritykset",
+    "server": "Palvelin",
+    "days": "päivää",
+    "stayIntro": "Anna tyypille odotettu oloaika, niin sen paikat ovat tilapäisiä: paikka, johon kukaan ei ole koskenut niin moneen päivään (ei varastoa sisään tai ulos, ei siirtoa, kukaan ei painanut Tarvitaan yhä), merkitään oranssilla ja näytetään Saapuneissa. Jätä tyhjäksi pysyvillä paikoilla.",
+    "forgottenHours": "Merkitse kuljetetut tavarat (tuntia)",
+    "forgottenHint": "Näin kauan mukaan otetut ja laskematta jääneet tavarat näytetään Saapuneissa todennäköisesti unohtuneina.",
+    "labelsIntro": "Tarrasivut alkavat tällä teipin leveydellä.",
+    "defaultTape": "Oletusteippi",
+    "toLabels": "Tulosta ja hallitse tarroja",
+    "mappingsIntro": "Tuonti-sivulla tallennetut sarakemääritykset samanlaisina tuleville taulukoille (esim. toimittajan tilausvienti).",
+    "noMappings": "Ei vielä tallennettuja määrityksiä. Tallenna sellainen Tuonti-sivulla.",
+    "version": "Versio",
+    "fromRequest": "(ei asetettu: otetaan kustakin pyynnöstä)",
+    "serverIntro": "Nämä asetetaan palvelimen ympäristössä (ympäristömuuttujat tai .env), ja muutos vaatii uudelleenkäynnistyksen. Näytetään tässä tiedoksi.",
+    "temporaryAfter": "Tilapäinen, merkitään"
+  },
+  "temporary": {
+    "lastActivity": "viimeksi käytetty {{date}}",
+    "contactIs": "kysy: {{contact}}",
+    "expectedStay": "Tilapäinen?",
+    "expectedStayHint": "Merkitään, jos koskematta näin kauan",
+    "asTypeDays_one": "Tyypin mukaan: {{count}} päivä",
+    "asTypeDays_other": "Tyypin mukaan: {{count}} päivää",
+    "asTypeNone": "Tyypin mukaan: pysyvä",
+    "notTemporary": "Ei tilapäinen",
+    "ownDays": "Oma oloaika…",
+    "days": "Päivää",
+    "contact": "Yhteyshenkilö",
+    "note_one": "Tilapäinen: odotettu oloaika {{count}} päivä",
+    "note_other": "Tilapäinen: odotettu oloaika {{count}} päivää",
+    "overdue_one": "Koskematta yli odotetun {{count}} päivän",
+    "overdue_other": "Koskematta yli odotettujen {{count}} päivän",
+    "due": "merkitään {{date}} jälkeen",
+    "stillNeeded": "Tarvitaan yhä"
   }
 }

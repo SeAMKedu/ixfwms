@@ -22,12 +22,38 @@ export interface LocationSummary {
   address: string;
   /** Address of the fixed place this is in ("Robolab-A"), or "" at the top. */
   within: string;
+  /** Temporary places: expected stay in days (null = not temporary), when that runs out, and
+   *  whether it has (no stock in or out, no move, nobody said it's still needed). */
+  stayDays: number | null;
+  dueAt: string | null;
+  overdue: boolean;
+}
+
+/** A temporary place left untouched longer than expected. */
+export interface OverduePlace {
+  place: LocationSummary;
+  path: LocationSummary[];
+  contact: string | null;
+  lastActivityAt: string;
+}
+
+/** Server settings from the environment, shown read-only to admins. */
+export interface SystemInfo {
+  version: string;
+  publicUrl: string | null;
+  dataDir: string;
+  backupHour: number;
+  backupKeep: number;
+  maxUploadMb: number;
+  node: string;
 }
 
 export interface LocationTypeInfo {
   key: string;
   name: string;
   movable: boolean;
+  /** Places of this type are temporary, expected to stay at most this many days. */
+  stayDays: number | null;
   sort: number;
   /** How many places are of this type (a type in use can't be removed). */
   places: number;
@@ -116,6 +142,12 @@ export interface LocationDetail extends LocationSummary {
   attachments: AttachmentView[];
   /** Fixed places next to this one with the same short name, so the same address. */
   clashes: LocationSummary[];
+  /** Own expected stay as set: null = the type's, 0 = not temporary. */
+  ownStayDays: number | null;
+  /** Expected stay of the place's type, for showing what "the type's" means. */
+  typeStayDays: number | null;
+  contact: string | null;
+  lastActivityAt: string;
 }
 
 export interface SearchResult<T> {

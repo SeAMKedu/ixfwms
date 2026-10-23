@@ -13,6 +13,9 @@ const place = (code: string, ...path: string[]): PlaceOption => ({
   movable: false,
   address: '',
   within: '',
+  stayDays: null,
+  dueAt: null,
+  overdue: false,
   path,
   pathCodes: [],
 });
