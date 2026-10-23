@@ -136,3 +136,50 @@ describe('low stock', () => {
     expect(low.items.map((p) => p.name).sort()).toEqual(['Few cups', 'Running out of M3']);
   });
 });
+
+describe('colour fields', () => {
+  it('stores colours as name + hex and finds them by name', async () => {
+    const { parts } = env.services;
+    await parts.setCategoryFields(
+      'Filament',
+      [{ key: 'colour', label: 'Colour', type: 'colour' }],
+      env.admin,
+    );
+    const black = await parts.create(
+      {
+        ...base,
+        name: 'PETG Galaxy Black',
+        category: 'Filament',
+        attributes: { colour: '#2a2433' },
+      },
+      env.admin,
+    );
+    const blue = await parts.create(
+      { ...base, name: 'PLA blue', category: 'Filament', attributes: { colour: 'BU' } },
+      env.admin,
+    );
+    expect((await parts.get(black.code)).attributes.colour).toEqual({
+      name: 'black',
+      hex: '#2a2433',
+    });
+    expect((await parts.get(blue.code)).attributes.colour).toEqual({
+      name: 'blue',
+      hex: '#1e64c8',
+    });
+    await parts.update(
+      blue.code,
+      { attributes: { colour: { name: 'blue', hex: '#3a6ea5' } } },
+      env.admin,
+    );
+    expect((await parts.get(blue.code)).attributes.colour).toEqual({
+      name: 'blue',
+      hex: '#3a6ea5',
+    });
+    const found = await parts.search({
+      attributes: [{ key: 'colour', op: 'eq', value: 'Black' }],
+      limit: 10,
+      offset: 0,
+    });
+    expect(found.items.map((p) => p.name)).toEqual(['PETG Galaxy Black']);
+  });
+});

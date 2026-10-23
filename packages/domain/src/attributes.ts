@@ -6,7 +6,7 @@ import { z } from 'zod';
  * Values live in Part.attributes under the field key, so templates can change without migrations.
  */
 
-export const ATTRIBUTE_TYPES = ['text', 'number', 'enum', 'bool'] as const;
+export const ATTRIBUTE_TYPES = ['text', 'number', 'enum', 'bool', 'colour'] as const;
 export type AttributeType = (typeof ATTRIBUTE_TYPES)[number];
 
 const KEY = /^[a-zA-Z][a-zA-Z0-9_]{0,40}$/;
@@ -143,12 +143,12 @@ export const STARTER_CATEGORIES: Record<string, AttributeField[]> = {
       type: 'enum',
       options: ['PU', 'PA', 'PE', 'PTFE', 'silicone'],
     },
-    { key: 'colour', label: 'Colour', type: 'text', unit: null, options: null },
+    { key: 'colour', label: 'Colour', type: 'colour', unit: null, options: null },
   ],
   'Electrical/Wire': [
     { key: 'crossSectionMm2', label: 'Cross-section', type: 'number', unit: 'mm²', options: null },
     { key: 'cores', label: 'Cores', type: 'number', unit: null, options: null },
-    { key: 'colour', label: 'Colour', type: 'text', unit: null, options: null },
+    { key: 'colour', label: 'Colour', type: 'colour', unit: null, options: null },
   ],
   'Electrical/Terminal blocks': [
     {
@@ -176,7 +176,7 @@ export const STARTER_CATEGORIES: Record<string, AttributeField[]> = {
       type: 'enum',
       options: ['PLA', 'PETG', 'ABS', 'ASA', 'TPU', 'PA', 'PC', 'PLA-CF', 'PETG-CF'],
     },
-    { key: 'colour', label: 'Colour', type: 'text', unit: null, options: null },
+    { key: 'colour', label: 'Colour', type: 'colour', unit: null, options: null },
     { key: 'diameterMm', label: 'Diameter', type: 'number', unit: 'mm', options: null },
   ],
 };

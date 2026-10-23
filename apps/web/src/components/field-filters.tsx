@@ -1,4 +1,5 @@
 import {
+  COLOUR_PALETTE,
   formatAttributeFilter,
   parseAttributeFilter,
   type AttributeField,
@@ -51,7 +52,23 @@ export function FieldFilters({
       {fields.map((f) => (
         <label key={f.key} className="flex flex-col gap-1 text-[12px] text-muted">
           {f.unit ? `${f.label} (${f.unit})` : f.label}
-          {f.type === 'enum' ? (
+          {f.type === 'colour' ? (
+            <Select
+              value={String(get(f.key, 'eq') ?? '')}
+              onChange={(e) => set(f.key, 'eq', e.target.value)}
+              className="!w-auto !py-1 text-[13px]"
+            >
+              <option value="">{t('fields.any')}</option>
+              {(f.options?.length
+                ? COLOUR_PALETTE.filter((c) => f.options!.includes(c.name))
+                : COLOUR_PALETTE
+              ).map((c) => (
+                <option key={c.name} value={c.name}>
+                  {t(`colours.${c.name}`)}
+                </option>
+              ))}
+            </Select>
+          ) : f.type === 'enum' ? (
             <Select
               value={String(get(f.key, 'eq') ?? '')}
               onChange={(e) => set(f.key, 'eq', e.target.value)}

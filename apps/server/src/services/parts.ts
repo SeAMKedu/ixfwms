@@ -2,6 +2,7 @@ import {
   effectiveFields,
   formatAmount,
   STARTER_CATEGORIES,
+  toColourValue,
   type AttributeField,
   type AttributeFilter,
   type CategoryFields,
@@ -84,7 +85,7 @@ export class PartService {
         manufacturer: input.manufacturer ?? null,
         unitMassG: input.unitMassG ?? null,
         minStock: input.minStock ?? null,
-        attributes: input.attributes,
+        attributes: await this.normalizeAttributes(tx, input.category ?? null, input.attributes),
         notes: input.notes ?? null,
         source: input.source ?? null,
         status: input.status,
@@ -148,10 +149,19 @@ export class PartService {
       if (input.minStock !== undefined) patch.minStock = input.minStock ?? null;
       if (input.notes !== undefined) patch.notes = input.notes ?? null;
       if (input.source !== undefined) patch.source = input.source ?? null;
-      if (input.attributes !== undefined)
-        patch.attributes = { ...part.attributes, ...input.attributes };
       if (input.category !== undefined) {
         patch.categoryId = input.category ? await this.ensureCategory(tx, input.category) : null;
+      }
+      if (input.attributes !== undefined) {
+        const categoryId = patch.categoryId !== undefined ? patch.categoryId : part.categoryId;
+        const category = categoryId
+          ? ((await tx.select().from(categories).where(eq(categories.id, categoryId)).get())
+              ?.path ?? null)
+          : null;
+        patch.attributes = {
+          ...part.attributes,
+          ...(await this.normalizeAttributes(tx, category, input.attributes)),
+        };
       }
       await tx.update(parts).set(patch).where(eq(parts.id, part.id));
       if (input.removeIdentifiers?.length) {
@@ -513,6 +523,21 @@ export class PartService {
     }));
   }
 
+  /** Colour fields are stored as { name, hex } whatever form they were given in ("blue", "BU", "#1e64c8"). */
+  private async normalizeAttributes(
+    ex: Executor,
+    category: string | null,
+    attributes: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    if (!category) return attributes;
+    const colourKeys = (await this.categoryFields(category, ex)).effective
+      .filter((f) => f.type === 'colour')
+      .map((f) => f.key);
+    const out = { ...attributes };
+    for (const key of colourKeys) if (key in out) out[key] = toColourValue(out[key]);
+    return out;
+  }
+
   /** Returns the id of the category at `path` ("Pneumatics/Vacuum"), creating missing levels. */
   async ensureCategory(ex: Executor, path: string): Promise<string> {
     const names = path
@@ -670,7 +695,8 @@ export class PartService {
 /** SQL for one category-field filter on parts.attributes (keys are validated, so the JSON path is safe). */
 function attributeCondition(filter: AttributeFilter): SQL {
   const value = sql`json_extract(${parts.attributes}, ${`$.${filter.key}`})`;
-  const text = sql`lower(cast(${value} as text))`;
+  // Colour values are { name, hex }: text filters compare the name.
+  const text = sql`lower(cast(coalesce(json_extract(${parts.attributes}, ${`$.${filter.key}.name`}), ${value}) as text))`;
   switch (filter.op) {
     case 'gte':
       return sql`cast(${value} as real) >= ${Number(filter.value)}`;

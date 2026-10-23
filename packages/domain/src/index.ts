@@ -9,3 +9,4 @@ export * from './attributes.js';
 export * from './import.js';
 export * from './bom.js';
 export * from './maps.js';
+export * from './colours.js';

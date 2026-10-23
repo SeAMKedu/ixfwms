@@ -1,4 +1,5 @@
-import type { AttributeField } from '@ixfwms/domain';
+import { toColourValue, type AttributeField } from '@ixfwms/domain';
+import { ColourPicker, ColourText } from './colour-picker';
 import { useTranslation } from 'react-i18next';
 import { Field, Select, TextInput } from './ui';
 
@@ -6,6 +7,15 @@ import { Field, Select, TextInput } from './ui';
 export type AttributeDraft = Record<string, string>;
 
 /** Attribute values are plain scalars; anything else is shown as JSON. */
+/** Colour values are kept as JSON text in the form; older plain values ("blue") still read fine. */
+function parseJson(text: string): unknown {
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return text;
+  }
+}
+
 function scalarText(v: unknown): string {
   if (v === null || v === undefined) return '';
   return typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean'
@@ -31,6 +41,10 @@ export function fromDraft(
       continue;
     }
     const type = types.get(key);
+    if (type === 'colour') {
+      out[key] = toColourValue(parseJson(text));
+      continue;
+    }
     const num = Number(text.replace(',', '.'));
     out[key] =
       type === 'number' && !Number.isNaN(num) ? num : type === 'bool' ? text === 'true' : text;
@@ -54,7 +68,15 @@ export function AttributeInputs({
       {fields.map((f) => (
         <Field key={f.key} label={f.unit ? `${f.label} (${f.unit})` : f.label}>
           {(id) =>
-            f.type === 'enum' ? (
+            f.type === 'colour' ? (
+              <ColourPicker
+                id={id}
+                label={f.label}
+                only={f.options}
+                value={toColourValue(parseJson(value[f.key] ?? ''))}
+                onChange={(v) => set(f.key, v ? JSON.stringify(v) : '')}
+              />
+            ) : f.type === 'enum' ? (
               <Select
                 id={id}
                 value={value[f.key] ?? ''}
@@ -119,8 +141,14 @@ export function AttributeList({
             <div key={key} className="contents">
               <dt className="text-muted">{f?.label ?? key}</dt>
               <dd className="tabular">
-                {scalarText(v)}
-                {f?.unit ? ` ${f.unit}` : ''}
+                {f?.type === 'colour' || (typeof v === 'object' && v !== null && 'hex' in v) ? (
+                  <ColourText value={v} />
+                ) : (
+                  <>
+                    {scalarText(v)}
+                    {f?.unit ? ` ${f.unit}` : ''}
+                  </>
+                )}
               </dd>
             </div>
           );
