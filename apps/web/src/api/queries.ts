@@ -15,6 +15,8 @@ import type {
   LocationNode,
   LocationSummary,
   LotView,
+  MapCheck,
+  MapLayer,
   PartDetail,
   PartStatus,
   PartSummary,
@@ -182,3 +184,25 @@ export const useSetCategoryFields = () =>
 
 export const useSeedCategories = () =>
   useChange(() => api<{ added: string[] }>('/api/categories/starter', { body: {} }));
+
+export const useMapLayers = (code: string) =>
+  useQuery({
+    queryKey: ['maps', code],
+    queryFn: () => api<MapLayer[]>(`/api/maps/${code}`),
+    enabled: code !== '',
+  });
+
+export const useMapCheck = (code: string, enabled: boolean) =>
+  useQuery({
+    queryKey: ['mapCheck', code],
+    queryFn: () => api<MapCheck>(`/api/locations/${code}/map/check`),
+    enabled,
+  });
+
+export const useSetMap = (code: string) =>
+  useChange((fileId: string) =>
+    api<MapCheck>(`/api/locations/${code}/map`, { method: 'PUT', body: { fileId } }),
+  );
+
+export const useRemoveMap = (code: string) =>
+  useChange(() => api(`/api/locations/${code}/map`, { method: 'DELETE' }));

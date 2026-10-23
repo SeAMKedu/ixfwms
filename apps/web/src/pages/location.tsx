@@ -7,6 +7,7 @@ import {
   useCodeInfo,
   useCreateLocation,
   useLocation,
+  useMapLayers,
   useMoveLocation,
   usePick,
   useUpdateLocation,
@@ -14,6 +15,8 @@ import {
 import { useSession } from '../auth/session';
 import { PlacePicker } from '../components/place-picker';
 import { LabelPanel } from '../components/label-panel';
+import { MapManager } from '../components/map-manager';
+import { MapLayers } from '../components/svg-map';
 import {
   AmountPill,
   Button,
@@ -167,6 +170,19 @@ function Missing({ code }: { code: string }) {
   if (info.data && !info.data.assigned && can('inventory'))
     return <NewPlaceWithCode code={info.data.code} />;
   return <NotFoundPage code={code} />;
+}
+
+/** Maps on the way down to this place, plus upload/replace for its own drawing. */
+function LocationMaps({ code, canEdit }: { code: string; canEdit: boolean }) {
+  const layers = useMapLayers(code);
+  if (!layers.data) return null;
+  const hasOwn = layers.data.some((l) => l.location.code === code);
+  return (
+    <>
+      <MapLayers code={code} layers={layers.data} />
+      {canEdit && <MapManager code={code} hasMap={hasOwn} />}
+    </>
+  );
 }
 
 /** Children of a place get a sensible default type: inside a cabinet you usually add shelves, and so on. */
@@ -404,6 +420,7 @@ export function LocationPage() {
           )}
         </Card>
       </div>
+      <LocationMaps code={d.code} canEdit={canEdit} />
       {d.kind === 'normal' && (
         <LabelPanel code={d.code} csvHref={`/api/labels.csv?location=${d.code}&recursive=1`} />
       )}

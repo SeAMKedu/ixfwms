@@ -438,5 +438,19 @@
       "short": "short",
       "missing": "missing"
     }
+  },
+  "maps": {
+    "title": "Where on the map",
+    "manage": "Map of this place",
+    "howTo": "Upload an SVG drawing (Inkscape, Illustrator, or exported from Blender). Give each shape that stands for a place inside this one the id loc: plus its code, e.g. {{example}} (loc- and loc_ work too). Shapes become clickable and light up for “where is it”.",
+    "upload": "Upload SVG map",
+    "replace": "Replace map",
+    "remove": "Remove map",
+    "showOnMap": "Map",
+    "linked_one": "{{count}} place linked",
+    "linked_other": "{{count}} places linked",
+    "notDrawn": "Not in the drawing yet:",
+    "unknown": "Ids for places that aren't inside this one: {{codes}}",
+    "starter": "Download a starter drawing"
   }
 }

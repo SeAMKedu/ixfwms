@@ -97,3 +97,38 @@ h3 {
 .tabular {
   font-variant-numeric: tabular-nums;
 }
+
+/* Lab maps: drawings are shown as-is; linked places get a pointer, the path to a place is highlighted. */
+.ixf-map svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 70vh;
+}
+.ixf-map .ixf-place {
+  cursor: pointer;
+}
+.ixf-map .ixf-place:hover {
+  opacity: 0.75;
+}
+.ixf-map .ixf-hit:is(rect, path, polygon, circle, ellipse),
+.ixf-map .ixf-hit :is(rect, path, polygon, circle, ellipse) {
+  fill: color-mix(in srgb, var(--link) 22%, transparent) !important;
+  stroke: var(--link) !important;
+  stroke-width: 2px !important;
+}
+.ixf-map .ixf-target:is(rect, path, polygon, circle, ellipse),
+.ixf-map .ixf-target :is(rect, path, polygon, circle, ellipse) {
+  fill: color-mix(in srgb, var(--link) 45%, transparent) !important;
+  stroke-width: 3px !important;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ixf-map .ixf-target {
+    animation: ixf-pulse 1.4s ease-in-out 3;
+  }
+  @keyframes ixf-pulse {
+    50% {
+      opacity: 0.45;
+    }
+  }
+}

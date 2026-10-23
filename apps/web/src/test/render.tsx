@@ -21,10 +21,12 @@ export function renderAt(
           : input.url;
     const key = Object.keys(api).find((k) => url === k || url.startsWith(`${k}?`));
     const body = key ? api[key] : { error: 'not_found', message: `No mock for ${url}` };
+    // Strings that look like markup are served as text (e.g. SVG files); everything else as JSON.
+    const text = typeof body === 'string' && body.trimStart().startsWith('<');
     return Promise.resolve(
-      new Response(JSON.stringify(body), {
+      new Response(text ? body : JSON.stringify(body), {
         status: key ? 200 : 404,
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': text ? 'image/svg+xml' : 'application/json' },
       }),
     );
   });

@@ -6,6 +6,7 @@ import { Link } from 'react-router';
 import { useLocationTree } from '../api/queries';
 import { useSession } from '../auth/session';
 import { Button, Card, CodeLabel, Empty, ErrorBox, Loading, PageHeader } from '../components/ui';
+import { MapLayers } from '../components/svg-map';
 import { NewPlaceForm } from './location';
 
 function Node({ node, depth }: { node: LocationNode; depth: number }) {
@@ -71,6 +72,11 @@ export function PlacesPage() {
       />
       {adding && <NewPlaceForm parent={null} defaultType="room" onDone={() => setAdding(false)} />}
       <ErrorBox error={tree.error} />
+      {tree.data
+        ?.filter((n) => n.kind === 'normal')
+        .map((n) => (
+          <MapLayers key={n.id} code={n.code} />
+        ))}
       {tree.isPending ? (
         <Loading />
       ) : (

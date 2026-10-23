@@ -7,7 +7,7 @@ import {
   type PartDetail,
   type StockLevel,
 } from '@ixfwms/domain';
-import { ExternalLink, FileText, Pencil, Upload } from 'lucide-react';
+import { ExternalLink, FileText, Map as MapIcon, Pencil, Upload } from 'lucide-react';
 import { useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
@@ -27,6 +27,7 @@ import { useSession } from '../auth/session';
 import { PlacePicker } from '../components/place-picker';
 import { AttributeList } from '../components/attribute-fields';
 import { LabelPanel } from '../components/label-panel';
+import { MapLayers } from '../components/svg-map';
 import { AmountFields, toAmountInput, useAmountState } from '../components/amount-fields';
 import {
   AmountPill,
@@ -55,6 +56,7 @@ type LotAction = 'take' | 'move' | 'count' | 'carry' | null;
 function LotRow({ lot, canEdit }: { lot: LotView; canEdit: boolean }) {
   const { t } = useTranslation();
   const [action, setAction] = useState<LotAction>(null);
+  const [showMap, setShowMap] = useState(false);
   const [qty, setQty] = useState('');
   const [level, setLevel] = useState<StockLevel>(lot.amount.level ?? 'low');
   const [dest, setDest] = useState('');
@@ -148,6 +150,16 @@ function LotRow({ lot, canEdit }: { lot: LotView; canEdit: boolean }) {
           )}
         </div>
       )}
+      <Button
+        small
+        variant={showMap ? 'dark' : 'ghost'}
+        className="self-start"
+        onClick={() => setShowMap((v) => !v)}
+      >
+        <MapIcon className="size-4" aria-hidden />
+        {t('maps.showOnMap')}
+      </Button>
+      {showMap && <MapLayers code={lot.location.code} />}
       {action && (
         <form
           onSubmit={(e) => void submit(e)}
