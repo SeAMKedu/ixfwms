@@ -49,7 +49,7 @@ describe('carrying things: scan, carry, scan', () => {
     expect((await carry.state(env.inventory)).items).toHaveLength(0);
     await expect(carry.drop(box.code, null, env.inventory)).rejects.toThrow(/Nothing/);
     await expect(carry.drop(box.code, null, env.admin)).rejects.toThrow(/into itself/);
-    await expect(carry.pick({}, env.admin)).rejects.toThrow(/either/);
+    await expect(carry.pick({}, env.admin)).rejects.toThrow(/a place, a stock lot or a unit/);
   });
 });
 

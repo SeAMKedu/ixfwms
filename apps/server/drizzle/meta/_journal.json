@@ -71,6 +71,13 @@
       "when": 1792785192544,
       "tag": "0009_settings_and_temporary_places",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1792795196272,
+      "tag": "0010_items_and_units",
+      "breakpoints": true
     }
   ]
 }

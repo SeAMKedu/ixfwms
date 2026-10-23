@@ -98,11 +98,25 @@ describe('temporary places', () => {
 describe('lab settings', () => {
   it('starts from defaults and stores changes', async () => {
     const { settings } = env.services;
-    expect(await settings.get()).toEqual({ carryForgottenHours: 4, labelTape: '12' });
+    expect(await settings.get()).toEqual({
+      carryForgottenHours: 4,
+      labelTape: '12',
+      anonymousActions: 'workstation',
+    });
     expect(await settings.update({ labelTape: '24' }, env.admin)).toMatchObject({
       labelTape: '24',
     });
+    // Changing one setting leaves the others as they were (not back to their defaults).
+    await settings.update({ carryForgottenHours: 8 }, env.admin);
+    expect(await settings.get()).toMatchObject({ carryForgottenHours: 8, labelTape: '24' });
     await expect(settings.update({ carryForgottenHours: 2 }, env.inventory)).rejects.toThrow();
     await expect(settings.update({ carryForgottenHours: 0 }, env.admin)).rejects.toThrow();
+  });
+
+  it('changes one field of a place type without resetting the others', async () => {
+    const { locations } = env.services;
+    await locations.updateType('pallet', { name: 'EUR pallet' }, env.admin);
+    const pallet = (await locations.types()).find((t) => t.key === 'pallet')!;
+    expect(pallet).toMatchObject({ name: 'EUR pallet', movable: true, stayDays: 14 });
   });
 });

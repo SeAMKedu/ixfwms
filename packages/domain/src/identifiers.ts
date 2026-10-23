@@ -5,6 +5,8 @@ export const IDENTIFIER_KINDS = [
   'supplier_sku',
   'din_iso',
   'internal',
+  /** Article number in the school's ERP (e.g. MonitorERP). */
+  'erp',
 ] as const;
 export type IdentifierKind = (typeof IDENTIFIER_KINDS)[number];
 

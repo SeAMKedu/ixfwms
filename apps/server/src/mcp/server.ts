@@ -1,12 +1,19 @@
 import {
+  AddUnitsInput,
   AmountInput,
   BomLine,
   AttributeFilter,
   ATTACHMENT_KINDS,
   CreatePartInput,
   IdentifierInput,
+  LendInput,
+  PART_KINDS,
   PART_STATUSES,
+  REPORT_KINDS,
   STOCK_LEVELS,
+  TRACKING_MODES,
+  UNIT_LOG_KINDS,
+  UpdateUnitInput,
 } from '@ixfwms/domain';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
@@ -14,11 +21,13 @@ import { z } from 'zod';
 import { AppError } from '../lib/errors.js';
 import type { Actor, Services } from '../services/index.js';
 
-const MCP_INSTRUCTIONS = `ixfwms is the robotics lab's parts inventory: what we own, how much, and where it is.
+const MCP_INSTRUCTIONS = `ixfwms is the robotics lab's inventory: parts, tools and devices we own, how much, and where they are. ("Parts" in tool names means all items.)
 
-Places form a tree (lab › cabinet › shelf › box). Every place and part has a short code like A3F9, printed on its QR label; any tool taking a "ref" accepts that code or the internal id.
+Places form a tree (lab › cabinet › shelf › box). Every place, item and unit has a short code like A3F9, printed on its QR label; any tool taking a "ref" accepts that code or the internal id.
 
-Stock is tracked per place as a count (pcs), a measure (g, kg, m, mm, ml, l) or a level (plenty, low, empty). Weighed fasteners show an estimated count when the part's unitMassG is known.
+Bulk items (screws, suction cups, filament) are tracked per place as a count (pcs), a measure (g, kg, m, mm, ml, l) or a level (plenty, low, empty). Weighed fasteners show an estimated count when the part's unitMassG is known.
+
+Individual items (tools, robots, PLC CPUs, licence dongles) have units, each with its own code, serial number, where it is now, its home place (where it belongs), a status and a log. Units can be lent out of the lab (a person with an account is responsible). For "where is the …?" questions call where_is first: it answers in short sentences that can be read aloud.
 
 Doing the initial inventory:
 1. Order confirmations: extract each line (manufacturer, order number, description, quantity) and call create_part_drafts. Without a location, stock goes to the Inbox.
@@ -85,7 +94,13 @@ export function createMcpServer(
       description:
         'Search the inventory by text (name, description, manufacturer, order number, code) and filters.',
       inputSchema: {
-        q: z.string().optional().describe('Free text, e.g. "suction cup 30" or "6ES7214"'),
+        q: z
+          .string()
+          .optional()
+          .describe(
+            'Free text, e.g. "suction cup 30", "6ES7214" or "impact drill" (aliases, unit names and serial numbers match too)',
+          ),
+        kind: z.enum(PART_KINDS).optional().describe('part, tool or device'),
         category: z.string().optional().describe('Category path prefix, e.g. "Pneumatics/Vacuum"'),
         tag: z.string().optional().describe('Tag or project name'),
         status: z.enum(PART_STATUSES).optional(),
@@ -365,6 +380,14 @@ export function createMcpServer(
         description: z.string().optional(),
         category: z.string().optional(),
         manufacturer: z.string().optional(),
+        kind: z.enum(PART_KINDS).optional(),
+        tracking: z
+          .enum(TRACKING_MODES)
+          .optional()
+          .describe(
+            'individual = units with codes and serials; only while it has no stock amounts',
+          ),
+        aliases: z.array(z.string()).optional().describe('Replaces the other names people use'),
         unitMassG: z.number().positive().optional(),
         minStock: z.number().nonnegative().optional(),
         attributes: z.record(z.string(), z.unknown()).optional(),
@@ -519,6 +542,188 @@ export function createMcpServer(
       );
       return { ...view, href: abs(view.href) };
     }),
+  );
+
+  const { units, reports, where } = services;
+  const unitUrl = (code: string) => `${baseUrl}/u/${code}`;
+  const withUnitLink = <T extends { code: string }>(u: T) => ({ ...u, url: unitUrl(u.code) });
+
+  server.registerTool(
+    'where_is',
+    {
+      title: 'Where is it?',
+      description:
+        'Answers "where is the impact drill?" in short sentences, one per thing found: where it is, where it belongs, who has it, whether it is broken. Made to be read aloud.',
+      inputSchema: { query: z.string().describe('What to look for, e.g. "impact drill"') },
+      annotations: read,
+    },
+    tool(async ({ query }) => {
+      const answers = await where.ask(query);
+      return answers.length ? answers : [{ text: `Nothing found for "${query}".` }];
+    }),
+  );
+
+  server.registerTool(
+    'get_unit',
+    {
+      title: 'Get unit',
+      description:
+        'Everything about one unit: where it is and belongs, status, serial number, network details, firmware version, loans, open problem reports and its log.',
+      inputSchema: { ref: z.string().describe('Unit code or id') },
+      annotations: read,
+    },
+    tool(async ({ ref }) => withUnitLink(await units.detail(ref, actor))),
+  );
+
+  server.registerTool(
+    'add_units',
+    {
+      title: 'Add units',
+      description:
+        'Register individual things (a drill, a robot, a PLC CPU) of an item. An item without stock amounts becomes individually tracked. Give the home place so "put back" knows where they belong.',
+      inputSchema: AddUnitsInput.shape,
+      annotations: write,
+    },
+    tool(async (a) => (await units.add(a, actor)).map(withUnitLink)),
+  );
+
+  server.registerTool(
+    'update_unit',
+    {
+      title: 'Update unit',
+      description:
+        'Change a unit: name, serial number, status, home place, network details, notes or next check date.',
+      inputSchema: { ref: z.string(), ...UpdateUnitInput.shape },
+      annotations: write,
+    },
+    tool(async ({ ref, ...patch }) => withUnitLink(await units.update(ref, patch, actor))),
+  );
+
+  server.registerTool(
+    'move_unit',
+    {
+      title: 'Move unit',
+      description:
+        'Record that a unit is now somewhere else in the lab (to lend it out, use lend_unit).',
+      inputSchema: { ref: z.string(), to: z.string().describe('Destination place code') },
+      annotations: write,
+    },
+    tool(async ({ ref, to }) => withUnitLink(await services.open.moveUnit(ref, to, null, actor))),
+  );
+
+  server.registerTool(
+    'put_back',
+    {
+      title: 'Put a unit back',
+      description: 'Move a unit back to its home place.',
+      inputSchema: { ref: z.string() },
+      annotations: write,
+    },
+    tool(async ({ ref }) => withUnitLink(await services.open.putBackUnit(ref, null, actor))),
+  );
+
+  server.registerTool(
+    'lend_unit',
+    {
+      title: 'Lend a unit out of the lab',
+      description:
+        'A unit leaves the lab (a thesis, a fair, repair at the vendor). Someone with an account is responsible; describe what for and where. Student names only as free text in the description.',
+      inputSchema: { ref: z.string(), ...LendInput.shape },
+      annotations: write,
+    },
+    tool(async ({ ref, ...loan }) => withUnitLink(await units.lend(ref, loan, actor))),
+  );
+
+  server.registerTool(
+    'return_unit',
+    {
+      title: 'Return a lent unit',
+      description: 'A lent unit is back: it goes to its home place unless "to" is given.',
+      inputSchema: { ref: z.string(), to: z.string().optional() },
+      annotations: write,
+    },
+    tool(async ({ ref, to }) => withUnitLink(await units.returnUnit(ref, to ?? null, actor))),
+  );
+
+  server.registerTool(
+    'list_loans',
+    {
+      title: 'List loans',
+      description:
+        'Units lent out of the lab (open loans, or the latest returned ones), overdue first.',
+      inputSchema: { open: z.boolean().optional().describe('Default true') },
+      annotations: read,
+    },
+    tool(async ({ open }) => units.loanList(open ?? true)),
+  );
+
+  server.registerTool(
+    'log_unit_event',
+    {
+      title: "Write in a unit's log",
+      description:
+        'Note, maintenance, firmware (value = version now installed), problem or repaired. Maintenance can set the next check date; problem and repaired change the status.',
+      inputSchema: {
+        ref: z.string(),
+        kind: z.enum(UNIT_LOG_KINDS),
+        text: z.string().optional(),
+        value: z.string().optional(),
+        nextCheckAt: z.string().optional().describe('YYYY-MM-DD'),
+      },
+      annotations: write,
+    },
+    tool(async ({ ref, ...entry }) => withUnitLink(await units.log(ref, entry, actor))),
+  );
+
+  server.registerTool(
+    'list_units_needing_attention',
+    {
+      title: 'Units needing attention',
+      description: 'Units that are reported, broken or in repair, or due for a maintenance check.',
+      inputSchema: {},
+      annotations: read,
+    },
+    tool(async () => units.attention()),
+  );
+
+  server.registerTool(
+    'report_problem',
+    {
+      title: 'Report a problem',
+      description:
+        'Report that a unit, item or place is broken, missing parts, running low, or something else. Stays in the Inbox until resolved.',
+      inputSchema: {
+        owner: z.enum(['unit', 'part', 'location']),
+        ref: z.string(),
+        kind: z.enum(REPORT_KINDS),
+        note: z.string().optional(),
+      },
+      annotations: write,
+    },
+    tool(async (a) => reports.create(a, actor)),
+  );
+
+  server.registerTool(
+    'list_reports',
+    {
+      title: 'List problem reports',
+      description: 'Open problem reports (or the latest resolved ones).',
+      inputSchema: { open: z.boolean().optional().describe('Default true') },
+      annotations: read,
+    },
+    tool(async ({ open }) => reports.list(open ?? true)),
+  );
+
+  server.registerTool(
+    'resolve_report',
+    {
+      title: 'Resolve a problem report',
+      description:
+        'Mark a report done, saying what was done. A unit with no open reports left is OK again.',
+      inputSchema: { id: z.string(), resolution: z.string().optional() },
+      annotations: write,
+    },
+    tool(async ({ id, resolution }) => reports.resolve(id, resolution ?? null, actor)),
   );
 
   return server;

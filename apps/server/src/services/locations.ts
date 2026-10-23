@@ -29,19 +29,26 @@ export type LocationRow = typeof locations.$inferSelect;
 export type { LocationNode, LocationSummary };
 
 const INBOX_NAME = 'Inbox';
+const AWAY_NAME = 'Out of the lab';
 const DAY_MS = 86_400_000;
 
 export class LocationService {
   constructor(private readonly db: Db) {}
 
-  /** Seeds location types and the Inbox. Safe to run on every start. */
+  /** Seeds location types, the Inbox and "Out of the lab". Safe to run on every start. */
   async ensureDefaults(): Promise<void> {
     const existing = await this.db.select().from(locationTypes).all();
     const keys = new Set(existing.map((t) => t.key));
     let sort = existing.length;
     const defaults = [
       ...DEFAULT_LOCATION_TYPES,
-      { key: 'in_transit', name: 'Being carried', movable: false, stayDays: null },
+      {
+        key: 'in_transit',
+        name: 'Being carried',
+        movable: false,
+        stayDays: null,
+        workstation: false,
+      },
     ];
     // Only for a new database: types removed in the app on purpose stay removed.
     const fresh = existing.length === 0;
@@ -53,6 +60,7 @@ export class LocationService {
           name: t.name,
           movable: t.movable,
           stayDays: t.stayDays,
+          workstation: t.workstation,
           sort: sort++,
         });
       }
@@ -67,6 +75,23 @@ export class LocationService {
         description: 'Things we own but have not put away yet: new orders and AI drafts.',
       });
     }
+    const away = await this.db.select().from(locations).where(eq(locations.kind, 'away')).get();
+    if (!away) {
+      await this.insert(this.db, {
+        name: AWAY_NAME,
+        parent: null,
+        typeKey: 'system',
+        kind: 'away',
+        description: 'Things lent out of the lab, each with the person responsible for it.',
+      });
+    }
+  }
+
+  /** The built-in place where lent units are while they're out of the lab. */
+  async away(ex: Executor = this.db): Promise<LocationRow> {
+    const away = await ex.select().from(locations).where(eq(locations.kind, 'away')).get();
+    if (!away) throw new Error('"Out of the lab" missing; run ensureDefaults() first');
+    return away;
   }
 
   async inbox(ex: Executor = this.db): Promise<LocationRow> {
@@ -380,6 +405,7 @@ export class LocationService {
         stayDays,
         dueAt: due ? new Date(due).toISOString() : null,
         overdue: due !== null && now > due,
+        workstation: types.get(r.typeId)?.workstation ?? false,
       };
     });
   }
@@ -461,6 +487,7 @@ export class LocationService {
         name: t.name,
         movable: t.movable,
         stayDays: t.stayDays,
+        workstation: t.workstation,
         sort: t.sort,
         places: byType.get(t.id) ?? 0,
       }));
@@ -468,7 +495,7 @@ export class LocationService {
 
   async createType(input: LocationTypeInput, actor: Actor | null): Promise<LocationTypeInfo> {
     const who = requireScope(actor, 'write');
-    const { name, movable, stayDays, sort } = LocationTypeInput.parse(input);
+    const { name, movable, stayDays, workstation, sort } = LocationTypeInput.parse(input);
     const existing = await this.db.select().from(locationTypes).all();
     const base = typeKey(name);
     let key = base;
@@ -476,7 +503,7 @@ export class LocationService {
     const next = Math.max(0, ...existing.map((t) => t.sort)) + 1;
     await this.db
       .insert(locationTypes)
-      .values({ id: newId(), key, name, movable, stayDays, sort: sort ?? next });
+      .values({ id: newId(), key, name, movable, stayDays, workstation, sort: sort ?? next });
     await audit(this.db, who, 'create', 'location-type', key, { name, movable });
     return (await this.types()).find((t) => t.key === key)!;
   }
@@ -488,13 +515,18 @@ export class LocationService {
   ): Promise<LocationTypeInfo> {
     const who = requireScope(actor, 'write');
     const type = await this.editableType(key);
-    const patch = LocationTypeInput.partial().parse(input);
+    // Only the fields given: a partial schema would fill the others with their defaults.
+    const parsed = LocationTypeInput.partial().parse(input);
+    const patch = Object.fromEntries(
+      Object.entries(parsed).filter(([k]) => k in input),
+    ) as typeof parsed;
     await this.db
       .update(locationTypes)
       .set({
         ...(patch.name !== undefined && { name: patch.name }),
         ...(patch.movable !== undefined && { movable: patch.movable }),
         ...(patch.stayDays !== undefined && { stayDays: patch.stayDays }),
+        ...(patch.workstation !== undefined && { workstation: patch.workstation }),
         ...(patch.sort !== undefined && { sort: patch.sort }),
       })
       .where(eq(locationTypes.id, type.id));

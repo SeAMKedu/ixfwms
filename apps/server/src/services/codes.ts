@@ -7,13 +7,13 @@ import {
 } from '@ixfwms/domain';
 import { eq } from 'drizzle-orm';
 import type { Executor } from '../db/client.js';
-import { codeReservations, locations, parts } from '../db/schema.js';
+import { codeReservations, locations, parts, units } from '../db/schema.js';
 import { invalid } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
 
 const ATTEMPTS_PER_LENGTH = 8;
 
-/** Allocates a short code that is unique across places, parts and pre-printed blank labels. */
+/** Allocates a short code that is unique across places, items, units and pre-printed blank labels. */
 export async function allocateCode(ex: Executor): Promise<string> {
   for (let length = DEFAULT_CODE_LENGTH; length <= 8; length++) {
     for (let i = 0; i < ATTEMPTS_PER_LENGTH; i++) {
@@ -34,12 +34,16 @@ export async function lookupCode(ex: Executor, raw: string): Promise<CodeInfo> {
   const part = loc
     ? undefined
     : await ex.select({ id: parts.id }).from(parts).where(eq(parts.code, code)).get();
+  const unit =
+    loc || part
+      ? undefined
+      : await ex.select({ id: units.id }).from(units).where(eq(units.code, code)).get();
   const reservation = await ex
     .select()
     .from(codeReservations)
     .where(eq(codeReservations.code, code))
     .get();
-  const assigned = loc ? 'location' : part ? 'part' : null;
+  const assigned = loc ? 'location' : part ? 'part' : unit ? 'unit' : null;
   const retired =
     reservation?.retiredAt && !assigned
       ? { at: reservation.retiredAt, note: reservation.note }

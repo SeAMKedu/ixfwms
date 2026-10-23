@@ -1,8 +1,47 @@
-export const LOCATION_KINDS = ['normal', 'inbox', 'in_transit'] as const;
+/** `away` is the built-in "Out of the lab" place where lent units are. */
+export const LOCATION_KINDS = ['normal', 'inbox', 'in_transit', 'away'] as const;
 export type LocationKind = (typeof LOCATION_KINDS)[number];
 
 export const PART_STATUSES = ['draft', 'active', 'archived'] as const;
 export type PartStatus = (typeof PART_STATUSES)[number];
+
+/** What an item is, for filtering lists: stock parts, tools, or devices and machines. */
+export const PART_KINDS = ['part', 'tool', 'device'] as const;
+export type PartKind = (typeof PART_KINDS)[number];
+
+/** Bulk items have stock lots (amounts per place); individual ones have units, each with its own code. */
+export const TRACKING_MODES = ['bulk', 'individual'] as const;
+export type TrackingMode = (typeof TRACKING_MODES)[number];
+
+export const UNIT_STATUSES = ['ok', 'needs_attention', 'broken', 'in_repair', 'retired'] as const;
+export type UnitStatus = (typeof UNIT_STATUSES)[number];
+
+/** Entries in a unit's log. The first five can be written by hand; the rest are recorded by the app. */
+export const UNIT_LOG_KINDS = ['note', 'maintenance', 'firmware', 'problem', 'repaired'] as const;
+export const UNIT_EVENT_KINDS = [
+  ...UNIT_LOG_KINDS,
+  'created',
+  'moved',
+  'status',
+  'lent',
+  'returned',
+] as const;
+export type UnitLogKind = (typeof UNIT_LOG_KINDS)[number];
+export type UnitEventKind = (typeof UNIT_EVENT_KINDS)[number];
+
+export const REPORT_KINDS = ['broken', 'missing_parts', 'running_low', 'other'] as const;
+export type ReportKind = (typeof REPORT_KINDS)[number];
+
+/**
+ * What people without an account may do besides looking and reporting problems: also put
+ * things back, and also bring things to a workstation (and clear one). Each level includes the ones before.
+ */
+export const ANONYMOUS_ACTIONS = ['report', 'put_back', 'workstation'] as const;
+export type AnonymousActions = (typeof ANONYMOUS_ACTIONS)[number];
+
+export function anonymousAllows(setting: AnonymousActions, wanted: AnonymousActions): boolean {
+  return ANONYMOUS_ACTIONS.indexOf(setting) >= ANONYMOUS_ACTIONS.indexOf(wanted);
+}
 
 export const ATTACHMENT_KINDS = [
   'photo',
@@ -40,20 +79,28 @@ export function hasScope(granted: readonly Scope[], required: Scope): boolean {
  * Place types a new database starts with; they can be renamed, added and removed in the app.
  * Movable ones (containers) aren't part of addresses, so carrying them around doesn't change any.
  * Types with `stayDays` are temporary: their places are flagged when left untouched that long.
+ * Workstation types are tables people bring things to; anyone may bring things there (see ANONYMOUS_ACTIONS).
  */
 export const DEFAULT_LOCATION_TYPES = [
-  { key: 'building', name: 'Building', movable: false, stayDays: null },
-  { key: 'floor', name: 'Floor', movable: false, stayDays: null },
-  { key: 'room', name: 'Room / lab', movable: false, stayDays: null },
-  { key: 'zone', name: 'Zone / cell', movable: false, stayDays: null },
-  { key: 'cabinet', name: 'Cabinet', movable: false, stayDays: null },
-  { key: 'shelf', name: 'Shelf', movable: false, stayDays: null },
-  { key: 'pallet', name: 'Pallet', movable: true, stayDays: 14 },
-  { key: 'drawer', name: 'Drawer', movable: true, stayDays: null },
-  { key: 'box', name: 'Box', movable: true, stayDays: null },
-  { key: 'bin', name: 'Bin / bag', movable: true, stayDays: null },
-  { key: 'device', name: 'Device', movable: false, stayDays: null },
-  { key: 'system', name: 'System', movable: false, stayDays: null },
+  { key: 'building', name: 'Building', movable: false, stayDays: null, workstation: false },
+  { key: 'floor', name: 'Floor', movable: false, stayDays: null, workstation: false },
+  { key: 'room', name: 'Room / lab', movable: false, stayDays: null, workstation: false },
+  { key: 'zone', name: 'Zone / cell', movable: false, stayDays: null, workstation: false },
+  { key: 'cabinet', name: 'Cabinet', movable: false, stayDays: null, workstation: false },
+  { key: 'shelf', name: 'Shelf', movable: false, stayDays: null, workstation: false },
+  { key: 'pallet', name: 'Pallet', movable: true, stayDays: 14, workstation: false },
+  { key: 'drawer', name: 'Drawer', movable: true, stayDays: null, workstation: false },
+  { key: 'box', name: 'Box', movable: true, stayDays: null, workstation: false },
+  { key: 'bin', name: 'Bin / bag', movable: true, stayDays: null, workstation: false },
+  {
+    key: 'workstation',
+    name: 'Workstation / table',
+    movable: false,
+    stayDays: 1,
+    workstation: true,
+  },
+  { key: 'device', name: 'Device', movable: false, stayDays: null, workstation: false },
+  { key: 'system', name: 'System', movable: false, stayDays: null, workstation: false },
 ] as const;
 
 /** Types the app uses itself (the Inbox, people carrying things); not editable. */

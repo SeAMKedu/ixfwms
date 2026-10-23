@@ -100,6 +100,17 @@ export function registerLabelRoutes(app: FastifyInstance, { config, services }: 
       ),
     };
   });
+  app.post('/api/units/:ref/code', async (request) => {
+    const { ref } = parse(z.object({ ref: z.string() }), request.params);
+    return {
+      code: await labels.changeCode(
+        'unit',
+        ref,
+        parse(NewCode, request.body).code ?? null,
+        request.actor,
+      ),
+    };
+  });
   app.post('/api/locations/:ref/swap-code', async (request, reply) => {
     const { ref } = parse(z.object({ ref: z.string() }), request.params);
     const body = parse(z.object({ with: z.string().min(1) }), request.body);

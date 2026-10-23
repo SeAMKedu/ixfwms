@@ -1,7 +1,15 @@
 import { buildCodeUrl, normalizeCode, type CodeInfo, type LabelBatch } from '@ixfwms/domain';
 import { asc, eq, inArray, like } from 'drizzle-orm';
 import type { Db } from '../db/client.js';
-import { categories, codeReservations, locations, parts, stockLots, users } from '../db/schema.js';
+import {
+  categories,
+  codeReservations,
+  locations,
+  parts,
+  stockLots,
+  units,
+  users,
+} from '../db/schema.js';
 import { invalid } from '../lib/errors.js';
 import type { LabelData } from '../labels/render.js';
 import { allocateCode, claimCode, lookupCode, reserveCodes, retireCode } from './codes.js';
@@ -29,6 +37,7 @@ export class LabelService {
       if (info.assigned === 'location')
         out.push(await this.locationLabel(await this.locations.resolve(info.code), baseUrl));
       else if (info.assigned === 'part') out.push(await this.partLabel(info.code, baseUrl));
+      else if (info.assigned === 'unit') out.push(await this.unitLabel(info.code, baseUrl));
       else out.push(blankLabel(info.code, baseUrl));
     }
     return out;
@@ -66,6 +75,17 @@ export class LabelService {
         .all();
       for (const code of [...new Set(lots.map((l) => l.code))])
         out.push(await this.partLabel(code, baseUrl));
+      const unitRows = await this.db
+        .select({ code: units.code })
+        .from(units)
+        .where(
+          inArray(
+            units.locationId,
+            rows.map((r) => r.id),
+          ),
+        )
+        .all();
+      for (const { code } of unitRows) out.push(await this.unitLabel(code, baseUrl));
     }
     return out;
   }
@@ -91,6 +111,7 @@ export class LabelService {
       [
         ...(await this.db.select({ code: locations.code }).from(locations).all()),
         ...(await this.db.select({ code: parts.code }).from(parts).all()),
+        ...(await this.db.select({ code: units.code }).from(units).all()),
       ].map((r) => r.code),
     );
     const byBatch = new Map<string, LabelBatch>();
@@ -142,26 +163,35 @@ export class LabelService {
    * point at the wrong thing.
    */
   async changeCode(
-    kind: 'location' | 'part',
+    kind: 'location' | 'part' | 'unit',
     ref: string,
     newCode: string | null,
     actor: Actor | null,
   ): Promise<string> {
     const who = requireScope(actor, 'inventory');
     return this.db.transaction(async (tx) => {
-      const table = kind === 'location' ? locations : parts;
       const row =
         kind === 'location'
           ? await this.locations.resolve(ref, tx)
-          : await tx
-              .select()
-              .from(parts)
-              .where(eq(parts.code, normalizeCode(ref)))
-              .get();
-      if (!row) throw invalid(`No part ${ref}`);
+          : kind === 'part'
+            ? await tx
+                .select()
+                .from(parts)
+                .where(eq(parts.code, normalizeCode(ref)))
+                .get()
+            : await tx
+                .select({ id: units.id, code: units.code, name: units.name })
+                .from(units)
+                .where(eq(units.code, normalizeCode(ref)))
+                .get();
+      if (!row) throw invalid(`No ${kind === 'unit' ? 'unit' : 'part'} ${ref}`);
       const code = newCode ? await claimCode(tx, newCode) : await allocateCode(tx);
-      await tx.update(table).set({ code }).where(eq(table.id, row.id));
-      await retireCode(tx, row.code, `was ${kind === 'location' ? 'place' : 'part'} ${row.name}`);
+      if (kind === 'location')
+        await tx.update(locations).set({ code }).where(eq(locations.id, row.id));
+      else if (kind === 'part') await tx.update(parts).set({ code }).where(eq(parts.id, row.id));
+      else await tx.update(units).set({ code }).where(eq(units.id, row.id));
+      const what = kind === 'location' ? 'place' : kind === 'part' ? 'part' : 'unit';
+      await retireCode(tx, row.code, `was ${what} ${row.name ?? row.code}`);
       await audit(tx, who, 'code', kind, row.id, { from: row.code, to: code });
       return code;
     });
@@ -199,6 +229,27 @@ export class LabelService {
       parent: summary?.within ?? '',
       short: summary?.short ?? '',
       movable: summary?.movable ?? false,
+    };
+  }
+
+  /** A unit's label: its own name (or the item's), with the item and serial number below. */
+  private async unitLabel(code: string, baseUrl: string): Promise<LabelData> {
+    const row = await this.db
+      .select({ name: units.name, serial: units.serialNo, part: parts.name })
+      .from(units)
+      .innerJoin(parts, eq(parts.id, units.partId))
+      .where(eq(units.code, code))
+      .get();
+    return {
+      code,
+      kind: 'unit',
+      name: row?.name ?? row?.part ?? '',
+      path: [row?.name ? row.part : null, row?.serial ? `S/N ${row.serial}` : null]
+        .filter(Boolean)
+        .join(' · '),
+      type: 'unit',
+      qr: buildCodeUrl(baseUrl, 'unit', code),
+      ...NO_ADDRESS,
     };
   }
 

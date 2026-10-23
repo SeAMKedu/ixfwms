@@ -14,9 +14,13 @@ import { LabelService } from './labels.js';
 import { LocationViews } from './location-views.js';
 import { LocationService } from './locations.js';
 import { MapService } from './maps.js';
+import { OpenActionService } from './open.js';
 import { PartResolver, PartService } from './parts.js';
+import { ReportService } from './reports.js';
 import { SettingsService } from './settings.js';
 import { StockService } from './stock.js';
+import { UnitService } from './units.js';
+import { WhereService } from './where.js';
 
 export type { Actor } from './context.js';
 
@@ -33,9 +37,13 @@ export interface Services {
   locations: LocationService;
   locationViews: LocationViews;
   maps: MapService;
+  open: OpenActionService;
   parts: PartService;
+  reports: ReportService;
   settings: SettingsService;
   stock: StockService;
+  units: UnitService;
+  where: WhereService;
 }
 
 export function createServices(
@@ -47,23 +55,29 @@ export function createServices(
   const resolver = new PartResolver(db);
   const files = new FileService(db, join(config.dataDir, 'files'), locations, resolver);
   const stock = new StockService(db, locations, resolver);
-  const parts = new PartService(db, resolver, locations, stock, files);
+  const units = new UnitService(db, locations, resolver);
+  const parts = new PartService(db, resolver, locations, stock, files, units);
+  const settings = new SettingsService(db);
   return {
     auth: new AuthService(db),
     backup: new BackupService(database.client, join(config.dataDir, 'backups'), config.backupKeep),
     bom: new BomService(db, parts, stock),
-    carry: new CarryService(db, locations, stock),
+    carry: new CarryService(db, locations, stock, units),
     export: new ExportService(db),
     files,
     history: new HistoryService(db, locations, stock),
     import: new ImportService(db, locations, parts, stock),
     labels: new LabelService(db, locations),
     locations,
-    locationViews: new LocationViews(db, locations, parts, files),
+    locationViews: new LocationViews(db, locations, parts, files, units),
     maps: new MapService(db, locations, files),
+    open: new OpenActionService(db, locations, stock, units, settings),
     parts,
-    settings: new SettingsService(db),
+    reports: new ReportService(db, locations, resolver, units),
+    settings,
     stock,
+    units,
+    where: new WhereService(parts),
   };
 }
 

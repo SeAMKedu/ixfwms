@@ -24,7 +24,8 @@ export class SettingsService {
     const who = requireScope(actor, 'write');
     const valid = LabSettings.partial().parse(patch);
     for (const [key, value] of Object.entries(valid)) {
-      if (value === undefined) continue;
+      // A partial schema fills missing keys with their defaults; store only what was given.
+      if (value === undefined || !(key in patch)) continue;
       await this.db
         .insert(settings)
         .values({ key, value, updatedBy: who.userId })
@@ -33,7 +34,7 @@ export class SettingsService {
           set: { value, updatedBy: who.userId, updatedAt: nowIso() },
         });
     }
-    await audit(this.db, who, 'update', 'settings', 'lab', valid);
+    await audit(this.db, who, 'update', 'settings', 'lab', patch);
     return this.get();
   }
 }

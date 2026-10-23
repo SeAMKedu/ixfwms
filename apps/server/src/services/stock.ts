@@ -9,9 +9,9 @@ import {
   type StockAmount,
   type StockLevel,
 } from '@ixfwms/domain';
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq, lte } from 'drizzle-orm';
 import type { Db, Executor } from '../db/client.js';
-import { parts, stockLots, stockMovements } from '../db/schema.js';
+import { locations, parts, stockLots, stockMovements } from '../db/schema.js';
 import { invalid, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
 import { requireScope, type Actor } from './context.js';
@@ -77,6 +77,13 @@ export class StockService {
     note: string | null,
     reason: MovementReason = 'add',
   ): Promise<string> {
+    const part = await tx
+      .select({ name: parts.name, tracking: parts.tracking })
+      .from(parts)
+      .where(eq(parts.id, partId))
+      .get();
+    if (part?.tracking === 'individual')
+      throw invalid(`${part.name} is tracked one by one; add units instead of an amount`);
     const location = locationRef
       ? await this.locations.resolve(locationRef, tx)
       : await this.locations.inbox(tx);
@@ -190,12 +197,14 @@ export class StockService {
     });
   }
 
+  /** `who` is null for someone without an account (allowed only for some moves, see OpenActions). */
   async moveWithin(
     tx: Executor,
     lotId: string,
     toRef: string,
     quantity: number | null,
-    who: Actor,
+    who: Actor | null,
+    note: string | null = null,
   ): Promise<string> {
     const lot = await this.lot(tx, lotId);
     const dest = await this.locations.resolve(toRef, tx);
@@ -252,9 +261,45 @@ export class StockService {
       to: dest.id,
       delta: moved.quantity,
       who,
+      note,
       partId: lot.partId,
     });
     return destLotId;
+  }
+
+  /**
+   * Where a lot came from: the place of the last move into where it is now, looking past
+   * "being carried" (scan, carry, scan) to where it was picked up. Null when nobody knows.
+   */
+  async originOf(ex: Executor, lot: LotRow): Promise<string | null> {
+    let place = lot.locationId;
+    let before: string | undefined;
+    for (let hop = 0; hop < 4; hop++) {
+      const conditions = [
+        eq(stockMovements.partId, lot.partId),
+        eq(stockMovements.toLocationId, place),
+        eq(stockMovements.reason, 'move'),
+      ];
+      if (before) conditions.push(lte(stockMovements.at, before));
+      const last = await ex
+        .select()
+        .from(stockMovements)
+        .where(and(...conditions))
+        .orderBy(desc(stockMovements.at))
+        .limit(1)
+        .get();
+      if (!last?.fromLocationId) return null;
+      const from = await ex
+        .select({ kind: locations.kind })
+        .from(locations)
+        .where(eq(locations.id, last.fromLocationId))
+        .get();
+      if (!from) return null;
+      if (from.kind !== 'in_transit') return last.fromLocationId;
+      place = last.fromLocationId;
+      before = last.at;
+    }
+    return null;
   }
 
   /** Folds other compatible lots of the same part at the same place into this one. */
@@ -331,7 +376,7 @@ export class StockService {
       to?: string;
       delta?: number | null;
       note?: string | null;
-      who: Actor;
+      who: Actor | null;
       partId?: string;
     },
   ): Promise<void> {
@@ -347,7 +392,7 @@ export class StockService {
       delta: m.delta ?? null,
       after: lot ? { ...amountOf(lot), locationId: lot.locationId } : null,
       note: m.note ?? null,
-      userId: m.who.userId,
+      userId: m.who?.userId ?? null,
     });
   }
 }

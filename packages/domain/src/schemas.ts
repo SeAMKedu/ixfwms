@@ -1,7 +1,16 @@
 import { z } from 'zod';
 import { IDENTIFIER_KINDS } from './identifiers.js';
 import { MEASURE_UNITS, STOCK_LEVELS, STOCK_MODES } from './quantity.js';
-import { ATTACHMENT_KINDS, PART_STATUSES } from './enums.js';
+import {
+  ANONYMOUS_ACTIONS,
+  ATTACHMENT_KINDS,
+  PART_KINDS,
+  PART_STATUSES,
+  REPORT_KINDS,
+  TRACKING_MODES,
+  UNIT_LOG_KINDS,
+  UNIT_STATUSES,
+} from './enums.js';
 import { AttributeFilter } from './attributes.js';
 import { SHORT_NAME_PATTERN } from './addresses.js';
 
@@ -115,6 +124,16 @@ export const CreatePartInput = z.object({
     .nullish()
     .describe('Category path like "Pneumatics/Vacuum/Suction cups"; created if missing'),
   manufacturer: z.string().trim().max(200).nullish(),
+  kind: z.enum(PART_KINDS).default('part').describe('part (stock), tool, or device/machine'),
+  tracking: z
+    .enum(TRACKING_MODES)
+    .default('bulk')
+    .describe('bulk = amounts per place; individual = units, each with its own code and serial'),
+  aliases: z
+    .array(z.string().trim().min(1).max(100))
+    .max(20)
+    .default([])
+    .describe('Other names people use, e.g. "impact driver", "iskuporakone"'),
   identifiers: z.array(IdentifierInput).max(20).default([]),
   tags: z.array(z.string().trim().min(1).max(60)).max(20).default([]),
   unitMassG: z
@@ -149,6 +168,11 @@ export const UpdatePartInput = CreatePartInput.omit({
 })
   .partial()
   .extend({
+    // No defaults here: a partial schema would otherwise fill them in and overwrite the item's values.
+    kind: z.enum(PART_KINDS).optional(),
+    tracking: z.enum(TRACKING_MODES).optional(),
+    aliases: z.array(z.string().trim().min(1).max(100)).max(20).optional(),
+    attributes: z.record(z.string(), z.unknown()).optional(),
     addIdentifiers: z.array(IdentifierInput).max(20).optional(),
     removeIdentifiers: z
       .array(z.string().trim().min(1).max(200))
@@ -162,6 +186,7 @@ export type UpdatePartInput = z.infer<typeof UpdatePartInput>;
 
 export const PartSearchInput = z.object({
   q: z.string().trim().max(200).optional(),
+  kind: z.enum(PART_KINDS).optional(),
   category: z.string().trim().max(300).optional(),
   tag: z.string().trim().max(60).optional(),
   status: z.enum(PART_STATUSES).optional(),
@@ -201,6 +226,8 @@ export type AttachInput = z.infer<typeof AttachInput>;
 export const LocationTypeInput = z.object({
   name: z.string().trim().min(1).max(60),
   movable: z.boolean().default(false),
+  /** A table people bring things to work on: things left there show up the next day. */
+  workstation: z.boolean().default(false),
   stayDays: z.number().int().min(1).max(3650).nullable().default(null),
   sort: z.number().int().min(0).max(1000).optional(),
 });
@@ -216,5 +243,100 @@ export const LabSettings = z.object({
     .default(4),
   /** Tape width the label panels start with. */
   labelTape: z.enum(['9', '12', '24']).default('12'),
+  /** What people without an account may do besides looking and reporting problems. */
+  anonymousActions: z.enum(ANONYMOUS_ACTIONS).default('workstation'),
 });
 export type LabSettings = z.infer<typeof LabSettings>;
+
+/** A calendar date, "2026-11-30". */
+const DateSchema = z.iso.date();
+
+/** The name someone without an account gives (optional), e.g. "Pekka". */
+const ReporterName = z.string().trim().max(80).nullish();
+
+const UnitFields = {
+  name: z.string().trim().max(200).nullish().describe('Own name, e.g. "Drill 2"; optional'),
+  serialNo: z.string().trim().max(200).nullish(),
+  ipAddress: z.string().trim().max(64).nullish(),
+  hostname: z.string().trim().max(200).nullish(),
+  macAddress: z.string().trim().max(64).nullish(),
+  notes: z.string().trim().max(5000).nullish(),
+};
+
+export const AddUnitsInput = z.object({
+  part: RefSchema,
+  units: z
+    .array(
+      z.object({
+        ...UnitFields,
+        code: z
+          .string()
+          .trim()
+          .max(16)
+          .nullish()
+          .describe('Use this code (e.g. from a pre-printed blank label) instead of a new one'),
+      }),
+    )
+    .min(1)
+    .max(50),
+  location: RefSchema.nullish().describe(
+    'Where they are now; defaults to the home place, else the Inbox',
+  ),
+  home: RefSchema.nullish().describe('Where they belong'),
+});
+export type AddUnitsInput = z.input<typeof AddUnitsInput>;
+
+export const UpdateUnitInput = z.object({
+  ...UnitFields,
+  status: z.enum(UNIT_STATUSES).optional(),
+  home: RefSchema.nullish().describe('Where it belongs; null to clear'),
+  nextCheckAt: DateSchema.nullish().describe('Next maintenance or inspection, YYYY-MM-DD'),
+});
+export type UpdateUnitInput = z.infer<typeof UpdateUnitInput>;
+
+export const UnitLogInput = z.object({
+  kind: z.enum(UNIT_LOG_KINDS).default('note'),
+  text: z.string().trim().max(5000).nullish(),
+  value: z
+    .string()
+    .trim()
+    .max(200)
+    .nullish()
+    .describe('For firmware entries: the version now installed, e.g. "V4.6"'),
+  nextCheckAt: DateSchema.nullish().describe('Maintenance entries can set the next check date'),
+});
+export type UnitLogInput = z.infer<typeof UnitLogInput>;
+
+export const LendInput = z.object({
+  responsible: z
+    .string()
+    .trim()
+    .max(80)
+    .nullish()
+    .describe('User name of the person responsible (has an account); defaults to you'),
+  description: z
+    .string()
+    .trim()
+    .min(1)
+    .max(2000)
+    .describe('What for and where, e.g. "thesis tests at Company X, for Pekka V."'),
+  dueAt: DateSchema.nullish().describe('Expected back, YYYY-MM-DD'),
+});
+export type LendInput = z.infer<typeof LendInput>;
+
+export const ReportInput = z.object({
+  owner: z.enum(['unit', 'part', 'location']),
+  ref: RefSchema,
+  kind: z.enum(REPORT_KINDS).default('broken'),
+  note: z.string().trim().max(2000).nullish(),
+  name: ReporterName,
+});
+export type ReportInput = z.infer<typeof ReportInput>;
+
+/** Moving a unit or stock by someone who may not have an account. */
+export const OpenMoveInput = z.object({
+  to: RefSchema,
+  quantity: z.number().positive().nullish(),
+  name: ReporterName,
+});
+export type OpenMoveInput = z.infer<typeof OpenMoveInput>;

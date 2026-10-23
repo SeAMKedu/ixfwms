@@ -14,6 +14,10 @@ const EXPORTED = {
   locationMoves: schema.locationMoves,
   files: schema.files,
   attachments: schema.attachments,
+  units: schema.units,
+  unitEvents: schema.unitEvents,
+  loans: schema.loans,
+  reports: schema.reports,
 } as const;
 
 /** Full JSON export of the inventory (no users or tokens), so the data is never locked in. */

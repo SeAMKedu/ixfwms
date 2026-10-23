@@ -3,7 +3,18 @@
  * and the web app (which consumes them), so both sides stay in sync.
  */
 import type { AttributeField } from './attributes.js';
-import type { AttachmentKind, LocationKind, PartStatus, Scope, UserRole } from './enums.js';
+import type {
+  AttachmentKind,
+  LocationKind,
+  PartKind,
+  PartStatus,
+  ReportKind,
+  Scope,
+  TrackingMode,
+  UnitEventKind,
+  UnitStatus,
+  UserRole,
+} from './enums.js';
 import type { StockAmount } from './quantity.js';
 
 export interface LocationSummary {
@@ -27,6 +38,8 @@ export interface LocationSummary {
   stayDays: number | null;
   dueAt: string | null;
   overdue: boolean;
+  /** A workstation (table): anyone may bring things here, and it can be cleared in one go. */
+  workstation: boolean;
 }
 
 /** A temporary place left untouched longer than expected. */
@@ -54,6 +67,7 @@ export interface LocationTypeInfo {
   movable: boolean;
   /** Places of this type are temporary, expected to stay at most this many days. */
   stayDays: number | null;
+  workstation: boolean;
   sort: number;
   /** How many places are of this type (a type in use can't be removed). */
   places: number;
@@ -90,6 +104,11 @@ export interface PartSummary {
   name: string;
   manufacturer: string | null;
   status: PartStatus;
+  kind: PartKind;
+  tracking: TrackingMode;
+  aliases: string[];
+  /** Individually tracked items: their units. */
+  units: UnitBrief[];
   category: string | null;
   identifiers: { kind: string; value: string }[];
   tags: string[];
@@ -126,6 +145,116 @@ export interface SimilarPart extends PartSummary {
   reason: string;
 }
 
+/** One individually tracked thing, as shown in lists. */
+export interface UnitBrief {
+  id: string;
+  code: string;
+  /** Own name, or the item's name with the code ("Impact drill A3F9"). */
+  name: string;
+  ownName: string | null;
+  serialNo: string | null;
+  status: UnitStatus;
+  location: LocationSummary;
+  home: LocationSummary | null;
+  /** At its home place or somewhere inside it. */
+  atHome: boolean;
+  loan: LoanView | null;
+  /** When it last moved or had a log entry. */
+  lastSeenAt: string;
+}
+
+export interface UnitEventView {
+  id: string;
+  kind: UnitEventKind;
+  text: string | null;
+  value: string | null;
+  from: LocationSummary | null;
+  to: LocationSummary | null;
+  /** User name, or the name someone without an account gave (then `guest` is true). */
+  by: string | null;
+  guest: boolean;
+  at: string;
+}
+
+export interface LoanView {
+  id: string;
+  unit: { code: string; name: string };
+  responsible: string;
+  description: string;
+  outAt: string;
+  dueAt: string | null;
+  overdue: boolean;
+  returnedAt: string | null;
+  returnedBy: string | null;
+}
+
+export interface ReportView {
+  id: string;
+  owner: 'unit' | 'part' | 'location';
+  target: { code: string; name: string };
+  kind: ReportKind;
+  note: string | null;
+  /** User name, or the name someone without an account gave (then `guest` is true). */
+  by: string | null;
+  guest: boolean;
+  createdAt: string;
+  resolvedAt: string | null;
+  resolvedBy: string | null;
+  resolution: string | null;
+}
+
+export interface UnitDetail extends UnitBrief {
+  part: { id: string; code: string; name: string; kind: PartKind; category: string | null };
+  path: LocationSummary[];
+  homePath: LocationSummary[];
+  /** Network details; null for people who aren't logged in (see networkHidden). */
+  ipAddress: string | null;
+  hostname: string | null;
+  macAddress: string | null;
+  networkHidden: boolean;
+  notes: string | null;
+  nextCheckAt: string | null;
+  /** The next check date has come. */
+  checkDue: boolean;
+  /** Latest firmware/software log entry. */
+  firmware: { version: string; at: string } | null;
+  createdAt: string;
+  events: UnitEventView[];
+  loans: LoanView[];
+  /** Open problem reports. */
+  reports: ReportView[];
+}
+
+/** A unit that needs someone: reported, broken, in repair, or due for a check. */
+export interface UnitAttention {
+  unit: UnitBrief;
+  part: { code: string; name: string };
+  reason: 'status' | 'check_due';
+  nextCheckAt: string | null;
+}
+
+export interface NetworkEntry {
+  unit: { code: string; name: string };
+  part: { code: string; name: string };
+  ipAddress: string | null;
+  hostname: string | null;
+  macAddress: string | null;
+  place: string;
+}
+
+/** What Clear the bench did: what went back where, and what stayed because nobody knows where it belongs. */
+export interface ClearResult {
+  returned: { kind: 'unit' | 'lot'; name: string; to: LocationSummary }[];
+  left: { kind: 'unit' | 'lot' | 'place'; name: string }[];
+}
+
+/** One readable answer to "where is …?", made to be read aloud. */
+export interface WhereIsAnswer {
+  item: { code: string; name: string; kind: PartKind };
+  unit: string | null;
+  text: string;
+}
+
 export interface LocationContentItem {
   lotId: string;
   part: { id: string; code: string; name: string; status: PartStatus; manufacturer: string | null };
@@ -139,6 +268,8 @@ export interface LocationDetail extends LocationSummary {
   path: LocationSummary[];
   children: (LocationSummary & { partCount: number })[];
   contents: LocationContentItem[];
+  /** Individually tracked things here or inside (with `in` set for the latter). */
+  units: (UnitBrief & { part: { code: string; name: string }; in: LocationSummary | null })[];
   attachments: AttachmentView[];
   /** Fixed places next to this one with the same short name, so the same address. */
   clashes: LocationSummary[];
@@ -193,7 +324,7 @@ export interface ApiError {
 
 export interface LabelData {
   code: string;
-  kind: 'location' | 'part' | 'blank';
+  kind: 'location' | 'part' | 'unit' | 'blank';
   name: string;
   /** "Robotics lab › Cabinet A › Shelf 3" (places) or the category (parts). */
   path: string;
@@ -210,7 +341,7 @@ export interface LabelData {
 
 export interface CodeInfo {
   code: string;
-  assigned: 'location' | 'part' | null;
+  assigned: 'location' | 'part' | 'unit' | null;
   /** Printed on a blank label but not used yet. */
   reserved: boolean;
   free: boolean;
@@ -237,7 +368,8 @@ export type CarriedItem =
       display: string;
       since: string;
     }
-  | { kind: 'location'; id: string; code: string; name: string; since: string };
+  | { kind: 'location'; id: string; code: string; name: string; since: string }
+  | { kind: 'unit'; id: string; code: string; name: string; since: string };
 
 export interface CarryState {
   location: LocationSummary;

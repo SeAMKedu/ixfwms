@@ -103,7 +103,8 @@ describe('HTTP API', () => {
   it('exports everything as JSON', async () => {
     const res = await env.app.inject({ url: '/api/export' });
     expect(res.json()).toMatchObject({ format: 'ixfwms-export', version: 1 });
-    expect(res.json<{ locations: unknown[] }>().locations).toHaveLength(1);
+    // The Inbox and "Out of the lab".
+    expect(res.json<{ locations: unknown[] }>().locations).toHaveLength(2);
   });
 });
 

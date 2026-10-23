@@ -16,10 +16,15 @@ import type {
   LocationKind,
   MeasureUnit,
   MovementReason,
+  PartKind,
   PartStatus,
+  ReportKind,
   Scope,
   StockLevel,
   StockMode,
+  TrackingMode,
+  UnitEventKind,
+  UnitStatus,
   UserRole,
 } from '@ixfwms/domain';
 
@@ -73,6 +78,8 @@ export const locationTypes = sqliteTable('location_types', {
   movable: integer('movable', { mode: 'boolean' }).notNull().default(false),
   /** Places of this type are temporary: expected to be gone (or touched) within this many days. */
   stayDays: integer('stay_days'),
+  /** Tables people bring things to: anyone may bring things here, and they can be cleared in one go. */
+  workstation: integer('workstation', { mode: 'boolean' }).notNull().default(false),
 });
 
 export const locations = sqliteTable(
@@ -129,6 +136,14 @@ export const parts = sqliteTable(
     description: text('description'),
     categoryId: text('category_id').references(() => categories.id),
     manufacturer: text('manufacturer'),
+    kind: text('kind').$type<PartKind>().notNull().default('part'),
+    /** bulk: stock lots; individual: units. */
+    tracking: text('tracking').$type<TrackingMode>().notNull().default('bulk'),
+    /** Other names people use ("impact driver"), matched by search. */
+    aliases: text('aliases', { mode: 'json' })
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'`),
     unitMassG: real('unit_mass_g'),
     minStock: real('min_stock'),
     attributes: text('attributes', { mode: 'json' })
@@ -269,6 +284,109 @@ export const attachments = sqliteTable(
     createdAt: createdAt(),
   },
   (t) => [index('attachments_owner_idx').on(t.ownerType, t.ownerId)],
+);
+
+/** One individually tracked thing (a drill, a robot, a PLC CPU) of an item with tracking = individual. */
+export const units = sqliteTable(
+  'units',
+  {
+    id: id(),
+    code: text('code').notNull().unique(),
+    partId: text('part_id')
+      .notNull()
+      .references(() => parts.id),
+    name: text('name'),
+    serialNo: text('serial_no'),
+    status: text('status').$type<UnitStatus>().notNull().default('ok'),
+    /** Where it is now. */
+    locationId: text('location_id')
+      .notNull()
+      .references(() => locations.id),
+    /** Where it belongs ("Put back" goes here). */
+    homeLocationId: text('home_location_id').references(() => locations.id),
+    /** Network details, shown only to people who are logged in. */
+    ipAddress: text('ip_address'),
+    hostname: text('hostname'),
+    macAddress: text('mac_address'),
+    notes: text('notes'),
+    /** Next maintenance or inspection (a date, YYYY-MM-DD). */
+    nextCheckAt: text('next_check_at'),
+    lastSeenAt: text('last_seen_at').notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index('units_part_idx').on(t.partId),
+    index('units_location_idx').on(t.locationId),
+    index('units_home_idx').on(t.homeLocationId),
+  ],
+);
+
+/** A unit's log: moves, notes, maintenance, firmware versions, problems, loans. */
+export const unitEvents = sqliteTable(
+  'unit_events',
+  {
+    id: id(),
+    unitId: text('unit_id')
+      .notNull()
+      .references(() => units.id, { onDelete: 'cascade' }),
+    kind: text('kind').$type<UnitEventKind>().notNull(),
+    text: text('text'),
+    value: text('value'),
+    fromLocationId: text('from_location_id'),
+    toLocationId: text('to_location_id'),
+    userId: text('user_id').references(() => users.id),
+    /** Name given by someone without an account. */
+    reporterName: text('reporter_name'),
+    at: createdAt(),
+  },
+  (t) => [index('unit_events_unit_idx').on(t.unitId, t.at)],
+);
+
+/** A unit taken out of the lab, with the person responsible for it (who has an account). */
+export const loans = sqliteTable(
+  'loans',
+  {
+    id: id(),
+    unitId: text('unit_id')
+      .notNull()
+      .references(() => units.id, { onDelete: 'cascade' }),
+    responsibleUserId: text('responsible_user_id')
+      .notNull()
+      .references(() => users.id),
+    description: text('description').notNull(),
+    outAt: text('out_at')
+      .notNull()
+      .default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`),
+    /** Expected back (a date, YYYY-MM-DD). */
+    dueAt: text('due_at'),
+    returnedAt: text('returned_at'),
+    returnedBy: text('returned_by').references(() => users.id),
+    createdBy: text('created_by').references(() => users.id),
+  },
+  (t) => [index('loans_unit_idx').on(t.unitId)],
+);
+
+/** "This is broken / missing parts / running low", from anyone, open until someone resolves it. */
+export const reports = sqliteTable(
+  'reports',
+  {
+    id: id(),
+    ownerType: text('owner_type').$type<'unit' | 'part' | 'location'>().notNull(),
+    ownerId: text('owner_id').notNull(),
+    kind: text('kind').$type<ReportKind>().notNull(),
+    note: text('note'),
+    userId: text('user_id').references(() => users.id),
+    reporterName: text('reporter_name'),
+    createdAt: createdAt(),
+    resolvedAt: text('resolved_at'),
+    resolvedBy: text('resolved_by').references(() => users.id),
+    resolution: text('resolution'),
+  },
+  (t) => [
+    index('reports_owner_idx').on(t.ownerType, t.ownerId),
+    index('reports_open_idx').on(t.resolvedAt),
+  ],
 );
 
 /** Generic change log for edits that aren't stock or location moves. */

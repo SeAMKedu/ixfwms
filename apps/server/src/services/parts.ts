@@ -1,4 +1,5 @@
 import {
+  CreatePartInput,
   effectiveFields,
   formatAmount,
   STARTER_CATEGORIES,
@@ -10,7 +11,6 @@ import {
   isValidCode,
   normalizeCode,
   normalizeIdentifier,
-  type CreatePartInput,
   type IdentifierInput,
   type PartDetail,
   type PartSummary,
@@ -20,6 +20,7 @@ import {
   type UpdatePartInput,
 } from '@ixfwms/domain';
 import { and, asc, desc, eq, exists, inArray, like, or, sql, type SQL } from 'drizzle-orm';
+import type { z } from 'zod';
 import type { Db, Executor } from '../db/client.js';
 import {
   attachments,
@@ -31,6 +32,7 @@ import {
   stockLots,
   stockMovements,
   tags,
+  units,
 } from '../db/schema.js';
 import { AppError, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
@@ -39,6 +41,7 @@ import { audit, requireScope, type Actor } from './context.js';
 import type { FileService } from './files.js';
 import type { LocationService } from './locations.js';
 import type { StockService } from './stock.js';
+import type { UnitService } from './units.js';
 
 export type PartRow = typeof parts.$inferSelect;
 
@@ -66,13 +69,15 @@ export class PartService {
     private readonly locations: LocationService,
     private readonly stock: StockService,
     private readonly files: FileService,
+    private readonly units: UnitService,
   ) {}
 
   resolve(ref: string, ex: Executor = this.db): Promise<PartRow> {
     return this.resolver.resolve(ref, ex);
   }
 
-  async create(input: CreatePartInput, actor: Actor | null): Promise<PartDetail> {
+  async create(raw: z.input<typeof CreatePartInput>, actor: Actor | null): Promise<PartDetail> {
+    const input = CreatePartInput.parse(raw);
     const who = requireScope(actor, input.status === 'draft' ? 'inventory' : 'write');
     const id = await this.db.transaction(async (tx) => {
       const id = newId();
@@ -83,6 +88,9 @@ export class PartService {
         description: input.description ?? null,
         categoryId: input.category ? await this.ensureCategory(tx, input.category) : null,
         manufacturer: input.manufacturer ?? null,
+        kind: input.kind,
+        tracking: input.tracking,
+        aliases: cleanAliases(input.aliases),
         unitMassG: input.unitMassG ?? null,
         minStock: input.minStock ?? null,
         attributes: await this.normalizeAttributes(tx, input.category ?? null, input.attributes),
@@ -122,7 +130,7 @@ export class PartService {
 
   /** Creates several parts; one failing entry doesn't stop the others. */
   async createMany(
-    inputs: CreatePartInput[],
+    inputs: z.input<typeof CreatePartInput>[],
     actor: Actor | null,
   ): Promise<BatchResult<PartDetail>[]> {
     const results: BatchResult<PartDetail>[] = [];
@@ -149,6 +157,12 @@ export class PartService {
       if (input.minStock !== undefined) patch.minStock = input.minStock ?? null;
       if (input.notes !== undefined) patch.notes = input.notes ?? null;
       if (input.source !== undefined) patch.source = input.source ?? null;
+      if (input.kind !== undefined) patch.kind = input.kind;
+      if (input.aliases !== undefined) patch.aliases = cleanAliases(input.aliases);
+      if (input.tracking !== undefined && input.tracking !== part.tracking) {
+        await this.checkTrackingSwitch(tx, part, input.tracking);
+        patch.tracking = input.tracking;
+      }
       if (input.category !== undefined) {
         patch.categoryId = input.category ? await this.ensureCategory(tx, input.category) : null;
       }
@@ -212,6 +226,17 @@ export class PartService {
       if (source.id === target.id)
         throw new AppError('invalid', 'A part cannot be merged into itself');
 
+      const sourceUnits = await tx
+        .select({ id: units.id })
+        .from(units)
+        .where(eq(units.partId, source.id))
+        .all();
+      if (sourceUnits.length) {
+        if (target.tracking !== 'individual')
+          await this.checkTrackingSwitch(tx, target, 'individual');
+        await tx.update(units).set({ partId: target.id }).where(eq(units.partId, source.id));
+        await tx.update(parts).set({ tracking: 'individual' }).where(eq(parts.id, target.id));
+      }
       await tx.update(stockLots).set({ partId: target.id }).where(eq(stockLots.partId, source.id));
       for (const lot of await tx
         .select()
@@ -315,11 +340,29 @@ export class PartService {
     if (input.q) {
       const q = `%${input.q.toLowerCase()}%`;
       const norm = normalizeIdentifier(input.q);
+      const code = normalizeCode(input.q);
       const conditions: SQL[] = [
         like(sql`lower(${parts.name})`, q),
         like(sql`lower(coalesce(${parts.description}, ''))`, q),
         like(sql`lower(coalesce(${parts.manufacturer}, ''))`, q),
-        eq(parts.code, normalizeCode(input.q)),
+        like(sql`lower(${parts.aliases})`, q),
+        eq(parts.code, code),
+        // A unit's own name, serial number or code finds its item.
+        exists(
+          this.db
+            .select({ one: sql`1` })
+            .from(units)
+            .where(
+              and(
+                eq(units.partId, parts.id),
+                or(
+                  like(sql`lower(coalesce(${units.name}, ''))`, q),
+                  like(sql`lower(coalesce(${units.serialNo}, ''))`, q),
+                  eq(units.code, code),
+                ),
+              ),
+            ),
+        ),
       ];
       if (norm.length >= 2) {
         conditions.push(
@@ -339,6 +382,7 @@ export class PartService {
       where.push(or(...conditions)!);
     }
     if (input.status) where.push(eq(parts.status, input.status));
+    if (input.kind) where.push(eq(parts.kind, input.kind));
     if (input.category) {
       const cat = input.category.replace(/\s*\/\s*/g, '/').toLowerCase();
       where.push(
@@ -445,13 +489,20 @@ export class PartService {
     ].slice(0, 8);
     if (tokens.length) {
       const candidates = await this.db
-        .select({ id: parts.id, name: parts.name })
+        .select({ id: parts.id, name: parts.name, aliases: parts.aliases })
         .from(parts)
-        .where(or(...tokens.map((t) => like(sql`lower(${parts.name})`, `%${t}%`))))
+        .where(
+          or(
+            ...tokens.flatMap((t) => [
+              like(sql`lower(${parts.name})`, `%${t}%`),
+              like(sql`lower(${parts.aliases})`, `%${t}%`),
+            ]),
+          ),
+        )
         .limit(300)
         .all();
       for (const c of candidates) {
-        const lower = c.name.toLowerCase();
+        const lower = [c.name, ...c.aliases].join(' ').toLowerCase();
         const matched = tokens.filter((t) => lower.includes(t)).length;
         const score = Math.round((matched / tokens.length) * 100) / 100;
         if (score >= 0.5 && score > (scored.get(c.id)?.score ?? 0)) {
@@ -509,12 +560,20 @@ export class PartService {
         ])
       ).map((p) => [p.id, p]),
     );
+    const unitsByPart = await this.units.briefsForParts(
+      rows.filter((r) => r.tracking === 'individual').map((r) => r.id),
+      ex,
+    );
     return rows.map((r) => ({
       id: r.id,
       code: r.code,
       name: r.name,
       manufacturer: r.manufacturer,
       status: r.status,
+      kind: r.kind,
+      tracking: r.tracking,
+      aliases: r.aliases,
+      units: unitsByPart.get(r.id) ?? [],
       category: r.categoryId ? (catPath.get(r.categoryId) ?? null) : null,
       identifiers: idents
         .filter((i) => i.partId === r.id)
@@ -529,6 +588,36 @@ export class PartService {
           place: places.get(l.loc.id)!,
         })),
     }));
+  }
+
+  /** Individual items have units, bulk ones stock lots; switching needs the other kind to be gone. */
+  private async checkTrackingSwitch(
+    ex: Executor,
+    part: PartRow,
+    to: PartRow['tracking'],
+  ): Promise<void> {
+    if (to === 'individual') {
+      const lot = await ex
+        .select({ id: stockLots.id })
+        .from(stockLots)
+        .where(eq(stockLots.partId, part.id))
+        .limit(1)
+        .get();
+      if (lot)
+        throw new AppError(
+          'invalid',
+          `${part.name} has stock amounts; move or remove them before tracking it one by one`,
+        );
+    } else {
+      const unit = await ex
+        .select({ id: units.id })
+        .from(units)
+        .where(eq(units.partId, part.id))
+        .limit(1)
+        .get();
+      if (unit)
+        throw new AppError('invalid', `${part.name} has units; it can't be tracked as amounts`);
+    }
   }
 
   /** Colour fields are stored as { name, hex } whatever form they were given in ("blue", "BU", "#1e64c8"). */
@@ -717,4 +806,12 @@ function attributeCondition(filter: AttributeFilter): SQL {
         ? sql`cast(${value} as real) = ${filter.value}`
         : eq(text, String(filter.value).toLowerCase());
   }
+}
+
+/** Aliases without blanks or repeats (case-insensitive), in the order given. */
+function cleanAliases(aliases: string[]): string[] {
+  const seen = new Set<string>();
+  return aliases
+    .map((a) => a.trim())
+    .filter((a) => a && !seen.has(a.toLowerCase()) && seen.add(a.toLowerCase()));
 }

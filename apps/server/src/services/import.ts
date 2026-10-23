@@ -78,6 +78,9 @@ export class ImportService {
           const created = await this.parts.create(
             {
               name: r.name,
+              kind: 'part',
+              tracking: 'bulk',
+              aliases: [],
               manufacturer: r.manufacturer ?? null,
               category: r.category ?? null,
               description: r.description ?? null,

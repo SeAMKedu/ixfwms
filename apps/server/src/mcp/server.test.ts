@@ -106,4 +106,31 @@ describe('MCP tools', () => {
     expect(tools.length).toBeGreaterThanOrEqual(15);
     expect(tools.every((t) => (t.description ?? '').length > 10)).toBe(true);
   });
+
+  it('registers tools as units and answers where they are', async () => {
+    const shelf = await call<{ code: string }>('create_location', {
+      name: 'Shelf 3',
+      type: 'shelf',
+    });
+    const [drill] = await call<{ ok: boolean; code: string }[]>('create_part_drafts', {
+      parts: [{ name: 'Impact drill', kind: 'tool', aliases: ['iskuporakone'] }],
+    });
+    const [unit] = await call<{ code: string; url: string }[]>('add_units', {
+      part: drill!.code,
+      units: [{ name: 'Drill 2', serialNo: 'SN-1' }],
+      home: shelf.code,
+    });
+    expect(unit!.url).toBe(`http://lab.test/u/${unit!.code}`);
+    const answers = await call<{ text: string; unit: string }[]>('where_is', {
+      query: 'iskuporakone',
+    });
+    expect(answers).toMatchObject([
+      { unit: unit!.code, text: expect.stringMatching(/^Drill 2: at /) },
+    ]);
+    await call('report_problem', { owner: 'unit', ref: unit!.code, kind: 'missing_parts' });
+    expect(await call<unknown[]>('list_units_needing_attention')).toHaveLength(1);
+    expect(
+      (await call<{ text: string }[]>('where_is', { query: 'nothing like this' }))[0]!.text,
+    ).toMatch(/Nothing found/);
+  });
 });

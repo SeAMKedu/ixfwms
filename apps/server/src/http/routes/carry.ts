@@ -15,6 +15,7 @@ export function registerCarryRoutes(app: FastifyInstance, { services }: AppDeps)
       z.object({
         location: z.string().nullish(),
         lotId: z.string().nullish(),
+        unit: z.string().nullish(),
         quantity: z.number().positive().nullish(),
       }),
       request.body,

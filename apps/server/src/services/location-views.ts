@@ -5,6 +5,7 @@ import { locations, parts, stockLots } from '../db/schema.js';
 import type { FileService } from './files.js';
 import type { LocationService } from './locations.js';
 import type { PartService } from './parts.js';
+import type { UnitService } from './units.js';
 
 /** Read model for a location page: path, sub-locations and what's stored there. */
 export class LocationViews {
@@ -13,6 +14,7 @@ export class LocationViews {
     private readonly locations: LocationService,
     private readonly parts: PartService,
     private readonly files: FileService,
+    private readonly units: UnitService,
   ) {}
 
   async detail(ref: string, opts: { recursive?: boolean } = {}): Promise<LocationDetail> {
@@ -79,6 +81,7 @@ export class LocationViews {
       path,
       children: children.map((c) => ({ ...c, partCount: counts.get(c.id) ?? 0 })),
       contents,
+      units: await this.units.at(loc, opts.recursive ?? false),
       attachments: await this.files.attachmentsOf('location', loc.id),
       clashes: await this.locations.clashes(loc),
       ownStayDays: loc.stayDays,

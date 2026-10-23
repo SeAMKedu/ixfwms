@@ -17,6 +17,7 @@ import { registerPartRoutes } from './routes/parts.js';
 import { registerSessionRoutes } from './routes/session.js';
 import { registerStockRoutes } from './routes/stock.js';
 import { registerSystemRoutes } from './routes/system.js';
+import { registerUnitRoutes } from './routes/units.js';
 import { registerUserRoutes } from './routes/users.js';
 import { defaultWebDir, registerWebApp } from './web.js';
 
@@ -67,6 +68,7 @@ export async function buildApp(
   registerLocationRoutes(app, deps);
   registerPartRoutes(app, deps);
   registerStockRoutes(app, deps);
+  registerUnitRoutes(app, deps);
   registerFileRoutes(app, deps);
   registerLabelRoutes(app, deps);
   registerCarryRoutes(app, deps);

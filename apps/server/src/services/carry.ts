@@ -1,11 +1,12 @@
 import { formatAmount, type CarriedItem, type CarrySummary, type CarryState } from '@ixfwms/domain';
 import { asc, eq } from 'drizzle-orm';
 import type { Db } from '../db/client.js';
-import { locations, parts, stockLots, users } from '../db/schema.js';
+import { locations, parts, stockLots, units, users } from '../db/schema.js';
 import { invalid } from '../lib/errors.js';
 import { requireScope, type Actor } from './context.js';
 import type { LocationService } from './locations.js';
 import type { StockService } from './stock.js';
+import type { UnitService } from './units.js';
 
 /**
  * "Scan, carry, scan": picked-up things sit in the person's own "Carried by <name>" place,
@@ -16,6 +17,7 @@ export class CarryService {
     private readonly db: Db,
     private readonly locations: LocationService,
     private readonly stock: StockService,
+    private readonly units: UnitService,
   ) {}
 
   async state(actor: Actor | null): Promise<CarryState> {
@@ -34,7 +36,21 @@ export class CarryService {
       .where(eq(locations.parentId, carry.id))
       .orderBy(asc(locations.updatedAt))
       .all();
+    const unitRows = await this.db
+      .select()
+      .from(units)
+      .where(eq(units.locationId, carry.id))
+      .orderBy(asc(units.updatedAt))
+      .all();
+    const unitBriefs = await this.units.briefs(unitRows);
     const items: CarriedItem[] = [
+      ...unitBriefs.map((u, i) => ({
+        kind: 'unit' as const,
+        id: u.id,
+        code: u.code,
+        name: u.name,
+        since: unitRows[i]!.updatedAt,
+      })),
       ...boxes.map((b) => ({
         kind: 'location' as const,
         id: b.id,
@@ -74,7 +90,12 @@ export class CarryService {
         .from(locations)
         .where(eq(locations.parentId, loc.id))
         .all();
-      const times = [...lots, ...boxes].map((r) => r.at).sort();
+      const carried = await this.db
+        .select({ at: units.updatedAt })
+        .from(units)
+        .where(eq(units.locationId, loc.id))
+        .all();
+      const times = [...lots, ...boxes, ...carried].map((r) => r.at).sort();
       if (times.length === 0) continue;
       out.push({
         user,
@@ -86,17 +107,24 @@ export class CarryService {
     return out.sort((a, b) => a.since.localeCompare(b.since));
   }
 
-  /** Picks up a whole place (with its contents) or some of a stock lot. */
+  /** Picks up a whole place (with its contents), some of a stock lot, or a unit. */
   async pick(
-    input: { location?: string | null; lotId?: string | null; quantity?: number | null },
+    input: {
+      location?: string | null;
+      lotId?: string | null;
+      unit?: string | null;
+      quantity?: number | null;
+    },
     actor: Actor | null,
   ): Promise<CarryState> {
     const who = requireScope(actor, 'inventory');
-    if ((input.location == null) === (input.lotId == null))
-      throw invalid('Pick either a place or a stock lot');
+    if ([input.location, input.lotId, input.unit].filter((x) => x != null).length !== 1)
+      throw invalid('Pick a place, a stock lot or a unit');
     await this.db.transaction(async (tx) => {
       const carry = await this.locations.inTransitFor(who, tx);
-      if (input.location)
+      if (input.unit)
+        await this.units.moveWithin(tx, await this.units.resolve(input.unit, tx), carry.id, who);
+      else if (input.location)
         await this.locations.moveWithin(
           tx,
           await this.locations.resolve(input.location, tx),
@@ -122,7 +150,10 @@ export class CarryService {
       const dest = await this.locations.resolve(to, tx);
       if (dest.kind === 'in_transit') throw invalid('Pick a real place to put things down');
       for (const item of chosen) {
-        if (item.kind === 'location')
+        if (item.kind === 'unit') {
+          this.units.checkDestination(dest);
+          await this.units.moveWithin(tx, await this.units.resolve(item.id, tx), dest.id, who);
+        } else if (item.kind === 'location')
           await this.locations.moveWithin(
             tx,
             await this.locations.resolve(item.id, tx),
