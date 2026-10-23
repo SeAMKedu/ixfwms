@@ -47,8 +47,6 @@ typical label link fits a 25×25 QR code, which matters on 9 mm tape.
    | `parent`  | `Robolab-A`                | `Robolab-2` (where it is now)       |
    | `short`   | `C`                        | its short name, if set (else empty) |
 
-   New columns are added at the end, so templates made for older CSVs keep working.
-
 2. In P-touch Editor, make one template per tape width (once):
    - **9 mm**: QR code linked to `qr`, plus text linked to `short` (large) and `parent` (small),
      or to `code`.
