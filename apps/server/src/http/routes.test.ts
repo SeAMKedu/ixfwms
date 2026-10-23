@@ -11,7 +11,7 @@ afterEach(async () => env.cleanup());
 type Json = Record<string, unknown>;
 
 async function req<T = Json>(
-  method: 'GET' | 'POST' | 'PUT' | 'PATCH',
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   url: string,
   payload?: unknown,
   token = env.adminToken,
@@ -285,5 +285,58 @@ describe('BOM over HTTP', () => {
       payload: { lines: [{ quantity: 1 }] },
     });
     expect(bad.statusCode).toBe(400);
+  });
+});
+
+describe('maps over HTTP', () => {
+  it('sets a map, reads layers, and serves the SVG sandboxed', async () => {
+    const lab = await req<{ code: string }>('POST', '/api/locations', {
+      name: 'Lab',
+      type: 'room',
+    });
+    const cab = await req<{ code: string }>('POST', '/api/locations', {
+      name: 'Cab',
+      type: 'cabinet',
+      parent: lab.code,
+    });
+    const boundary = '----ixf';
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg"><rect id="loc:${cab.code}"/><script>alert(1)</script></svg>`;
+    const body = [
+      `--${boundary}`,
+      'Content-Disposition: form-data; name="file"; filename="lab.svg"',
+      'Content-Type: image/svg+xml',
+      '',
+      svg,
+      `--${boundary}--`,
+      '',
+    ].join('\r\n');
+    const file = (
+      await env.app.inject({
+        method: 'POST',
+        url: '/api/files',
+        payload: body,
+        headers: {
+          authorization: `Bearer ${env.adminToken}`,
+          'content-type': `multipart/form-data; boundary=${boundary}`,
+        },
+      })
+    ).json<{ id: string; href: string }>();
+    expect(await req('PUT', `/api/locations/${lab.code}/map`, { fileId: file.id })).toMatchObject({
+      linked: [{ code: cab.code }],
+    });
+    expect(await req('GET', `/api/locations/${lab.code}/map/check`)).toMatchObject({ unknown: [] });
+    const layers = await req<{ href: string; highlight: string[] }[]>(
+      'GET',
+      `/api/maps/${cab.code}`,
+    );
+    expect(layers).toEqual([expect.objectContaining({ highlight: [cab.code] })]);
+    const served = await env.app.inject({ url: layers[0]!.href });
+    expect(served.headers['content-security-policy']).toContain('sandbox');
+    const removed = await env.app.inject({
+      method: 'DELETE',
+      url: `/api/locations/${lab.code}/map`,
+      headers: { authorization: `Bearer ${env.adminToken}` },
+    });
+    expect(removed.statusCode).toBe(204);
   });
 });

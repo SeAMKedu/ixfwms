@@ -10,6 +10,7 @@ import {
 } from 'drizzle-orm/sqlite-core';
 import type {
   AttachmentKind,
+  MapKind,
   AttributeField,
   IdentifierKind,
   LocationKind,
@@ -288,3 +289,21 @@ export const importMappings = sqliteTable('import_mappings', {
   updatedBy: text('updated_by').references(() => users.id),
   updatedAt: updatedAt(),
 });
+
+/** Drawings of a place (lab floor plan, cabinet front view); their element ids link to sub-places. */
+export const locationViews = sqliteTable(
+  'location_views',
+  {
+    id: id(),
+    locationId: text('location_id')
+      .notNull()
+      .references(() => locations.id, { onDelete: 'cascade' }),
+    kind: text('kind').$type<MapKind>().notNull(),
+    fileId: text('file_id')
+      .notNull()
+      .references(() => files.id),
+    createdBy: text('created_by').references(() => users.id),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('location_views_unique').on(t.locationId, t.kind)],
+);

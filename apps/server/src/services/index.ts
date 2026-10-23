@@ -12,6 +12,7 @@ import { ImportService } from './import.js';
 import { LabelService } from './labels.js';
 import { LocationViews } from './location-views.js';
 import { LocationService } from './locations.js';
+import { MapService } from './maps.js';
 import { PartResolver, PartService } from './parts.js';
 import { StockService } from './stock.js';
 
@@ -28,6 +29,7 @@ export interface Services {
   labels: LabelService;
   locations: LocationService;
   locationViews: LocationViews;
+  maps: MapService;
   parts: PartService;
   stock: StockService;
 }
@@ -53,6 +55,7 @@ export function createServices(
     labels: new LabelService(db, locations),
     locations,
     locationViews: new LocationViews(db, locations, parts, files),
+    maps: new MapService(db, locations, files),
     parts,
     stock,
   };
