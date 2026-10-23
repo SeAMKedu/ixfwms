@@ -18,7 +18,13 @@
     "putDown": "Put down",
     "categories": "Categories",
     "import": "Import",
-    "bom": "Can we build it?"
+    "bom": "Can we build it?",
+    "history": "History",
+    "users": "Users",
+    "backups": "Backups",
+    "setup": "Phone & AI setup",
+    "account": "Account",
+    "admin": "Admin"
   },
   "common": {
     "save": "Save",
@@ -216,7 +222,10 @@
     "noDrafts": "No drafts waiting.",
     "noUnplaced": "Everything has a place.",
     "putAway": "Put away",
-    "putAwayTo": "Put away to"
+    "putAwayTo": "Put away to",
+    "carrying": "Still being carried",
+    "carryingItem_one": "{{user}}: {{count}} thing since {{date}}",
+    "carryingItem_other": "{{user}}: {{count}} things since {{date}}"
   },
   "scan": {
     "title": "Scan",
@@ -246,7 +255,7 @@
     "password": "Password",
     "submit": "Log in",
     "intro": "Anyone on the lab network can look things up. Log in to add, move or change things.",
-    "noAccount": "No account? An admin can create one with: npm run cli -- user:create, then user:password."
+    "noAccount": "No account? An admin can create one on the Users page."
   },
   "carry": {
     "title": "Carrying",
@@ -457,5 +466,102 @@
     "notDrawn": "Not in the drawing yet:",
     "unknown": "Ids for places that aren't inside this one: {{codes}}",
     "starter": "Download a starter drawing"
+  },
+  "users": {
+    "title": "Users",
+    "intro": "People who can log in, and API tokens for scripts and AI assistants. Give assistants a token with the inventory scope: they can add drafts and move things, but not confirm drafts.",
+    "add": "Add a person",
+    "role": "Role",
+    "roles": {
+      "viewer": "Viewer (read only)",
+      "member": "Member",
+      "admin": "Admin"
+    },
+    "passwordHint": "At least 8 characters. Optional for token-only users.",
+    "newPassword": "New password",
+    "setPassword": "Set a password",
+    "sessions_one": "{{count}} active web login",
+    "sessions_other": "{{count}} active web logins",
+    "tokens": "API tokens",
+    "noTokens": "No API tokens.",
+    "lastUsed": "last used {{date}}",
+    "neverUsed": "never used",
+    "revoke": "Revoke token",
+    "tokenName": "New token for",
+    "tokenPlaceholder": "e.g. Claude on my laptop",
+    "scopes": "Scopes",
+    "createToken": "Create token",
+    "tokenOnce": "Copy this token now. It is not shown again.",
+    "copy": "Copy token",
+    "copied": "Copied",
+    "connectClaude": "To connect Claude Code:",
+    "copyCommand": "Copy command",
+    "tokenSaved": "Done, I saved it"
+  },
+  "account": {
+    "more": "More",
+    "language": "Language",
+    "password": "Change password",
+    "current": "Current password",
+    "next": "New password",
+    "change": "Change password",
+    "changed": "Password changed."
+  },
+  "history": {
+    "title": "History",
+    "empty": "Nothing has changed yet.",
+    "undo": "Undo",
+    "actions": {
+      "add": "Added",
+      "take": "Took",
+      "adjust": "Adjusted",
+      "stocktake": "Counted",
+      "move": "Moved",
+      "create": "Created",
+      "update": "Edited",
+      "status": "Reviewed",
+      "merge": "Merged into",
+      "attach": "Attached a file to",
+      "fields": "Changed fields of",
+      "map": "New map for",
+      "map-removed": "Removed map of"
+    }
+  },
+  "backups": {
+    "title": "Backups",
+    "intro": "Snapshots of the database, taken every night and before every upgrade. Uploaded files live next to the database; back up the whole data folder too.",
+    "now": "Back up now",
+    "empty": "No backups yet.",
+    "download": "Download backup"
+  },
+  "setup": {
+    "title": "Phone & AI setup",
+    "secure": "This connection is secure (HTTPS). The camera scanner can be used.",
+    "insecure": "This connection is not HTTPS, so phones will not allow the camera scanner. QR labels still open with the phone's own camera app.",
+    "why": "Browsers only allow the camera on secure connections. The lab server uses its own certificate, which each phone has to trust once.",
+    "certTitle": "Trust the lab certificate (once per device)",
+    "download": "Download certificate",
+    "noCert": "No certificate is available here. Start the server with the https profile (see README).",
+    "steps": {
+      "ios": {
+        "title": "iPhone / iPad",
+        "text": "Download, then Settings › General › VPN & Device Management › install the profile. Then Settings › General › About › Certificate Trust Settings › turn on ixfwms."
+      },
+      "android": {
+        "title": "Android",
+        "text": "Download, then Settings › Security › Encryption & credentials › Install a certificate › CA certificate, and pick the file."
+      },
+      "mac": {
+        "title": "macOS",
+        "text": "Download, open it in Keychain Access, double-click the certificate, and under Trust choose “Always Trust”."
+      },
+      "windows": {
+        "title": "Windows",
+        "text": "Download, double-click › Install Certificate › Local Machine › “Trusted Root Certification Authorities”."
+      }
+    },
+    "aiTitle": "Connect an AI assistant",
+    "aiText": "Ask an admin for an API token (Users page), then add the server to Claude Code:",
+    "baseUrl": "This server is reached at"
   }
 }

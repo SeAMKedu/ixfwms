@@ -1,5 +1,9 @@
 import {
+  DatabaseBackup,
   FileSpreadsheet,
+  History,
+  Smartphone,
+  Users,
   Hand,
   Inbox,
   ListChecks,
@@ -71,7 +75,9 @@ function UserBox() {
   }
   return (
     <div className="flex items-center gap-2 text-sm">
-      <span className="text-muted truncate">{t('nav.loggedInAs', { name: user.name })}</span>
+      <Link to="/account" className="truncate text-muted hover:text-link hover:underline">
+        {t('nav.loggedInAs', { name: user.name })}
+      </Link>
       <button
         type="button"
         onClick={() => void logout()}
@@ -87,10 +93,11 @@ function UserBox() {
 /** Desktop: sidebar. Phone: top bar plus bottom tabs with Scan in the middle, as in the plan's sketch. */
 export function Layout() {
   const { t } = useTranslation();
+  const { can } = useSession();
   const items = useNavItems();
   return (
     <div className="min-h-dvh md:grid md:grid-cols-[220px_minmax(0,1fr)]">
-      <aside className="hidden md:flex flex-col gap-1 border-r border-line bg-surface px-3 py-5 sticky top-0 h-dvh">
+      <aside className="hidden md:flex flex-col gap-1 border-r border-line bg-surface px-3 py-5 sticky top-0 h-dvh overflow-y-auto">
         <Link to="/" className="px-2 pb-4 font-display text-2xl font-bold">
           {t('app.name')}
         </Link>
@@ -133,6 +140,15 @@ export function Layout() {
           {t('nav.categories')}
         </NavLink>
         <NavLink
+          to="/import"
+          className={({ isActive }) =>
+            `flex items-center gap-2 rounded-md px-2 py-1.5 text-[14px] ${isActive ? 'bg-link-soft font-semibold text-link' : 'text-ink hover:bg-surface-2'}`
+          }
+        >
+          <FileSpreadsheet className="size-4" aria-hidden />
+          {t('nav.import')}
+        </NavLink>
+        <NavLink
           to="/bom"
           className={({ isActive }) =>
             `flex items-center gap-2 rounded-md px-2 py-1.5 text-[14px] ${isActive ? 'bg-link-soft font-semibold text-link' : 'text-ink hover:bg-surface-2'}`
@@ -142,14 +158,45 @@ export function Layout() {
           {t('nav.bom')}
         </NavLink>
         <NavLink
-          to="/import"
+          to="/history"
           className={({ isActive }) =>
             `flex items-center gap-2 rounded-md px-2 py-1.5 text-[14px] ${isActive ? 'bg-link-soft font-semibold text-link' : 'text-ink hover:bg-surface-2'}`
           }
         >
-          <FileSpreadsheet className="size-4" aria-hidden />
-          {t('nav.import')}
+          <History className="size-4" aria-hidden />
+          {t('nav.history')}
         </NavLink>
+        <NavLink
+          to="/setup"
+          className={({ isActive }) =>
+            `flex items-center gap-2 rounded-md px-2 py-1.5 text-[14px] ${isActive ? 'bg-link-soft font-semibold text-link' : 'text-ink hover:bg-surface-2'}`
+          }
+        >
+          <Smartphone className="size-4" aria-hidden />
+          {t('nav.setup')}
+        </NavLink>
+        {can('admin') && (
+          <>
+            <NavLink
+              to="/users"
+              className={({ isActive }) =>
+                `flex items-center gap-2 rounded-md px-2 py-1.5 text-[14px] ${isActive ? 'bg-link-soft font-semibold text-link' : 'text-ink hover:bg-surface-2'}`
+              }
+            >
+              <Users className="size-4" aria-hidden />
+              {t('nav.users')}
+            </NavLink>
+            <NavLink
+              to="/backups"
+              className={({ isActive }) =>
+                `flex items-center gap-2 rounded-md px-2 py-1.5 text-[14px] ${isActive ? 'bg-link-soft font-semibold text-link' : 'text-ink hover:bg-surface-2'}`
+              }
+            >
+              <DatabaseBackup className="size-4" aria-hidden />
+              {t('nav.backups')}
+            </NavLink>
+          </>
+        )}
         <div className="mt-auto flex flex-col gap-3 px-2">
           <CarryIndicator className="self-start" compact />
           <UserBox />

@@ -2,9 +2,17 @@ import { normalizeCode, type LocationContentItem } from '@ixfwms/domain';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
-import { useInfo, useLocation, useMoveStock, useParts, useSetStatus } from '../api/queries';
+import {
+  useEveryoneCarrying,
+  useInfo,
+  useLocation,
+  useMoveStock,
+  useParts,
+  useSetStatus,
+} from '../api/queries';
 import { useSession } from '../auth/session';
 import { PlacePicker } from '../components/place-picker';
+import { formatDate } from '../lib/format';
 import { AmountPill, Button, Card, Empty, ErrorBox, Loading, PageHeader } from '../components/ui';
 
 function PutAway({ item }: { item: LocationContentItem }) {
@@ -54,6 +62,39 @@ function ConfirmButton({ code }: { code: string }) {
   );
 }
 
+const FORGOTTEN_AFTER_MS = 4 * 60 * 60 * 1000;
+
+/** Things picked up and not put down: after a few hours they were probably forgotten. */
+function StillCarried() {
+  const { t } = useTranslation();
+  const carrying = useEveryoneCarrying();
+  if (!carrying.data?.length) return null;
+  return (
+    <Card title={t('inbox.carrying')}>
+      <ul className="flex flex-col gap-1 text-sm">
+        {carrying.data.map((c) => {
+          // eslint-disable-next-line react-hooks/purity -- a slightly stale "now" is fine for this hint
+          const old = Date.now() - Date.parse(c.since) > FORGOTTEN_AFTER_MS;
+          return (
+            <li key={c.location.id}>
+              <Link
+                to={`/l/${c.location.code}`}
+                className={old ? 'text-warn hover:underline' : 'hover:underline'}
+              >
+                {t('inbox.carryingItem', {
+                  user: c.user,
+                  count: c.count,
+                  date: formatDate(c.since),
+                })}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </Card>
+  );
+}
+
 export function InboxPage() {
   const { t } = useTranslation();
   const { can } = useSession();
@@ -66,6 +107,7 @@ export function InboxPage() {
     <>
       <PageHeader title={t('inbox.title')} />
       <p className="max-w-prose text-sm text-muted">{t('inbox.intro')}</p>
+      <StillCarried />
       <div className="grid gap-4 md:grid-cols-2">
         <Card title={t('inbox.unplaced')}>
           <ErrorBox error={info.error ?? inbox.error} />

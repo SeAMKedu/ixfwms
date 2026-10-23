@@ -6,6 +6,11 @@ import type {
   CategoryFields,
   CategoryInfo,
   CarryState,
+  CarrySummary,
+  HistoryEntry,
+  Scope,
+  UserInfo,
+  UserRole,
   CodeInfo,
   AttachmentView,
   CreateLocationInput,
@@ -206,3 +211,54 @@ export const useSetMap = (code: string) =>
 
 export const useRemoveMap = (code: string) =>
   useChange(() => api(`/api/locations/${code}/map`, { method: 'DELETE' }));
+
+export const useUsers = (enabled: boolean) =>
+  useQuery({ queryKey: ['users'], queryFn: () => api<UserInfo[]>('/api/users'), enabled });
+export const useCreateUser = () =>
+  useChange((input: { name: string; role: UserRole; password?: string }) =>
+    api('/api/users', { body: input }),
+  );
+export const useUpdateUser = () =>
+  useChange((input: { name: string; role?: UserRole; password?: string }) =>
+    api(`/api/users/${encodeURIComponent(input.name)}`, {
+      method: 'PATCH',
+      body: { role: input.role, password: input.password },
+    }),
+  );
+export const useCreateToken = () =>
+  useChange((input: { user: string; name: string; scopes: Scope[] }) =>
+    api<{ token: string; id: string }>(`/api/users/${encodeURIComponent(input.user)}/tokens`, {
+      body: { name: input.name, scopes: input.scopes },
+    }),
+  );
+export const useRevokeToken = () =>
+  useChange((id: string) => api(`/api/tokens/${id}`, { method: 'DELETE' }));
+export const useChangePassword = () =>
+  useChange((input: { current: string; next: string }) =>
+    api('/api/session/password', { body: input }),
+  );
+
+export const useEveryoneCarrying = () =>
+  useQuery({ queryKey: ['carry', 'all'], queryFn: () => api<CarrySummary[]>('/api/carry/all') });
+
+export const useHistory = () =>
+  useQuery({ queryKey: ['history'], queryFn: () => api<HistoryEntry[]>('/api/history?limit=150') });
+export const useUndo = () =>
+  useChange((input: { kind: 'stock' | 'location'; id: string }) =>
+    api('/api/history/undo', { body: input }),
+  );
+
+export const useSetup = () =>
+  useQuery({
+    queryKey: ['setup'],
+    queryFn: () => api<{ secure: boolean; certificate: boolean; baseUrl: string }>('/api/setup'),
+  });
+
+export const useBackups = (enabled: boolean) =>
+  useQuery({
+    queryKey: ['backups'],
+    queryFn: () => api<{ name: string; size: number }[]>('/api/backups'),
+    enabled,
+  });
+export const useBackupNow = () =>
+  useChange(() => api<{ file: string }>('/api/backups', { body: {} }));

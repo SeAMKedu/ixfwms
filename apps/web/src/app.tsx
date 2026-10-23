@@ -3,9 +3,12 @@ import { createBrowserRouter, RouterProvider } from 'react-router';
 import { ApiError } from './api/client';
 import { SessionProvider } from './auth/session';
 import { Layout } from './components/layout';
+import { AccountPage } from './pages/account';
+import { BackupsPage } from './pages/backups';
 import { BomPage } from './pages/bom';
 import { CarryPage } from './pages/carry';
 import { CategoriesPage } from './pages/categories';
+import { HistoryPage } from './pages/history';
 import { ImportPage } from './pages/import';
 import { InboxPage } from './pages/inbox';
 import { LabelsPage } from './pages/labels';
@@ -18,6 +21,8 @@ import { PlacesPage } from './pages/places';
 import { ScanPage } from './pages/scan';
 import { SearchPage } from './pages/search';
 import { SessionPage } from './pages/session';
+import { SetupPage } from './pages/setup';
+import { UsersPage } from './pages/users';
 
 /** Paths match the QR label format: /L/<code> for places, /P/<code> for parts (case-insensitive). */
 const routes = [
@@ -36,6 +41,11 @@ const routes = [
       { path: '/categories', element: <CategoriesPage /> },
       { path: '/import', element: <ImportPage /> },
       { path: '/bom', element: <BomPage /> },
+      { path: '/history', element: <HistoryPage /> },
+      { path: '/users', element: <UsersPage /> },
+      { path: '/backups', element: <BackupsPage /> },
+      { path: '/setup', element: <SetupPage /> },
+      { path: '/account', element: <AccountPage /> },
       { path: '/inbox', element: <InboxPage /> },
       { path: '/scan', element: <ScanPage /> },
       { path: '/login', element: <LoginPage /> },
