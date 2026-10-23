@@ -176,11 +176,11 @@ function Missing({ code }: { code: string }) {
 function LocationMaps({ code, canEdit }: { code: string; canEdit: boolean }) {
   const layers = useMapLayers(code);
   if (!layers.data) return null;
-  const hasOwn = layers.data.some((l) => l.location.code === code);
+  const kinds = layers.data.filter((l) => l.location.code === code).map((l) => l.kind);
   return (
     <>
       <MapLayers code={code} layers={layers.data} />
-      {canEdit && <MapManager code={code} hasMap={hasOwn} />}
+      {canEdit && <MapManager code={code} kinds={kinds} />}
     </>
   );
 }

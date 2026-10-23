@@ -1,11 +1,14 @@
 import { codeFromElementId, type MapLayer } from '@ixfwms/domain';
 import { useQuery } from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
-import { useEffect, useMemo, useRef } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
 import { useMapLayers } from '../api/queries';
 import { Card, ErrorBox, Loading } from './ui';
+
+/** three.js is large, so the 3D viewer loads only when a 3D map is shown. */
+const ModelMap = lazy(() => import('./model-map'));
 
 /** Drawings can come from anywhere, so scripts, event handlers and external references are stripped. */
 function sanitize(svg: string): string {
@@ -88,8 +91,14 @@ export function MapLayers({ code, layers: given }: { code: string; layers?: MapL
   return (
     <Card title={t('maps.title')}>
       {layers.map((l) => (
-        <figure key={l.location.id} className="flex flex-col gap-1.5">
-          <SvgMap href={l.href} highlight={l.highlight} title={l.location.name} />
+        <figure key={`${l.location.id}-${l.kind}`} className="flex flex-col gap-1.5">
+          {l.kind === 'gltf_3d' ? (
+            <Suspense fallback={<Loading />}>
+              <ModelMap href={l.href} highlight={l.highlight} title={l.location.name} />
+            </Suspense>
+          ) : (
+            <SvgMap href={l.href} highlight={l.highlight} title={l.location.name} />
+          )}
           <figcaption className="text-[12px] text-muted">
             <Link to={`/l/${l.location.code}`} className="hover:underline">
               {l.location.name}

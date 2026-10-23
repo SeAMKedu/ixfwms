@@ -456,8 +456,8 @@
   "maps": {
     "title": "Where on the map",
     "manage": "Map of this place",
-    "howTo": "Upload an SVG drawing (Inkscape, Illustrator, or exported from Blender). Give each shape that stands for a place inside this one the id loc: plus its code, e.g. {{example}} (loc- and loc_ work too). Shapes become clickable and light up for “where is it”.",
-    "upload": "Upload SVG map",
+    "howTo": "Upload an SVG drawing (Inkscape, Illustrator) or a 3D model exported from Blender as .glb. Name each shape or object that stands for a place inside this one loc- plus its code, e.g. {{example}} (loc: and loc_ work too). They become clickable and light up for “where is it”.",
+    "upload": "Upload SVG map or 3D model (.glb)",
     "replace": "Replace map",
     "remove": "Remove map",
     "showOnMap": "Map",
@@ -465,7 +465,12 @@
     "linked_other": "{{count}} places linked",
     "notDrawn": "Not in the drawing yet:",
     "unknown": "Ids for places that aren't inside this one: {{codes}}",
-    "starter": "Download a starter drawing"
+    "starter": "Download a starter drawing",
+    "model3dHint": "Drag to turn, scroll or pinch to zoom, click a highlighted object to open it.",
+    "kinds": {
+      "svg_2d": "2D drawing",
+      "gltf_3d": "3D model"
+    }
   },
   "users": {
     "title": "Users",

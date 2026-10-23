@@ -456,8 +456,8 @@
   "maps": {
     "title": "Kartalla",
     "manage": "Tämän paikan kartta",
-    "howTo": "Lataa SVG-piirros (Inkscape, Illustrator tai Blenderistä viety). Anna jokaiselle tämän sisällä olevaa paikkaa esittävälle muodolle tunnisteeksi loc: ja paikan koodi, esim. {{example}} (myös loc- ja loc_ käyvät). Muodoista tulee klikattavia, ja ne korostuvat kun etsitään ”missä se on”.",
-    "upload": "Lataa SVG-kartta",
+    "howTo": "Lataa SVG-piirros (Inkscape, Illustrator) tai Blenderistä .glb-muodossa viety 3D-malli. Nimeä jokainen tämän sisällä olevaa paikkaa esittävä muoto tai objekti loc- ja paikan koodi, esim. {{example}} (myös loc: ja loc_ käyvät). Niistä tulee klikattavia, ja ne korostuvat kun etsitään ”missä se on”.",
+    "upload": "Lataa SVG-kartta tai 3D-malli (.glb)",
     "replace": "Vaihda kartta",
     "remove": "Poista kartta",
     "showOnMap": "Kartta",
@@ -465,7 +465,12 @@
     "linked_other": "{{count}} paikkaa linkitetty",
     "notDrawn": "Ei vielä piirroksessa:",
     "unknown": "Tunnisteet paikoille, jotka eivät ole tämän sisällä: {{codes}}",
-    "starter": "Lataa aloituspiirros"
+    "starter": "Lataa aloituspiirros",
+    "model3dHint": "Vedä kääntääksesi, rullaa tai nipistä zoomataksesi, napsauta korostettua objektia avataksesi sen.",
+    "kinds": {
+      "svg_2d": "2D-piirros",
+      "gltf_3d": "3D-malli"
+    }
   },
   "users": {
     "title": "Käyttäjät",

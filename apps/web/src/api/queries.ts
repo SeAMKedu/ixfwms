@@ -21,6 +21,7 @@ import type {
   LocationSummary,
   LotView,
   MapCheck,
+  MapKind,
   MapLayer,
   PartDetail,
   PartStatus,
@@ -197,10 +198,10 @@ export const useMapLayers = (code: string) =>
     enabled: code !== '',
   });
 
-export const useMapCheck = (code: string, enabled: boolean) =>
+export const useMapCheck = (code: string, kind: MapKind, enabled: boolean) =>
   useQuery({
-    queryKey: ['mapCheck', code],
-    queryFn: () => api<MapCheck>(`/api/locations/${code}/map/check`),
+    queryKey: ['mapCheck', code, kind],
+    queryFn: () => api<MapCheck>(`/api/locations/${code}/map/check?kind=${kind}`),
     enabled,
   });
 
@@ -210,7 +211,9 @@ export const useSetMap = (code: string) =>
   );
 
 export const useRemoveMap = (code: string) =>
-  useChange(() => api(`/api/locations/${code}/map`, { method: 'DELETE' }));
+  useChange((kind: MapKind) =>
+    api(`/api/locations/${code}/map?kind=${kind}`, { method: 'DELETE' }),
+  );
 
 export const useUsers = (enabled: boolean) =>
   useQuery({ queryKey: ['users'], queryFn: () => api<UserInfo[]>('/api/users'), enabled });

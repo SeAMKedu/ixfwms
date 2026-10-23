@@ -1,4 +1,4 @@
-import type { MapCheck } from '@ixfwms/domain';
+import type { MapCheck, MapKind } from '@ixfwms/domain';
 import { Upload } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -6,11 +6,13 @@ import { Link } from 'react-router';
 import { useMapCheck, useRemoveMap, useSetMap, useUpload } from '../api/queries';
 import { Button, Card, CodeLabel, ErrorBox } from './ui';
 
-function CheckReport({ check }: { check: MapCheck }) {
+function CheckReport({ check, kind }: { check: MapCheck; kind: MapKind }) {
   const { t } = useTranslation();
   return (
     <div className="flex flex-col gap-1.5 text-sm">
-      <span className="text-ok">{t('maps.linked', { count: check.linked.length })}</span>
+      <span className="text-ok">
+        {t(`maps.kinds.${kind}`)}: {t('maps.linked', { count: check.linked.length })}
+      </span>
       {check.notDrawn.length > 0 && (
         <span className="text-warn">
           {t('maps.notDrawn')}{' '}
@@ -20,7 +22,7 @@ function CheckReport({ check }: { check: MapCheck }) {
               <Link to={`/l/${p.code}`} className="hover:underline">
                 {p.name}
               </Link>{' '}
-              <CodeLabel code={`loc:${p.code}`} />
+              <CodeLabel code={`loc-${p.code}`} />
             </span>
           ))}
         </span>
@@ -32,33 +34,66 @@ function CheckReport({ check }: { check: MapCheck }) {
   );
 }
 
-/** Upload or replace a place's drawing, and see which of its sub-places the drawing links to. */
-export function MapManager({ code, hasMap }: { code: string; hasMap: boolean }) {
+function ExistingMap({
+  code,
+  kind,
+  fresh,
+}: {
+  code: string;
+  kind: MapKind;
+  fresh: MapCheck | null;
+}) {
+  const { t } = useTranslation();
+  const current = useMapCheck(code, kind, !fresh);
+  const remove = useRemoveMap(code);
+  const check = fresh ?? current.data ?? null;
+  return (
+    <div className="flex flex-wrap items-start justify-between gap-2 border-t border-line pt-2">
+      {check ? (
+        <CheckReport check={check} kind={kind} />
+      ) : (
+        <span className="text-sm">{t(`maps.kinds.${kind}`)}</span>
+      )}
+      <Button small variant="ghost" busy={remove.isPending} onClick={() => remove.mutate(kind)}>
+        {t('maps.remove')}
+      </Button>
+      <ErrorBox error={remove.error} />
+    </div>
+  );
+}
+
+/** Upload or replace a place's SVG drawing or 3D model, and see which sub-places it links to. */
+export function MapManager({ code, kinds }: { code: string; kinds: MapKind[] }) {
   const { t } = useTranslation();
   const input = useRef<HTMLInputElement>(null);
-  const [result, setResult] = useState<MapCheck | null>(null);
+  const [fresh, setFresh] = useState<{ kind: MapKind; check: MapCheck } | null>(null);
   const upload = useUpload();
   const setMap = useSetMap(code);
-  const remove = useRemoveMap(code);
-  const current = useMapCheck(code, hasMap && !result);
 
   const onFile = async (file: File | undefined) => {
     if (!file) return;
     const uploaded = await upload.mutateAsync(file);
-    setResult(await setMap.mutateAsync(uploaded.id));
+    const check = await setMap.mutateAsync(uploaded.id);
+    setFresh({ kind: /\.glb$/i.test(file.name) ? 'gltf_3d' : 'svg_2d', check });
     if (input.current) input.current.value = '';
   };
-  const check = result ?? current.data ?? null;
 
   return (
     <Card title={t('maps.manage')}>
-      <p className="text-[13px] text-muted">{t('maps.howTo', { example: `loc:${code}` })}</p>
-      {check && <CheckReport check={check} />}
-      <div className="flex flex-wrap gap-2">
+      <p className="text-[13px] text-muted">{t('maps.howTo', { example: `loc-${code}` })}</p>
+      {kinds.map((kind) => (
+        <ExistingMap
+          key={kind}
+          code={code}
+          kind={kind}
+          fresh={fresh?.kind === kind ? fresh.check : null}
+        />
+      ))}
+      <div className="flex flex-wrap gap-3">
         <input
           ref={input}
           type="file"
-          accept=".svg,image/svg+xml"
+          accept=".svg,.glb,image/svg+xml,model/gltf-binary"
           className="sr-only"
           onChange={(e) => void onFile(e.target.files?.[0])}
         />
@@ -68,7 +103,7 @@ export function MapManager({ code, hasMap }: { code: string; hasMap: boolean }) 
           onClick={() => input.current?.click()}
         >
           <Upload className="size-4" aria-hidden />
-          {hasMap ? t('maps.replace') : t('maps.upload')}
+          {t('maps.upload')}
         </Button>
         <a
           href={`/api/locations/${code}/map/starter.svg`}
@@ -77,21 +112,8 @@ export function MapManager({ code, hasMap }: { code: string; hasMap: boolean }) 
         >
           {t('maps.starter')}
         </a>
-        {hasMap && (
-          <Button
-            small
-            variant="ghost"
-            busy={remove.isPending}
-            onClick={() => {
-              setResult(null);
-              remove.mutate();
-            }}
-          >
-            {t('maps.remove')}
-          </Button>
-        )}
       </div>
-      <ErrorBox error={upload.error ?? setMap.error ?? remove.error} />
+      <ErrorBox error={upload.error ?? setMap.error} />
     </Card>
   );
 }

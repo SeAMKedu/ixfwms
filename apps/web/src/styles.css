@@ -132,3 +132,26 @@ h3 {
     }
   }
 }
+
+/* 3D map labels (three.js CSS2DRenderer overlay) */
+.ixf-3d-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.ixf-3d-label {
+  transform: translateY(-14px);
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.ixf-3d-label.ixf-3d-target {
+  background: var(--link);
+  border-color: var(--link);
+  color: var(--surface);
+  font-weight: 600;
+}
