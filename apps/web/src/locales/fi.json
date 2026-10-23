@@ -24,7 +24,8 @@
     "backups": "Varmuuskopiot",
     "setup": "Puhelin- ja AI-asetukset",
     "account": "Oma tili",
-    "admin": "Ylläpito"
+    "admin": "Ylläpito",
+    "more": "Lisää"
   },
   "common": {
     "save": "Tallenna",
@@ -360,8 +361,15 @@
       "text": "Teksti",
       "number": "Numero",
       "enum": "Valinta",
-      "bool": "Kyllä / ei"
-    }
+      "bool": "Kyllä / ei",
+      "colour": "Väri"
+    },
+    "colourOptionsHint": "Jätä tyhjäksi koko paletille, tai luettele paletin värit (esim. black, red, blue)",
+    "actions": "Lisää toimintoja",
+    "offerTitle": "Aloitetaanko valmiilla kategorioilla?",
+    "offerText": "Lisää tavallisia laboratorion kategorioita hyödyllisine kenttineen: ruuvit ja mutterit (kierre, pituus, kanta), imukupit, ejektorit, liittimet, letkut, johdot, riviliittimet, logiikat ja filamentit (materiaali, väri, halkaisija). Niitä voi muuttaa tai poistaa myöhemmin. Löytyy myös ⋯-valikosta.",
+    "offerYes": "Lisää ne",
+    "offerNo": "Ei kiitos"
   },
   "import": {
     "title": "Tuonti taulukosta",
@@ -596,5 +604,28 @@
     "editPlace": "Muokkaa tätä paikkaa",
     "movePlace": "Siirrä tämä paikka",
     "pickUp": "Ota tämä paikka mukaan"
+  },
+  "colours": {
+    "black": "musta",
+    "brown": "ruskea",
+    "red": "punainen",
+    "orange": "oranssi",
+    "yellow": "keltainen",
+    "green": "vihreä",
+    "blue": "sininen",
+    "violet": "violetti",
+    "grey": "harmaa",
+    "white": "valkoinen",
+    "pink": "pinkki",
+    "turquoise": "turkoosi",
+    "green-yellow": "keltavihreä",
+    "silver": "hopea",
+    "gold": "kulta",
+    "transparent": "läpinäkyvä"
+  },
+  "colourPicker": {
+    "custom": "Oma sävy",
+    "countsAs": "lasketaan värinä",
+    "clear": "Tyhjennä"
   }
 }

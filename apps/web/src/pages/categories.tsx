@@ -1,6 +1,6 @@
 import { ATTRIBUTE_TYPES, type AttributeField, type AttributeType } from '@ixfwms/domain';
-import { Plus, Trash2 } from 'lucide-react';
-import { useState, type FormEvent } from 'react';
+import { MoreHorizontal, Plus, Trash2 } from 'lucide-react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router';
 import {
@@ -96,7 +96,10 @@ function FieldsForm({
           key: r.key.trim() || keyFromLabel(r.label),
           type: r.type,
           unit: r.unit.trim() || null,
-          options: r.type === 'enum' ? splitList(r.options) : null,
+          options:
+            r.type === 'enum' || r.type === 'colour'
+              ? splitList(r.options).map((o) => (r.type === 'colour' ? o.toLowerCase() : o))
+              : null,
         })),
     });
   };
@@ -170,9 +173,16 @@ function FieldsForm({
                 <Trash2 className="size-4" aria-hidden />
               </Button>
             )}
-            {r.type === 'enum' && (
+            {(r.type === 'enum' || r.type === 'colour') && (
               <div className="sm:col-span-4">
-                <Field label={t('categories.options')} hint={t('categories.optionsHint')}>
+                <Field
+                  label={t('categories.options')}
+                  hint={
+                    r.type === 'colour'
+                      ? t('categories.colourOptionsHint')
+                      : t('categories.optionsHint')
+                  }
+                >
                   {(id) => (
                     <TextInput
                       id={id}
@@ -216,6 +226,48 @@ function FieldsForm({
   );
 }
 
+const OFFER_KEY = 'ixfwms.starterCategoriesOffered';
+
+/** Asked once, on the first visit while no category has fields: add the starter set? Later it's in the ⋯ menu. */
+function StarterOffer({ show, onAccept }: { show: boolean; onAccept: () => void }) {
+  const { t } = useTranslation();
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    let offered = false;
+    try {
+      offered = localStorage.getItem(OFFER_KEY) === '1';
+    } catch {
+      // no storage: ask (it's harmless to ask again)
+    }
+    if (show && !offered && dialog.current && !dialog.current.open) dialog.current.showModal();
+  }, [show]);
+  const close = (accept: boolean) => {
+    try {
+      localStorage.setItem(OFFER_KEY, '1');
+    } catch {
+      // asked again next time
+    }
+    dialog.current?.close();
+    if (accept) onAccept();
+  };
+  return (
+    <dialog
+      ref={dialog}
+      onCancel={() => close(false)}
+      className="m-auto w-[min(30rem,calc(100vw-2rem))] rounded-xl border border-line bg-surface p-5 text-ink shadow-xl backdrop:bg-black/40"
+    >
+      <h2 className="text-xl font-semibold">{t('categories.offerTitle')}</h2>
+      <p className="mt-2 text-sm text-muted">{t('categories.offerText')}</p>
+      <div className="mt-4 flex gap-2">
+        <Button variant="primary" onClick={() => close(true)}>
+          {t('categories.offerYes')}
+        </Button>
+        <Button onClick={() => close(false)}>{t('categories.offerNo')}</Button>
+      </div>
+    </dialog>
+  );
+}
+
 /** Categories and the fields each one asks for (thread, length, diameter…). */
 export function CategoriesPage() {
   const { t } = useTranslation();
@@ -227,7 +279,37 @@ export function CategoriesPage() {
   return (
     <div className="grid gap-6 md:grid-cols-[16rem_minmax(0,1fr)]">
       <div className="flex flex-col gap-3">
-        <PageHeader title={t('categories.title')} />
+        <PageHeader
+          title={t('categories.title')}
+          actions={
+            can('write') && (
+              <details className="relative">
+                <summary
+                  aria-label={t('categories.actions')}
+                  className="grid size-8 cursor-pointer list-none place-items-center rounded-md text-muted hover:bg-surface-2 [&::-webkit-details-marker]:hidden"
+                >
+                  <MoreHorizontal className="size-5" aria-hidden />
+                </summary>
+                <div className="absolute right-0 z-10 mt-1 w-56 rounded-lg border border-line bg-surface p-1 shadow-lg">
+                  <button
+                    type="button"
+                    className="w-full rounded-md px-2 py-1.5 text-left text-sm hover:bg-surface-2"
+                    onClick={(e) => {
+                      e.currentTarget.closest('details')?.removeAttribute('open');
+                      seed.mutate();
+                    }}
+                  >
+                    {t('categories.addStarter')}
+                  </button>
+                </div>
+              </details>
+            )
+          }
+        />
+        <StarterOffer
+          show={can('write') && categories.isSuccess && !categories.data.some((c) => c.fields > 0)}
+          onAccept={() => seed.mutate()}
+        />
         {categories.isPending ? (
           <Loading />
         ) : (categories.data ?? []).length === 0 ? (
@@ -250,11 +332,6 @@ export function CategoriesPage() {
               </li>
             ))}
           </ul>
-        )}
-        {can('write') && (
-          <Button small busy={seed.isPending} onClick={() => seed.mutate()} className="self-start">
-            {t('categories.addStarter')}
-          </Button>
         )}
         {seed.data && (
           <p className="text-[13px] text-muted">

@@ -24,7 +24,8 @@
     "backups": "Backups",
     "setup": "Phone & AI setup",
     "account": "Account",
-    "admin": "Admin"
+    "admin": "Admin",
+    "more": "More"
   },
   "common": {
     "save": "Save",
@@ -360,8 +361,15 @@
       "text": "Text",
       "number": "Number",
       "enum": "Choice",
-      "bool": "Yes / no"
-    }
+      "bool": "Yes / no",
+      "colour": "Colour"
+    },
+    "colourOptionsHint": "Leave empty for the whole palette, or list palette names (e.g. black, red, blue)",
+    "actions": "More actions",
+    "offerTitle": "Start with ready-made categories?",
+    "offerText": "Adds common lab categories with useful fields: screws and nuts (thread, length, head), suction cups, ejectors, fittings, tubing, wire, terminal blocks, PLCs and filament (material, colour, diameter). You can change or delete them later. This is also in the ⋯ menu.",
+    "offerYes": "Add them",
+    "offerNo": "No thanks"
   },
   "import": {
     "title": "Import from a spreadsheet",
@@ -596,5 +604,28 @@
     "editPlace": "Edit this place",
     "movePlace": "Move this place",
     "pickUp": "Pick up this place"
+  },
+  "colours": {
+    "black": "black",
+    "brown": "brown",
+    "red": "red",
+    "orange": "orange",
+    "yellow": "yellow",
+    "green": "green",
+    "blue": "blue",
+    "violet": "violet",
+    "grey": "grey",
+    "white": "white",
+    "pink": "pink",
+    "turquoise": "turquoise",
+    "green-yellow": "green-yellow",
+    "silver": "silver",
+    "gold": "gold",
+    "transparent": "transparent"
+  },
+  "colourPicker": {
+    "custom": "Custom shade",
+    "countsAs": "counts as",
+    "clear": "Clear"
   }
 }

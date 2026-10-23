@@ -1,4 +1,6 @@
 import {
+  ChevronDown,
+  ChevronRight,
   DatabaseBackup,
   FileSpreadsheet,
   History,
@@ -15,7 +17,7 @@ import {
   Search,
   Tags,
 } from 'lucide-react';
-import type { ComponentType } from 'react';
+import { useState, type ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { useCarry, useParts } from '../api/queries';
@@ -93,12 +95,95 @@ function UserBox() {
   );
 }
 
+interface SideLinkItem {
+  to: string;
+  label: string;
+  icon: ComponentType<{ className?: string }>;
+}
+
+const sideLinkClass = ({ isActive }: { isActive: boolean }) =>
+  `flex items-center gap-2 rounded-md px-2 py-1.5 text-[14px] ${isActive ? 'bg-link-soft font-semibold text-link' : 'text-ink hover:bg-surface-2'}`;
+
+function SideLinks({ links, className }: { links: SideLinkItem[]; className?: string }) {
+  return (
+    <div className={`flex flex-col gap-0.5 ${className ?? ''}`}>
+      {links.map((l) => (
+        <NavLink key={l.to} to={l.to} className={sideLinkClass}>
+          <l.icon className="size-4" aria-hidden />
+          {l.label}
+        </NavLink>
+      ))}
+    </div>
+  );
+}
+
+const MORE_KEY = 'ixfwms.sidebarMore';
+
+/** A collapsible group; remembers whether it was open, and opens itself on one of its pages. */
+function MoreLinks({ links }: { links: SideLinkItem[] }) {
+  const { t } = useTranslation();
+  const here = useLocation();
+  const [open, setOpen] = useState(() => {
+    try {
+      return localStorage.getItem(MORE_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
+  const onPage = links.some((l) => here.pathname.startsWith(l.to));
+  const toggle = () => {
+    const next = !open;
+    setOpen(next);
+    try {
+      localStorage.setItem(MORE_KEY, next ? '1' : '0');
+    } catch {
+      // remembered for this visit only
+    }
+  };
+  const shown = open || onPage;
+  return (
+    <div className="mt-3 flex flex-col gap-0.5">
+      <button
+        type="button"
+        aria-expanded={shown}
+        onClick={toggle}
+        className="flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted hover:bg-surface-2"
+      >
+        {shown ? (
+          <ChevronDown className="size-4" aria-hidden />
+        ) : (
+          <ChevronRight className="size-4" aria-hidden />
+        )}
+        {t('nav.more')}
+      </button>
+      {shown && <SideLinks links={links} className="pl-2" />}
+    </div>
+  );
+}
+
 /** Desktop: sidebar. Phone: top bar plus bottom tabs with Scan in the middle, as in the plan's sketch. */
 export function Layout() {
   const { t } = useTranslation();
   const { can } = useSession();
   const { setHelpOpen } = useShortcutRegistry();
   const items = useNavItems();
+  const secondary: SideLinkItem[] = [
+    { to: '/categories', label: t('nav.categories'), icon: Tags },
+    { to: '/import', label: t('nav.import'), icon: FileSpreadsheet },
+    { to: '/bom', label: t('nav.bom'), icon: ListChecks },
+  ];
+  // Occasional pages: tucked under "More" so the everyday ones stand out.
+  const more: SideLinkItem[] = [
+    { to: '/labels', label: t('nav.labels'), icon: QrCode },
+    { to: '/history', label: t('nav.history'), icon: History },
+    { to: '/setup', label: t('nav.setup'), icon: Smartphone },
+    ...(can('admin')
+      ? [
+          { to: '/users', label: t('nav.users'), icon: Users },
+          { to: '/backups', label: t('nav.backups'), icon: DatabaseBackup },
+        ]
+      : []),
+  ];
   return (
     <div className="min-h-dvh md:grid md:grid-cols-[220px_minmax(0,1fr)]">
       <GlobalShortcuts />
@@ -127,82 +212,8 @@ export function Layout() {
             </NavLink>
           ))}
         </nav>
-        <NavLink
-          to="/labels"
-          className={({ isActive }) =>
-            `mt-3 flex items-center gap-2 rounded-md px-2 py-1.5 text-[14px] ${isActive ? 'bg-link-soft font-semibold text-link' : 'text-ink hover:bg-surface-2'}`
-          }
-        >
-          <QrCode className="size-4" aria-hidden />
-          {t('nav.labels')}
-        </NavLink>
-        <NavLink
-          to="/categories"
-          className={({ isActive }) =>
-            `flex items-center gap-2 rounded-md px-2 py-1.5 text-[14px] ${isActive ? 'bg-link-soft font-semibold text-link' : 'text-ink hover:bg-surface-2'}`
-          }
-        >
-          <Tags className="size-4" aria-hidden />
-          {t('nav.categories')}
-        </NavLink>
-        <NavLink
-          to="/import"
-          className={({ isActive }) =>
-            `flex items-center gap-2 rounded-md px-2 py-1.5 text-[14px] ${isActive ? 'bg-link-soft font-semibold text-link' : 'text-ink hover:bg-surface-2'}`
-          }
-        >
-          <FileSpreadsheet className="size-4" aria-hidden />
-          {t('nav.import')}
-        </NavLink>
-        <NavLink
-          to="/bom"
-          className={({ isActive }) =>
-            `flex items-center gap-2 rounded-md px-2 py-1.5 text-[14px] ${isActive ? 'bg-link-soft font-semibold text-link' : 'text-ink hover:bg-surface-2'}`
-          }
-        >
-          <ListChecks className="size-4" aria-hidden />
-          {t('nav.bom')}
-        </NavLink>
-        <NavLink
-          to="/history"
-          className={({ isActive }) =>
-            `flex items-center gap-2 rounded-md px-2 py-1.5 text-[14px] ${isActive ? 'bg-link-soft font-semibold text-link' : 'text-ink hover:bg-surface-2'}`
-          }
-        >
-          <History className="size-4" aria-hidden />
-          {t('nav.history')}
-        </NavLink>
-        <NavLink
-          to="/setup"
-          className={({ isActive }) =>
-            `flex items-center gap-2 rounded-md px-2 py-1.5 text-[14px] ${isActive ? 'bg-link-soft font-semibold text-link' : 'text-ink hover:bg-surface-2'}`
-          }
-        >
-          <Smartphone className="size-4" aria-hidden />
-          {t('nav.setup')}
-        </NavLink>
-        {can('admin') && (
-          <>
-            <NavLink
-              to="/users"
-              className={({ isActive }) =>
-                `flex items-center gap-2 rounded-md px-2 py-1.5 text-[14px] ${isActive ? 'bg-link-soft font-semibold text-link' : 'text-ink hover:bg-surface-2'}`
-              }
-            >
-              <Users className="size-4" aria-hidden />
-              {t('nav.users')}
-            </NavLink>
-            <NavLink
-              to="/backups"
-              className={({ isActive }) =>
-                `flex items-center gap-2 rounded-md px-2 py-1.5 text-[14px] ${isActive ? 'bg-link-soft font-semibold text-link' : 'text-ink hover:bg-surface-2'}`
-              }
-            >
-              <DatabaseBackup className="size-4" aria-hidden />
-              {t('nav.backups')}
-            </NavLink>
-          </>
-        )}
+        <SideLinks links={secondary} className="mt-3" />
+        <MoreLinks links={more} />
         <div className="mt-auto flex flex-col gap-3 px-2">
           <CarryIndicator className="self-start" compact />
           <button
