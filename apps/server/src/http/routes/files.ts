@@ -33,11 +33,19 @@ export function registerFileRoutes(app: FastifyInstance, { services }: AppDeps):
 
   const download = async (id: string, reply: FastifyReply) => {
     const { row, path } = await files.get(id);
+    // SVG/HTML/XML can carry scripts; opened directly they must not run on this origin.
+    if (/svg|html|xml/i.test(row.mime)) {
+      reply.header(
+        'content-security-policy',
+        "sandbox; default-src 'none'; img-src data:; style-src 'unsafe-inline'",
+      );
+    }
     return reply
       .header('content-type', row.mime)
       .header('content-length', row.size)
       .header('content-disposition', `inline; filename*=UTF-8''${encodeURIComponent(row.filename)}`)
       .header('cache-control', 'public, max-age=31536000, immutable')
+      .header('x-content-type-options', 'nosniff')
       .send(createReadStream(path));
   };
   app.get('/api/files/:id', async (request, reply) =>
