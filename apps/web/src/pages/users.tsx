@@ -248,7 +248,7 @@ export function UsersPage() {
               </Select>
             )}
           </Field>
-          <Field label={t('login.password')} hint={t('users.passwordHint')}>
+          <Field label={t('login.password')}>
             {(id) => (
               <TextInput
                 id={id}
@@ -264,6 +264,7 @@ export function UsersPage() {
             {t('common.add')}
           </Button>
         </form>
+        <p className="text-[12px] text-muted">{t('users.passwordHint')}</p>
         <ErrorBox error={create.error} />
       </Card>
       {users.isPending ? <Loading /> : users.data?.map((u) => <UserCard key={u.id} user={u} />)}
