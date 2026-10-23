@@ -1,10 +1,10 @@
 # Initial inventory with an AI assistant
 
-Until the web UI exists (0.2), the fastest way to fill ixfwms is to let an assistant such as Claude do the typing over MCP. Everything it creates is a **draft** that a person confirms later.
+The fastest way to fill ixfwms at the start is to let an assistant such as Claude do the typing over MCP. Everything it creates is a **draft** that a person confirms later in the Inbox. (Doing it by hand works too: open a box's page on a phone and use **Add items** for quick photo + name + amount entry.)
 
 ## Setup (once)
 
-1. Create a user and an `inventory` token for the assistant:
+1. Create a user and an `inventory` token for the assistant. In the web app: **More › Users**, add a person called e.g. `assistant` (no password needed), then create a token with the `inventory` scope. The page shows the token once, together with the Claude Code command. Or with the CLI:
    ```bash
    npm run cli -- user:create --name assistant
    npm run cli -- token:create --user assistant --name claude --scopes inventory

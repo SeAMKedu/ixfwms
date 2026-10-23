@@ -7,8 +7,9 @@ import { readFileSync, writeFileSync } from 'node:fs';
 
 const type = process.argv[2];
 const dryRun = process.argv.includes('--dry-run');
-if (!['patch', 'minor', 'major'].includes(type)) {
-  console.error('Usage: npm run release -- patch|minor|major [--dry-run]');
+const explicit = /^\d+\.\d+\.\d+$/.test(type ?? '') ? type : null;
+if (!explicit && !['patch', 'minor', 'major'].includes(type)) {
+  console.error('Usage: npm run release -- patch|minor|major|X.Y.Z [--dry-run]');
   process.exit(2);
 }
 
@@ -37,11 +38,17 @@ if (branch !== 'main' && !branch.startsWith('hotfix/')) {
 
 sh(`node scripts/check.mjs ${type === 'patch' ? 'patch' : 'release'}`);
 
-const PACKAGES = ['package.json', 'packages/domain/package.json', 'apps/server/package.json'];
+const PACKAGES = [
+  'package.json',
+  'packages/domain/package.json',
+  'apps/server/package.json',
+  'apps/web/package.json',
+];
 const root = JSON.parse(readFileSync('package.json', 'utf8'));
 const [major, minor, patch] = root.version.split('.').map(Number);
-const next =
-  type === 'major'
+const next = explicit
+  ? explicit
+  : type === 'major'
     ? `${major + 1}.0.0`
     : type === 'minor'
       ? `${major}.${minor + 1}.0`
@@ -53,7 +60,8 @@ if (dryRun) process.exit(0);
 for (const file of PACKAGES) {
   const pkg = JSON.parse(readFileSync(file, 'utf8'));
   pkg.version = next;
-  if (pkg.dependencies?.['@ixfwms/domain']) pkg.dependencies['@ixfwms/domain'] = next;
+  for (const deps of [pkg.dependencies, pkg.devDependencies])
+    if (deps?.['@ixfwms/domain']) deps['@ixfwms/domain'] = next;
   writeFileSync(file, `${JSON.stringify(pkg, null, 2)}\n`);
 }
 sh('npm install --package-lock-only --ignore-scripts --no-audit --no-fund');

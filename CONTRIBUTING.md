@@ -28,9 +28,10 @@ Git hooks are installed by `npm install` (lefthook). Pre-commit formats and lint
 npm run release -- patch    # bug fixes
 npm run release -- minor    # features, additive migrations
 npm run release -- major    # breaking API/MCP/schema changes
+npm run release -- 0.7.0    # or an explicit version, e.g. to match a roadmap milestone
 ```
 
-The release script runs the matching check tier, bumps versions, writes `CHANGELOG.md` with git-cliff, commits and tags `vX.Y.Z`. Then build the image with `docker build -t ixfwms:X.Y.Z .`.
+The release script must run on `main` with a clean tree. It runs the matching check tier (the full one for anything but a patch), bumps versions, writes `CHANGELOG.md` with git-cliff, commits and tags `vX.Y.Z`. Then build the image with `docker build -t ixfwms:X.Y.Z .`.
 
 ## Database changes
 
