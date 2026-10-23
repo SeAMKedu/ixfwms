@@ -5,7 +5,14 @@ import {
   timingSafeEqual,
   type ScryptOptions,
 } from 'node:crypto';
-import { SCOPES, type LoginResult, type Scope, type UserRole } from '@ixfwms/domain';
+import {
+  SCOPES,
+  USER_ROLES,
+  type LoginResult,
+  type Scope,
+  type UserInfo,
+  type UserRole,
+} from '@ixfwms/domain';
 import { and, eq, gt, isNull, or } from 'drizzle-orm';
 import type { Db } from '../db/client.js';
 import { apiTokens, users } from '../db/schema.js';
@@ -149,6 +156,55 @@ export class AuthService {
       .insert(apiTokens)
       .values({ id, userId: user.id, name: tokenName, tokenHash: hashToken(token), scopes });
     return { token, id };
+  }
+
+  /** Users with their active tokens, for the admin page. Token hashes never leave the server. */
+  async listUsersWithTokens(): Promise<UserInfo[]> {
+    const all = await this.db.select().from(users).orderBy(users.name).all();
+    const tokens = await this.db
+      .select()
+      .from(apiTokens)
+      .where(
+        and(
+          isNull(apiTokens.revokedAt),
+          or(isNull(apiTokens.expiresAt), gt(apiTokens.expiresAt, nowIso())),
+        ),
+      )
+      .all();
+    return all.map((u) => ({
+      id: u.id,
+      name: u.name,
+      role: u.role,
+      hasPassword: u.passwordHash != null,
+      createdAt: u.createdAt,
+      tokens: tokens
+        .filter((t) => t.userId === u.id)
+        .map((t) => ({
+          id: t.id,
+          name: t.name,
+          scopes: t.scopes,
+          kind: t.kind,
+          createdAt: t.createdAt,
+          lastUsedAt: t.lastUsedAt,
+          expiresAt: t.expiresAt,
+        })),
+    }));
+  }
+
+  async setRole(userName: string, role: UserRole): Promise<void> {
+    if (!USER_ROLES.includes(role)) throw invalid(`Role must be one of ${USER_ROLES.join(', ')}`);
+    const user = await this.db.select().from(users).where(eq(users.name, userName)).get();
+    if (!user) throw notFound('User', userName);
+    await this.db.update(users).set({ role }).where(eq(users.id, user.id));
+  }
+
+  /** Lets a logged-in person change their own password (they must know the current one). */
+  async changeOwnPassword(userId: string, current: string, next: string): Promise<void> {
+    const user = await this.db.select().from(users).where(eq(users.id, userId)).get();
+    if (!user?.passwordHash || !(await checkPassword(current, user.passwordHash))) {
+      throw new AppError('forbidden', 'The current password is wrong');
+    }
+    await this.setPassword(user.name, next);
   }
 
   async revokeToken(id: string): Promise<void> {

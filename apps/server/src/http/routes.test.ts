@@ -23,7 +23,7 @@ async function req<T = Json>(
     headers: { authorization: `Bearer ${token}` },
   });
   if (res.statusCode >= 400) throw new Error(`${method} ${url} → ${res.statusCode}: ${res.body}`);
-  return res.json<T>();
+  return res.statusCode === 204 ? (undefined as T) : res.json<T>();
 }
 
 describe('REST routes, end to end', () => {
@@ -338,5 +338,86 @@ describe('maps over HTTP', () => {
       headers: { authorization: `Bearer ${env.adminToken}` },
     });
     expect(removed.statusCode).toBe(204);
+  });
+});
+
+describe('users, setup and backups over HTTP', () => {
+  it('lets admins manage users and tokens, and people change their own password', async () => {
+    await req('POST', '/api/users', { name: 'pat', role: 'member', password: 'first password' });
+    const created = await req<{ token: string; id: string }>('POST', '/api/users/pat/tokens', {
+      name: 'claude',
+      scopes: ['inventory'],
+    });
+    expect(created.token).toMatch(/^ixf_/);
+    const list = await req<{ name: string; hasPassword: boolean; tokens: { name: string }[] }[]>(
+      'GET',
+      '/api/users',
+    );
+    expect(list.find((u) => u.name === 'pat')).toMatchObject({
+      hasPassword: true,
+      tokens: [{ name: 'claude' }],
+    });
+    await req('PATCH', '/api/users/pat', { role: 'viewer' });
+    const forbidden = await env.app.inject({
+      url: '/api/users',
+      headers: { authorization: `Bearer ${created.token}` },
+    });
+    expect(forbidden.statusCode).toBe(403);
+    await req('DELETE', `/api/tokens/${created.id}`);
+    expect(
+      (
+        await env.app.inject({
+          url: '/api/session',
+          headers: { authorization: `Bearer ${created.token}` },
+        })
+      ).statusCode,
+    ).toBe(401);
+
+    const login = (
+      await env.app.inject({
+        method: 'POST',
+        url: '/api/session',
+        payload: { name: 'pat', password: 'first password' },
+      })
+    ).json<{ token: string }>();
+    const wrong = await env.app.inject({
+      method: 'POST',
+      url: '/api/session/password',
+      payload: { current: 'nope', next: 'second password' },
+      headers: { authorization: `Bearer ${login.token}` },
+    });
+    expect(wrong.statusCode).toBe(403);
+    const ok = await env.app.inject({
+      method: 'POST',
+      url: '/api/session/password',
+      payload: { current: 'first password', next: 'second password' },
+      headers: { authorization: `Bearer ${login.token}` },
+    });
+    expect(ok.statusCode).toBe(204);
+  });
+
+  it('reports setup state, lists history and downloads backups for admins', async () => {
+    expect(await req('GET', '/api/setup')).toMatchObject({ secure: false, certificate: false });
+    expect((await env.app.inject({ url: '/api/setup/root.crt' })).statusCode).toBe(404);
+    await req('POST', '/api/locations', { name: 'Lab', type: 'room' });
+    expect((await req<unknown[]>('GET', '/api/history')).length).toBeGreaterThan(0);
+    expect((await req<unknown[]>('GET', '/api/carry/all')).length).toBe(0);
+    const { file } = await req<{ file: string }>('POST', '/api/backups');
+    const list = await req<{ name: string; size: number }[]>('GET', '/api/backups');
+    expect(file.endsWith(list[0]!.name)).toBe(true);
+    const dl = await env.app.inject({
+      url: `/api/backups/${list[0]!.name}`,
+      headers: { authorization: `Bearer ${env.adminToken}` },
+    });
+    expect(dl.statusCode).toBe(200);
+    expect(dl.rawPayload.subarray(0, 15).toString()).toBe('SQLite format 3');
+    expect(
+      (
+        await env.app.inject({
+          url: '/api/backups/../../etc/passwd',
+          headers: { authorization: `Bearer ${env.adminToken}` },
+        })
+      ).statusCode,
+    ).not.toBe(200);
   });
 });

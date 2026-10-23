@@ -1,7 +1,7 @@
-import { formatAmount, type CarriedItem, type CarryState } from '@ixfwms/domain';
+import { formatAmount, type CarriedItem, type CarrySummary, type CarryState } from '@ixfwms/domain';
 import { asc, eq } from 'drizzle-orm';
 import type { Db } from '../db/client.js';
-import { locations, parts, stockLots } from '../db/schema.js';
+import { locations, parts, stockLots, users } from '../db/schema.js';
 import { invalid } from '../lib/errors.js';
 import { requireScope, type Actor } from './context.js';
 import type { LocationService } from './locations.js';
@@ -52,6 +52,38 @@ export class CarryService {
     ];
     const since = items.map((i) => i.since).sort()[0] ?? null;
     return { location: await this.locations.summarize(this.db, carry), items, since };
+  }
+
+  /** Everyone's non-empty carry lists, oldest first: things that may have been forgotten "in transit". */
+  async everyone(): Promise<CarrySummary[]> {
+    const carries = await this.db
+      .select({ loc: locations, user: users.name })
+      .from(locations)
+      .innerJoin(users, eq(users.id, locations.ownerUserId))
+      .where(eq(locations.kind, 'in_transit'))
+      .all();
+    const out: CarrySummary[] = [];
+    for (const { loc, user } of carries) {
+      const lots = await this.db
+        .select({ at: stockLots.updatedAt })
+        .from(stockLots)
+        .where(eq(stockLots.locationId, loc.id))
+        .all();
+      const boxes = await this.db
+        .select({ at: locations.updatedAt })
+        .from(locations)
+        .where(eq(locations.parentId, loc.id))
+        .all();
+      const times = [...lots, ...boxes].map((r) => r.at).sort();
+      if (times.length === 0) continue;
+      out.push({
+        user,
+        location: await this.locations.summarize(this.db, loc),
+        count: times.length,
+        since: times[0]!,
+      });
+    }
+    return out.sort((a, b) => a.since.localeCompare(b.since));
   }
 
   /** Picks up a whole place (with its contents) or some of a stock lot. */

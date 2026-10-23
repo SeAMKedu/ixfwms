@@ -4,6 +4,7 @@ import { ZodError } from 'zod';
 import { AppError } from '../lib/errors.js';
 import { registerMcp } from '../mcp/http.js';
 import type { AppDeps } from './context.js';
+import { registerAdminRoutes } from './routes/admin.js';
 import { registerBomRoutes } from './routes/bom.js';
 import { registerCarryRoutes } from './routes/carry.js';
 import { registerFileRoutes } from './routes/files.js';
@@ -16,6 +17,7 @@ import { registerPartRoutes } from './routes/parts.js';
 import { registerSessionRoutes } from './routes/session.js';
 import { registerStockRoutes } from './routes/stock.js';
 import { registerSystemRoutes } from './routes/system.js';
+import { registerUserRoutes } from './routes/users.js';
 import { defaultWebDir, registerWebApp } from './web.js';
 
 export async function buildApp(
@@ -71,6 +73,8 @@ export async function buildApp(
   registerImportRoutes(app, deps);
   registerBomRoutes(app, deps);
   registerMapRoutes(app, deps);
+  registerUserRoutes(app, deps);
+  registerAdminRoutes(app, deps);
   registerMcp(app, deps);
   // The built web app takes over the HTML routes; without a build, minimal server pages stand in.
   if (!(await registerWebApp(app, config.webDir ?? defaultWebDir()))) registerPageRoutes(app, deps);

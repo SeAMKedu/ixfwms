@@ -8,6 +8,7 @@ import { BomService } from './bom.js';
 import { CarryService } from './carry.js';
 import { ExportService } from './export.js';
 import { FileService } from './files.js';
+import { HistoryService } from './history.js';
 import { ImportService } from './import.js';
 import { LabelService } from './labels.js';
 import { LocationViews } from './location-views.js';
@@ -25,6 +26,7 @@ export interface Services {
   carry: CarryService;
   export: ExportService;
   files: FileService;
+  history: HistoryService;
   import: ImportService;
   labels: LabelService;
   locations: LocationService;
@@ -51,6 +53,7 @@ export function createServices(
     carry: new CarryService(db, locations, stock),
     export: new ExportService(db),
     files,
+    history: new HistoryService(db, locations, stock),
     import: new ImportService(db, locations, parts, stock),
     labels: new LabelService(db, locations),
     locations,

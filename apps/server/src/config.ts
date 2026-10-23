@@ -17,6 +17,8 @@ export interface Config {
   backupKeep: number;
   /** Hour (0-23, local time) for the nightly backup; -1 disables it. */
   backupHour: number;
+  /** Root certificate of the local CA (Caddy's), offered on the /setup page; optional. */
+  caCert: string | null;
   /** Built web app to serve; null means apps/web/dist next to the server. */
   webDir: string | null;
 }
@@ -41,5 +43,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     backupKeep: int(env.IXF_BACKUP_KEEP, 14),
     backupHour: int(env.IXF_BACKUP_HOUR, 3),
     webDir: env.IXF_WEB_DIR ? resolve(env.IXF_WEB_DIR) : null,
+    caCert: env.IXF_CA_CERT ? resolve(env.IXF_CA_CERT) : null,
   };
 }

@@ -195,3 +195,49 @@ export interface CategoryFields {
   /** Own fields plus those inherited from parent categories. */
   effective: AttributeField[];
 }
+
+export interface TokenInfo {
+  id: string;
+  name: string;
+  scopes: Scope[];
+  kind: 'api' | 'session';
+  createdAt: string;
+  lastUsedAt: string | null;
+  expiresAt: string | null;
+}
+
+export interface UserInfo {
+  id: string;
+  name: string;
+  role: UserRole;
+  hasPassword: boolean;
+  createdAt: string;
+  /** Active tokens (not revoked, not expired). */
+  tokens: TokenInfo[];
+}
+
+/** Someone's carry list, for the "still being carried" reminder. */
+export interface CarrySummary {
+  user: string;
+  location: LocationSummary;
+  count: number;
+  since: string;
+}
+
+export type HistoryKind = 'stock' | 'location' | 'edit';
+
+export interface HistoryEntry {
+  kind: HistoryKind;
+  id: string;
+  at: string;
+  user: string | null;
+  /** add, take, stocktake, move; location moves are "move"; edits use the audit action (create, update, merge…). */
+  action: string;
+  part: { code: string; name: string } | null;
+  place: { code: string; name: string } | null;
+  from: { code: string; name: string } | null;
+  to: { code: string; name: string } | null;
+  delta: number | null;
+  /** Moves can be undone while nothing has changed since. */
+  undoable: boolean;
+}

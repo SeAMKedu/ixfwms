@@ -13,8 +13,12 @@ services:
     env_file:
       - path: .env
         required: false
+    environment:
+      # Offered for download on the /setup page when the https profile runs.
+      IXF_CA_CERT: /caddy-data/caddy/pki/authorities/local/root.crt
     volumes:
       - ixfwms-data:/data
+      - caddy-data:/caddy-data:ro
 
   caddy:
     image: caddy:2
