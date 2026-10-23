@@ -173,15 +173,21 @@ function OutOnLoan() {
   );
 }
 
-/** Broken, in repair or due for a check. */
+/** Broken, in repair or due for a check; units with an open report are already listed above. */
 function UnitsAttention() {
   const { t } = useTranslation();
   const list = useUnitAttention();
-  if (!list.data?.length) return null;
+  const reported = new Set(
+    (useReports().data ?? []).filter((r) => r.owner === 'unit').map((r) => r.target.code),
+  );
+  const shown = (list.data ?? []).filter(
+    (a) => a.reason === 'check_due' || !reported.has(a.unit.code),
+  );
+  if (!shown.length) return null;
   return (
     <Card title={t('units.attentionTitle')}>
       <ul className="flex flex-col gap-2 text-sm">
-        {list.data.map((a) => (
+        {shown.map((a) => (
           <li key={a.unit.id} className="flex flex-col gap-0.5">
             <span className="flex flex-wrap items-center gap-2">
               <Link to={`/u/${a.unit.code}`} className="font-medium hover:underline">

@@ -886,7 +886,7 @@
     "toWorkstation": "Vie työpisteelle",
     "workstationOnly": "Ilman tunnusta tavaroita voi viedä vain työpisteelle.",
     "lend": "Lainaa labran ulkopuolelle",
-    "return": "Palautettu",
+    "return": "Palautunut lainasta",
     "returnTo": "Paikka",
     "returnToHint": "Jätä tyhjäksi, niin se menee kotipaikkaansa.",
     "lentOutSince": "Lainassa labran ulkopuolella {{date}} alkaen",

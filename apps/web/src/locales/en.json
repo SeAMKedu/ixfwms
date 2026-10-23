@@ -886,7 +886,7 @@
     "toWorkstation": "Take to a workstation",
     "workstationOnly": "Without an account, things can only be brought to a workstation.",
     "lend": "Lend out of the lab",
-    "return": "Returned",
+    "return": "Back from loan",
     "returnTo": "Put it at",
     "returnToHint": "Leave empty for its home place.",
     "lentOutSince": "Lent out of the lab since {{date}}",
