@@ -43,6 +43,22 @@ Print a batch of unused codes before an inventory round (**Labels › Blank labe
 boxes as you go. Scanning one that isn't registered yet opens **New place with code …**, which
 registers the box with that code. An AI assistant can do the same: `create_location` with `code`.
 
+## When labels go wrong
+
+- **Lost the printout of blank labels:** Labels › _Printed blank labels_ lists every batch with
+  how many codes are unused, used and retired. _Download unused again_ gives the CSV for the codes
+  still unused.
+- **Blank labels lost or damaged:** _Show codes_, tick them, and _Retire_. Retired codes are never
+  handed out again, and scanning one shows "retired label".
+- **A box has a different sticker than the one registered** (e.g. a blank label stuck on it later):
+  on the place page, _Label › Wrong or lost label? › The code on its sticker_. The place takes
+  that code, and its old code is retired.
+- **Two boxes got each other's labels:** same menu, _Swap codes with_ the other place.
+- **The label fell off or is unreadable:** _New code_ gives the place a fresh code to print. The old
+  one is retired, so a stray old sticker can't point at the wrong box.
+
+The same works for parts. Every code change is in the history.
+
 ## Laser marking
 
 On a place or part page, **Label › DXF for laser** downloads the QR as vector rectangles in
