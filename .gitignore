@@ -9,3 +9,6 @@ data/
 .DS_Store
 Thumbs.db
 .claude/launch.json
+
+# Vendor documentation (not ours to commit)
+vendor-docs/
