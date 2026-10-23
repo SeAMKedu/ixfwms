@@ -1,5 +1,5 @@
-import { existsSync } from 'node:fs';
-import { dirname, join, sep } from 'node:path';
+import { existsSync, statSync } from 'node:fs';
+import { dirname, join, normalize, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import fastifyStatic from '@fastify/static';
 import type { FastifyInstance } from 'fastify';
@@ -31,12 +31,26 @@ export async function registerWebApp(app: FastifyInstance, webDir: string): Prom
     },
   });
   app.get('/*', (request, reply) => {
-    if (API_PREFIXES.some((p) => request.url.startsWith(p))) {
-      return reply
-        .status(404)
-        .send({ error: 'not_found', message: `No route for GET ${request.url}` });
+    const path = decodeURIComponent(request.url.split('?')[0] ?? '/');
+    if (API_PREFIXES.some((p) => path.startsWith(p))) {
+      return reply.status(404).send({ error: 'not_found', message: `No route for GET ${path}` });
+    }
+    // Files added after startup (a rebuilt web app) are served too; a missing asset is a 404,
+    // never index.html, so the browser doesn't get HTML for a script.
+    const file = normalize(path).replace(/^[/\\]+/, '');
+    if (file && !file.startsWith('..') && isFile(join(webDir, file))) return reply.sendFile(file);
+    if (path.startsWith('/assets/')) {
+      return reply.status(404).send({ error: 'not_found', message: `No file ${path}` });
     }
     return reply.header('cache-control', 'no-cache').sendFile('index.html');
   });
   return true;
+}
+
+function isFile(path: string): boolean {
+  try {
+    return statSync(path).isFile();
+  } catch {
+    return false;
+  }
 }

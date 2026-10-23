@@ -140,6 +140,11 @@ describe('serving the web app', () => {
     }
     const asset = await env.app.inject({ url: '/assets/app-123.js' });
     expect(asset.headers['cache-control']).toContain('immutable');
+    // Built after the server started (e.g. a rebuild): still served, and missing assets are 404s.
+    await writeFile(join(webDir, 'assets', 'app-456.js'), 'console.log(2)');
+    expect((await env.app.inject({ url: '/assets/app-456.js' })).body).toBe('console.log(2)');
+    expect((await env.app.inject({ url: '/assets/gone-789.js' })).statusCode).toBe(404);
+    expect((await env.app.inject({ url: '/../package.json' })).body).toContain('ixfwms app');
     const api = await env.app.inject({ url: '/api/nope' });
     expect(api.statusCode).toBe(404);
     expect(api.json()).toMatchObject({ error: 'not_found' });
