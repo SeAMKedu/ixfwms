@@ -89,6 +89,7 @@ interface Line {
  * A complete tape label in millimetres: QR on the left, text on the right. Fixed places show their
  * address ("Robolab-A-" small, "C" large); containers, parts and blank labels show the code.
  * 9 mm: QR + address or code. 12 mm: + name. 24 mm: + name and path.
+ * Units (tools, devices) show their name and home address instead; the code is in the QR.
  */
 export function labelSvg(label: LabelData, tape: TapeWidth, ecl: ErrorCorrection = 'M'): string {
   const h = PRINTABLE_MM[tape];
@@ -108,8 +109,10 @@ export function labelSvg(label: LabelData, tape: TapeWidth, ecl: ErrorCorrection
           bold: true,
         }
       : { text: label.code, size, mono: true, bold: true };
-  const lines: Line[] = [];
-  if (tape === 9) {
+  const lines: Line[] = label.kind === 'unit' ? unitLines(label, tape, h) : [];
+  if (label.kind === 'unit') {
+    // filled in above
+  } else if (tape === 9) {
     lines.push(main(h * 0.5));
   } else if (tape === 12) {
     lines.push(main(h * 0.38));
@@ -148,6 +151,34 @@ export function labelSvg(label: LabelData, tape: TapeWidth, ecl: ErrorCorrection
     `<rect width="${fmt(width)}" height="${fmt(h)}" fill="#fff"/>` +
     `<path fill="#000" shape-rendering="crispEdges" d="${qrPath(m, QUIET * mod, QUIET * mod, mod)}"/>${texts}</svg>`
   );
+}
+
+/**
+ * A unit's label: its name, and where it belongs (the home address) so whoever finds it lying
+ * around knows where it goes. Without a home, the code takes the address's place.
+ */
+function unitLines(label: LabelData, tape: TapeWidth, h: number): Line[] {
+  const home = label.address;
+  const where = (size: number): Line => ({
+    text: truncate(home || label.code, 24),
+    size,
+    mono: true,
+    bold: true,
+  });
+  const name = (size: number, max: number): Line => ({
+    text: truncate(label.name || label.code, max),
+    size,
+    mono: false,
+    bold: true,
+  });
+  if (tape === 9) return [home ? where(h * 0.5) : name(h * 0.5, 22)];
+  if (tape === 12) return [name(h * 0.34, 26), where(h * 0.3)];
+  const detail = [label.path, home ? label.code : ''].filter(Boolean).join(' · ');
+  return [
+    name(h * 0.24, 30),
+    where(h * 0.22),
+    ...(detail ? [{ text: truncate(detail, 48), size: h * 0.13, mono: false, bold: false }] : []),
+  ];
 }
 
 function truncate(s: string, max: number): string {

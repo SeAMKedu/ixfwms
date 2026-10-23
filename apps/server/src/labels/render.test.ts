@@ -30,6 +30,32 @@ describe('label rendering', () => {
     expect(wide).toContain('Robotics lab › Cabinet A › Shelf 3');
   });
 
+  it('shows a tool by its name and home address, the code only small on wide tape', () => {
+    const drill: LabelData = {
+      ...label,
+      kind: 'unit',
+      type: 'unit',
+      code: 'D2D2',
+      name: 'Drill 2',
+      path: 'Impact drill · S/N SN-12346',
+      qr: 'HTTPS://IXF.LOCAL/U/D2D2',
+      address: 'Robolab-A-3',
+      parent: '',
+      short: '',
+      movable: false,
+    };
+    const narrow = labelSvg(drill, 9);
+    expect(narrow).toContain('Robolab-A-3');
+    expect(narrow).not.toContain('D2D2</text>');
+    const mid = labelSvg(drill, 12);
+    expect(mid).toContain('Drill 2');
+    expect(mid).toContain('Robolab-A-3');
+    expect(mid).not.toContain('D2D2</text>');
+    expect(labelSvg(drill, 24)).toContain('Impact drill · S/N SN-12346 · D2D2');
+    // Without a home, the code stands in for the address.
+    expect(labelSvg({ ...drill, address: '' }, 12)).toContain('D2D2</text>');
+  });
+
   it('shows a fixed place by its address, the part above it smaller', () => {
     const shelf = {
       ...label,

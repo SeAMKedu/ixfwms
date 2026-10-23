@@ -52,6 +52,8 @@ describe('units of individually tracked items', () => {
       env.services.parts.update(drill.code, { tracking: 'bulk' }, env.admin),
     ).rejects.toThrow(/has units/);
     expect((await env.services.labels.lookup(unit.code)).assigned).toBe('unit');
+    const [label] = await env.services.labels.forCodes([unit.code], 'http://lab.test');
+    expect(label).toMatchObject({ kind: 'unit', name: 'Drill 2', address: 'RL-3' });
   });
 
   it('keeps units in the order they were added', async () => {

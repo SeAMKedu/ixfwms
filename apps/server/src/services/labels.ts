@@ -232,14 +232,25 @@ export class LabelService {
     };
   }
 
-  /** A unit's label: its own name (or the item's), with the item and serial number below. */
+  /**
+   * A unit's label: its own name (or the item's) and its home address, with the item and serial
+   * number below. The address goes in `address`, so P-touch templates can print it too.
+   */
   private async unitLabel(code: string, baseUrl: string): Promise<LabelData> {
     const row = await this.db
-      .select({ name: units.name, serial: units.serialNo, part: parts.name })
+      .select({
+        name: units.name,
+        serial: units.serialNo,
+        part: parts.name,
+        homeId: units.homeLocationId,
+      })
       .from(units)
       .innerJoin(parts, eq(parts.id, units.partId))
       .where(eq(units.code, code))
       .get();
+    const home = row?.homeId
+      ? await this.locations.summarize(this.db, await this.locations.resolve(row.homeId))
+      : null;
     return {
       code,
       kind: 'unit',
@@ -250,6 +261,8 @@ export class LabelService {
       type: 'unit',
       qr: buildCodeUrl(baseUrl, 'unit', code),
       ...NO_ADDRESS,
+      // A movable home (a case, a box) has no address; its name says where.
+      address: home ? home.address || home.name : '',
     };
   }
 
