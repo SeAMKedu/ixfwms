@@ -57,6 +57,56 @@ export function registerLabelRoutes(app: FastifyInstance, { config, services }: 
       .send(labelsCsv(result));
   });
 
+  app.get('/api/labels/batches', () => labels.batches());
+
+  /** A lost printout: the batch's still-unused codes as CSV again ("none" = codes from before batches). */
+  app.get('/api/labels/batches/:id/labels.csv', async (request, reply) => {
+    const { id } = parse(z.object({ id: z.string() }), request.params);
+    const rows = await labels.batchLabels(id === 'none' ? null : id, baseUrl(config, request));
+    return reply
+      .type('text/csv; charset=utf-8')
+      .header('content-disposition', 'attachment; filename="ixfwms-unused-labels.csv"')
+      .send(labelsCsv(rows));
+  });
+
+  app.post('/api/labels/retire', async (request) => {
+    const { codes } = parse(
+      z.object({ codes: z.array(z.string()).min(1).max(1000) }),
+      request.body,
+    );
+    return { retired: await labels.retire(codes, request.actor) };
+  });
+
+  const NewCode = z.object({ code: z.string().trim().max(16).nullish() });
+  app.post('/api/locations/:ref/code', async (request) => {
+    const { ref } = parse(z.object({ ref: z.string() }), request.params);
+    return {
+      code: await labels.changeCode(
+        'location',
+        ref,
+        parse(NewCode, request.body).code ?? null,
+        request.actor,
+      ),
+    };
+  });
+  app.post('/api/parts/:ref/code', async (request) => {
+    const { ref } = parse(z.object({ ref: z.string() }), request.params);
+    return {
+      code: await labels.changeCode(
+        'part',
+        ref,
+        parse(NewCode, request.body).code ?? null,
+        request.actor,
+      ),
+    };
+  });
+  app.post('/api/locations/:ref/swap-code', async (request, reply) => {
+    const { ref } = parse(z.object({ ref: z.string() }), request.params);
+    const body = parse(z.object({ with: z.string().min(1) }), request.body);
+    await labels.swapCodes(ref, body.with, request.actor);
+    return reply.status(204).send();
+  });
+
   const one = async (request: FastifyRequest) => {
     const { code } = parse(z.object({ code: z.string() }), request.params);
     const [label] = await labels.forCodes([code], baseUrl(config, request));

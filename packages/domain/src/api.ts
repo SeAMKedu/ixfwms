@@ -155,6 +155,19 @@ export interface CodeInfo {
   /** Printed on a blank label but not used yet. */
   reserved: boolean;
   free: boolean;
+  /** Taken out of use; the label should be thrown away. */
+  retired: { at: string; note: string | null } | null;
+}
+
+export interface LabelBatch {
+  /** null for codes reserved before batches existed. */
+  id: string | null;
+  createdAt: string;
+  createdBy: string | null;
+  /** Codes still unused (not stuck on anything registered, not retired). */
+  unused: string[];
+  used: number;
+  retired: number;
 }
 
 export type CarriedItem =

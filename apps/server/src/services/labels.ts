@@ -1,11 +1,11 @@
-import { buildCodeUrl, type CodeInfo } from '@ixfwms/domain';
-import { eq, inArray, like } from 'drizzle-orm';
+import { buildCodeUrl, normalizeCode, type CodeInfo, type LabelBatch } from '@ixfwms/domain';
+import { asc, eq, inArray, like } from 'drizzle-orm';
 import type { Db } from '../db/client.js';
-import { categories, locations, parts, stockLots } from '../db/schema.js';
+import { categories, codeReservations, locations, parts, stockLots, users } from '../db/schema.js';
 import { invalid } from '../lib/errors.js';
 import type { LabelData } from '../labels/render.js';
-import { lookupCode, reserveCodes } from './codes.js';
-import { requireScope, type Actor } from './context.js';
+import { allocateCode, claimCode, lookupCode, reserveCodes, retireCode } from './codes.js';
+import { audit, requireScope, type Actor } from './context.js';
 import type { LocationRow, LocationService } from './locations.js';
 
 const MAX_BLANK = 500;
@@ -77,6 +77,109 @@ export class LabelService {
       throw invalid(`Ask for 1 to ${MAX_BLANK} blank labels`);
     const codes = await this.db.transaction((tx) => reserveCodes(tx, count, who.userId));
     return codes.map((code) => blankLabel(code, baseUrl));
+  }
+
+  /** Reserved-label batches, newest first, with the codes not stuck on anything yet. */
+  async batches(): Promise<LabelBatch[]> {
+    const rows = await this.db
+      .select({ r: codeReservations, user: users.name })
+      .from(codeReservations)
+      .leftJoin(users, eq(users.id, codeReservations.createdBy))
+      .orderBy(asc(codeReservations.createdAt))
+      .all();
+    const usedCodes = new Set(
+      [
+        ...(await this.db.select({ code: locations.code }).from(locations).all()),
+        ...(await this.db.select({ code: parts.code }).from(parts).all()),
+      ].map((r) => r.code),
+    );
+    const byBatch = new Map<string, LabelBatch>();
+    // Codes retired while in use (changed codes) have no batch; they aren't blank labels.
+    for (const { r, user } of rows.filter((x) => x.r.batchId || !x.r.note)) {
+      const key = r.batchId ?? 'none';
+      const batch = byBatch.get(key) ?? {
+        id: r.batchId,
+        createdAt: r.createdAt,
+        createdBy: user,
+        unused: [],
+        used: 0,
+        retired: 0,
+      };
+      if (r.retiredAt) batch.retired++;
+      else if (r.claimedAt || usedCodes.has(r.code)) batch.used++;
+      else batch.unused.push(r.code);
+      byBatch.set(key, batch);
+    }
+    return [...byBatch.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  /** Labels of a batch again (e.g. the printout got lost): only the codes still unused. */
+  async batchLabels(batchId: string | null, baseUrl: string): Promise<LabelData[]> {
+    const batch = (await this.batches()).find((b) => b.id === batchId);
+    return (batch?.unused ?? []).map((code) => blankLabel(code, baseUrl));
+  }
+
+  /** Throws away unused blank codes (lost or damaged labels). Codes in use must be changed instead. */
+  async retire(codes: string[], actor: Actor | null): Promise<number> {
+    const who = requireScope(actor, 'inventory');
+    await this.db.transaction(async (tx) => {
+      for (const raw of codes) {
+        const info = await lookupCode(tx, raw);
+        if (info.assigned)
+          throw invalid(
+            `${info.code} is on a ${info.assigned}; change that ${info.assigned}'s code instead`,
+          );
+        await retireCode(tx, info.code, 'retired by hand');
+      }
+      await audit(tx, who, 'retire-codes', 'label', codes.join(','), { codes });
+    });
+    return codes.length;
+  }
+
+  /**
+   * Gives a place or part a different code: the one on the sticker actually stuck on it
+   * (`newCode`), or a fresh one to print. The old code is retired, so an old sticker can't
+   * point at the wrong thing.
+   */
+  async changeCode(
+    kind: 'location' | 'part',
+    ref: string,
+    newCode: string | null,
+    actor: Actor | null,
+  ): Promise<string> {
+    const who = requireScope(actor, 'inventory');
+    return this.db.transaction(async (tx) => {
+      const table = kind === 'location' ? locations : parts;
+      const row =
+        kind === 'location'
+          ? await this.locations.resolve(ref, tx)
+          : await tx
+              .select()
+              .from(parts)
+              .where(eq(parts.code, normalizeCode(ref)))
+              .get();
+      if (!row) throw invalid(`No part ${ref}`);
+      const code = newCode ? await claimCode(tx, newCode) : await allocateCode(tx);
+      await tx.update(table).set({ code }).where(eq(table.id, row.id));
+      await retireCode(tx, row.code, `was ${kind === 'location' ? 'place' : 'part'} ${row.name}`);
+      await audit(tx, who, 'code', kind, row.id, { from: row.code, to: code });
+      return code;
+    });
+  }
+
+  /** Two places whose labels got switched: swap their codes so the stickers are right again. */
+  async swapCodes(refA: string, refB: string, actor: Actor | null): Promise<void> {
+    const who = requireScope(actor, 'inventory');
+    await this.db.transaction(async (tx) => {
+      const a = await this.locations.resolve(refA, tx);
+      const b = await this.locations.resolve(refB, tx);
+      if (a.id === b.id) throw invalid('Pick two different places');
+      const temp = await allocateCode(tx);
+      await tx.update(locations).set({ code: temp }).where(eq(locations.id, a.id));
+      await tx.update(locations).set({ code: a.code }).where(eq(locations.id, b.id));
+      await tx.update(locations).set({ code: b.code }).where(eq(locations.id, a.id));
+      await audit(tx, who, 'swap-codes', 'location', a.id, { with: b.id, codes: [a.code, b.code] });
+    });
   }
 
   private async locationLabel(row: LocationRow, baseUrl: string): Promise<LabelData> {

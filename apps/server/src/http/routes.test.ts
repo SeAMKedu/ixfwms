@@ -421,3 +421,31 @@ describe('users, setup and backups over HTTP', () => {
     ).not.toBe(200);
   });
 });
+
+describe('label management over HTTP', () => {
+  it('lists batches, downloads unused codes, retires, changes and swaps codes', async () => {
+    await env.app.inject({
+      method: 'POST',
+      url: '/api/labels/blank',
+      payload: { count: 2 },
+      headers: { authorization: `Bearer ${env.adminToken}` },
+    });
+    const [batch] = await req<{ id: string; unused: string[] }[]>('GET', '/api/labels/batches');
+    const csv = await env.app.inject({ url: `/api/labels/batches/${batch!.id}/labels.csv` });
+    expect(csv.body.split('\r\n').filter(Boolean)).toHaveLength(3);
+    expect(await req('POST', '/api/labels/retire', { codes: [batch!.unused[0]] })).toEqual({
+      retired: 1,
+    });
+    const a = await req<{ code: string }>('POST', '/api/locations', { name: 'A' });
+    const b = await req<{ code: string }>('POST', '/api/locations', { name: 'B' });
+    const changed = await req<{ code: string }>('POST', `/api/locations/${a.code}/code`, {
+      code: batch!.unused[1],
+    });
+    expect(changed.code).toBe(batch!.unused[1]);
+    await req('POST', `/api/locations/${changed.code}/swap-code`, { with: b.code });
+    expect((await req<{ name: string }>('GET', `/api/locations/${changed.code}`)).name).toBe('B');
+    expect(await req('GET', `/api/codes/${a.code}`)).toMatchObject({
+      retired: { note: 'was place A' },
+    });
+  });
+});

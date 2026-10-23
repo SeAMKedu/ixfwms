@@ -277,9 +277,15 @@ export const auditLog = sqliteTable(
 /** Codes printed on blank labels ahead of time; claimed when a place is created with one. */
 export const codeReservations = sqliteTable('code_reservations', {
   code: text('code').primaryKey(),
+  /** One "reserve blank labels" run; lets a lost printout be downloaded again. */
+  batchId: text('batch_id'),
   createdBy: text('created_by').references(() => users.id),
   createdAt: createdAt(),
   claimedAt: text('claimed_at'),
+  /** Taken out of use (lost, misplaced, replaced): never handed out again, and scanning it says so. */
+  retiredAt: text('retired_at'),
+  /** What the code was, e.g. "was place Box: vacuum parts". */
+  note: text('note'),
 });
 
 /** Saved spreadsheet column mappings, so the same export format imports with one click next time. */

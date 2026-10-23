@@ -103,3 +103,72 @@ describe('blank labels and codes', () => {
     expect(all[1]!.qr).toBe(`HTTP://10.0.0.5:3000/L/${shelf.code}`);
   });
 });
+
+describe('managing labels', () => {
+  it('lists batches, re-downloads unused codes, retires lost ones', async () => {
+    const { labels, locations } = env.services;
+    const first = await labels.blank(3, env.inventory, 'https://ixf.local');
+    await locations.create({ name: 'Box', type: 'box', code: first[0]!.code }, env.inventory);
+    await labels.retire([first[1]!.code], env.inventory);
+
+    const [batch] = await labels.batches();
+    expect(batch).toMatchObject({
+      unused: [first[2]!.code],
+      used: 1,
+      retired: 1,
+      createdBy: 'assistant',
+    });
+    expect((await labels.batchLabels(batch!.id, 'https://ixf.local')).map((l) => l.code)).toEqual([
+      first[2]!.code,
+    ]);
+
+    expect(await labels.lookup(first[1]!.code)).toMatchObject({
+      reserved: false,
+      retired: { note: 'retired by hand' },
+    });
+    await expect(
+      locations.create({ name: 'Other', type: 'box', code: first[1]!.code }, env.inventory),
+    ).rejects.toThrow(/retired/);
+    await expect(labels.retire([first[0]!.code], env.inventory)).rejects.toThrow(
+      /change that location/,
+    );
+  });
+
+  it('changes a code to the sticker actually on the box, retiring the old one', async () => {
+    const { labels, locations, parts } = env.services;
+    const box = await locations.create({ name: 'Box: M3 screws', type: 'box' }, env.inventory);
+    const [sticker] = await labels.blank(1, env.inventory, 'https://ixf.local');
+    const code = await labels.changeCode(
+      'location',
+      box.code,
+      sticker!.code.toLowerCase(),
+      env.inventory,
+    );
+    expect(code).toBe(sticker!.code);
+    expect(await labels.lookup(box.code)).toMatchObject({
+      assigned: null,
+      retired: { note: 'was place Box: M3 screws' },
+    });
+    expect((await locations.resolve(code)).name).toBe('Box: M3 screws');
+
+    const part = await parts.create(
+      { name: 'Cup', identifiers: [], tags: [], attributes: {}, status: 'draft' },
+      env.inventory,
+    );
+    const fresh = await labels.changeCode('part', part.code, null, env.inventory);
+    expect(fresh).not.toBe(part.code);
+    expect((await parts.get(fresh)).name).toBe('Cup');
+    // A retired code is never handed out again, and its labels aren't "blank labels".
+    expect((await labels.batches()).every((b) => !b.unused.includes(part.code))).toBe(true);
+  });
+
+  it('swaps the codes of two places whose stickers got switched', async () => {
+    const { labels, locations } = env.services;
+    const a = await locations.create({ name: 'Box A', type: 'box' }, env.inventory);
+    const b = await locations.create({ name: 'Box B', type: 'box' }, env.inventory);
+    await labels.swapCodes(a.code, b.code, env.inventory);
+    expect((await locations.resolve(a.code)).name).toBe('Box B');
+    expect((await locations.resolve(b.code)).name).toBe('Box A');
+    await expect(labels.swapCodes(a.code, a.code, env.inventory)).rejects.toThrow(/two different/);
+  });
+});
