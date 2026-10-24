@@ -412,7 +412,17 @@
     "offerTitle": "Aloitetaanko valmiilla kategorioilla?",
     "offerText": "Lisää tavallisia laboratorion kategorioita hyödyllisine kenttineen: ruuvit ja mutterit (kierre, pituus, kanta), imukupit, ejektorit, liittimet, letkut, johdot, riviliittimet, logiikat ja filamentit (materiaali, väri, halkaisija). Niitä voi muuttaa tai poistaa myöhemmin. Löytyy myös ⋯-valikosta.",
     "offerYes": "Lisää ne",
-    "offerNo": "Ei kiitos"
+    "offerNo": "Ei kiitos",
+    "itemsBelow": "Tavarat tässä kategoriassa ja sen alakategorioissa",
+    "manage": "Nimi ja paikka",
+    "renameOrMove": "Nimi yläkategorioineen",
+    "renameHint": "Korjaa kirjoitusvirhe, tai anna toinen polku siirtääksesi sen alakategorioineen, esim. Pneumatiikka/Alipaine/Imukupit.",
+    "saveName": "Nimeä uudelleen tai siirrä",
+    "delete": "Poista kategoria",
+    "deleteConfirm": "Poistetaanko kategoria {{path}}?",
+    "deleteHasChildren": "Sillä on alakategorioita. Siirrä tai poista ne ensin, niin tämänkin voi poistaa.",
+    "moveItemsTo_one": "Sen {{count}} tavara siirtyy kategoriaan",
+    "moveItemsTo_other": "Sen {{count}} tavaraa siirtyy kategoriaan"
   },
   "import": {
     "title": "Tuonti taulukosta",

@@ -6,6 +6,7 @@ import { AuthService } from './auth.js';
 import { BackupService } from './backup.js';
 import { BomService } from './bom.js';
 import { CarryService } from './carry.js';
+import { CategoryService } from './categories.js';
 import { ExportService } from './export.js';
 import { FileService } from './files.js';
 import { HistoryService } from './history.js';
@@ -28,6 +29,7 @@ export interface Services {
   auth: AuthService;
   backup: BackupService;
   bom: BomService;
+  categories: CategoryService;
   carry: CarryService;
   export: ExportService;
   files: FileService;
@@ -57,11 +59,13 @@ export function createServices(
   const settings = new SettingsService(db);
   const stock = new StockService(db, locations, resolver, settings);
   const units = new UnitService(db, locations, resolver);
-  const parts = new PartService(db, resolver, locations, stock, files, units);
+  const categories = new CategoryService(db);
+  const parts = new PartService(db, resolver, locations, stock, files, units, categories);
   return {
     auth: new AuthService(db),
     backup: new BackupService(database.client, join(config.dataDir, 'backups'), config.backupKeep),
     bom: new BomService(db, parts, stock),
+    categories,
     carry: new CarryService(db, locations, stock, units),
     export: new ExportService(db),
     files,

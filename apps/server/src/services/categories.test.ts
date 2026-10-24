@@ -11,9 +11,9 @@ const base = { identifiers: [], tags: [], status: 'draft' as const };
 
 describe('category fields and searching on them', () => {
   it('inherits fields and finds screws by thread and length', async () => {
-    const { parts } = env.services;
-    expect((await parts.seedStarterCategories(env.admin)).length).toBeGreaterThan(5);
-    const fields = await parts.categoryFields('fasteners/screws');
+    const { parts, categories } = env.services;
+    expect((await categories.seedStarter(env.admin)).length).toBeGreaterThan(5);
+    const fields = await categories.fields('fasteners/screws');
     expect(fields.path).toBe('Fasteners/Screws');
     expect(fields.effective.map((f) => f.key)).toEqual([
       'thread',
@@ -81,16 +81,16 @@ describe('category fields and searching on them', () => {
   });
 
   it('only lets the write scope change fields, and rejects duplicate keys', async () => {
-    const { parts } = env.services;
+    const { categories } = env.services;
     const fields = [{ key: 'colour', label: 'Colour', type: 'text' as const }];
-    await expect(parts.setCategoryFields('Filament', fields, env.inventory)).rejects.toThrow(
-      /write/,
-    );
+    await expect(categories.setFields('Filament', fields, env.inventory)).rejects.toThrow(/write/);
     await expect(
-      parts.setCategoryFields('Filament', [...fields, ...fields], env.admin),
+      categories.setFields('Filament', [...fields, ...fields], env.admin),
     ).rejects.toThrow(/twice/);
-    expect((await parts.setCategoryFields('Filament', fields, env.admin)).own).toHaveLength(1);
-    expect(await parts.listCategories()).toEqual([{ path: 'Filament', parts: 0, fields: 1 }]);
+    expect((await categories.setFields('Filament', fields, env.admin)).own).toHaveLength(1);
+    expect(await categories.list()).toEqual([
+      { path: 'Filament', parts: 0, ownParts: 0, fields: 1 },
+    ]);
   });
 });
 
@@ -139,8 +139,8 @@ describe('low stock', () => {
 
 describe('colour fields', () => {
   it('stores colours as name + hex and finds them by name', async () => {
-    const { parts } = env.services;
-    await parts.setCategoryFields(
+    const { parts, categories } = env.services;
+    await categories.setFields(
       'Filament',
       [{ key: 'colour', label: 'Colour', type: 'colour' }],
       env.admin,
@@ -181,5 +181,72 @@ describe('colour fields', () => {
       offset: 0,
     });
     expect(found.items.map((p) => p.name)).toEqual(['PETG Galaxy Black']);
+  });
+});
+
+describe('editing categories', () => {
+  const part = (name: string, category: string) => ({
+    identifiers: [],
+    tags: [],
+    attributes: {},
+    status: 'draft' as const,
+    name,
+    category,
+  });
+
+  it('renames and moves a category with everything below it, keeping parts and fields', async () => {
+    const { parts, categories } = env.services;
+    const cup = await parts.create(part('Suction cup', 'Pneumatcs/Vacuum/Cups'), env.admin);
+    await parts.create(part('Ejector', 'Pneumatcs/Vacuum'), env.admin);
+    await categories.setFields(
+      'Pneumatcs/Vacuum/Cups',
+      [{ key: 'diameterMm', label: 'Diameter', type: 'number' }],
+      env.admin,
+    );
+    expect((await categories.list()).map((c) => [c.path, c.parts, c.ownParts])).toEqual([
+      ['Pneumatcs', 2, 0],
+      ['Pneumatcs/Vacuum', 2, 1],
+      ['Pneumatcs/Vacuum/Cups', 1, 1],
+    ]);
+
+    await expect(categories.move('Pneumatcs', 'Pneumatics', env.inventory)).rejects.toThrow(
+      /write/,
+    );
+    expect(await categories.move('pneumatcs', 'Pneumatics', env.admin)).toBe('Pneumatics');
+    expect((await parts.get(cup.code)).category).toBe('Pneumatics/Vacuum/Cups');
+
+    // Moved under a new branch; missing levels are created, and the fields come along.
+    expect(
+      await categories.move('Pneumatics/Vacuum/Cups', 'Grippers/Suction cups', env.admin),
+    ).toBe('Grippers/Suction cups');
+    expect((await categories.fields('grippers/suction cups')).own.map((f) => f.key)).toEqual([
+      'diameterMm',
+    ]);
+    expect((await categories.list()).map((c) => c.path)).toEqual([
+      'Grippers',
+      'Grippers/Suction cups',
+      'Pneumatics',
+      'Pneumatics/Vacuum',
+    ]);
+
+    await expect(categories.move('Pneumatics', 'Pneumatics/Vacuum/Old', env.admin)).rejects.toThrow(
+      /inside itself/,
+    );
+    await expect(categories.move('Grippers', 'pneumatics', env.admin)).rejects.toThrow(
+      /already is/,
+    );
+    await expect(categories.move('Nothing', 'Else', env.admin)).rejects.toThrow(/not found/);
+  });
+
+  it('deletes a category only once its parts have somewhere to go', async () => {
+    const { parts, categories } = env.services;
+    const screw = await parts.create(part('M3x10', 'Fastners/Screws'), env.admin);
+
+    await expect(categories.remove('Fastners', null, env.admin)).rejects.toThrow(/sub-categories/);
+    await expect(categories.remove('Fastners/Screws', null, env.admin)).rejects.toThrow(/1 part;/);
+    expect(await categories.remove('Fastners/Screws', 'Fasteners/Screws', env.admin)).toBe(1);
+    expect((await parts.get(screw.code)).category).toBe('Fasteners/Screws');
+    expect(await categories.remove('Fastners', null, env.admin)).toBe(0);
+    expect((await categories.list()).map((c) => c.path)).toEqual(['Fasteners', 'Fasteners/Screws']);
   });
 });

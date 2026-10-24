@@ -22,6 +22,7 @@ import {
   TextInput,
 } from '../components/ui';
 import { splitList } from '../lib/format';
+import { ManageCategory } from './categories/manage';
 
 interface Row {
   label: string;
@@ -276,6 +277,7 @@ export function CategoriesPage() {
   const selected = params.get('path');
   const categories = useCategories();
   const seed = useSeedCategories();
+  const info = categories.data?.find((c) => c.path.toLowerCase() === selected?.toLowerCase());
   return (
     <div className="grid gap-6 md:grid-cols-[16rem_minmax(0,1fr)]">
       <div className="flex flex-col gap-3">
@@ -325,8 +327,9 @@ export function CategoriesPage() {
                   style={{ paddingLeft: `${0.5 + (c.path.split('/').length - 1) * 0.9}rem` }}
                 >
                   <span className="truncate">{c.path.split('/').pop()}</span>
-                  <span className="shrink-0 font-mono text-[11px] text-muted">
-                    {c.fields > 0 ? t('categories.fieldCount', { count: c.fields }) : ''}
+                  <span className="flex shrink-0 gap-2 font-mono text-[11px] text-muted">
+                    {c.fields > 0 && <span>{t('categories.fieldCount', { count: c.fields })}</span>}
+                    <span title={t('categories.itemsBelow')}>{c.parts}</span>
                   </span>
                 </button>
               </li>
@@ -344,7 +347,18 @@ export function CategoriesPage() {
       </div>
       <div className="min-w-0">
         {selected ? (
-          <FieldsEditor path={selected} />
+          <div className="flex flex-col gap-4">
+            <FieldsEditor path={selected} />
+            {can('write') && info && categories.data && (
+              <ManageCategory
+                key={info.path}
+                category={info}
+                all={categories.data}
+                onMoved={(path) => setParams({ path })}
+                onDeleted={() => setParams({})}
+              />
+            )}
+          </div>
         ) : (
           <p className="pt-14 text-sm text-muted">{t('categories.pick')}</p>
         )}

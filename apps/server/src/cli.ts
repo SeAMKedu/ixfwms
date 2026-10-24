@@ -94,7 +94,7 @@ async function main(): Promise<void> {
         if (!values.user) throw new AppError('invalid', '--user is required');
         const user = (await services.auth.listUsers()).find((u) => u.name === values.user);
         if (!user) throw new AppError('invalid', `No user ${values.user}`);
-        const added = await services.parts.seedStarterCategories({
+        const added = await services.categories.seedStarter({
           userId: user.id,
           name: user.name,
           role: user.role,

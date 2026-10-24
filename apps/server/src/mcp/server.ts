@@ -71,7 +71,7 @@ export function createMcpServer(
   version: string,
 ): McpServer {
   const server = new McpServer({ name: 'ixfwms', version }, { instructions: MCP_INSTRUCTIONS });
-  const { parts, locations, locationViews, stock, files } = services;
+  const { parts, categories, locations, locationViews, stock, files } = services;
   const abs = (href: string) => (href.startsWith('/') ? `${baseUrl}${href}` : href);
   const partUrl = (code: string) => `${baseUrl}/p/${code}`;
   const read = { readOnlyHint: true, openWorldHint: false } as const;
@@ -227,10 +227,10 @@ export function createMcpServer(
     {
       title: 'List categories',
       description:
-        'Existing part categories with part counts. Reuse these paths when creating parts.',
+        'Existing part categories with part counts (parts counts everything below a category, ownParts only its own). Reuse these paths when creating parts.',
       annotations: read,
     },
-    tool(async () => parts.listCategories()),
+    tool(async () => categories.list()),
   );
 
   server.registerTool(
@@ -262,7 +262,7 @@ export function createMcpServer(
       inputSchema: { path: z.string().describe('Category path, e.g. "Fasteners/Screws"') },
       annotations: read,
     },
-    tool(async ({ path }) => parts.categoryFields(path)),
+    tool(async ({ path }) => categories.fields(path)),
   );
 
   server.registerTool(

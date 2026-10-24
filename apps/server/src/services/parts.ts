@@ -1,13 +1,8 @@
 import {
   CreatePartInput,
-  effectiveFields,
   formatAmount,
-  STARTER_CATEGORIES,
   toColourValue,
-  type AttributeField,
   type AttributeFilter,
-  type CategoryFields,
-  type CategoryInfo,
   isValidCode,
   normalizeCode,
   normalizeIdentifier,
@@ -36,6 +31,7 @@ import {
 } from '../db/schema.js';
 import { AppError, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
+import type { CategoryService } from './categories.js';
 import { allocateCode, retireCode } from './codes.js';
 import { audit, requireScope, type Actor } from './context.js';
 import type { FileService } from './files.js';
@@ -70,6 +66,7 @@ export class PartService {
     private readonly stock: StockService,
     private readonly files: FileService,
     private readonly units: UnitService,
+    private readonly categories: CategoryService,
   ) {}
 
   resolve(ref: string, ex: Executor = this.db): Promise<PartRow> {
@@ -86,7 +83,7 @@ export class PartService {
         code: await allocateCode(tx),
         name: input.name,
         description: input.description ?? null,
-        categoryId: input.category ? await this.ensureCategory(tx, input.category) : null,
+        categoryId: input.category ? await this.categories.ensure(tx, input.category) : null,
         manufacturer: input.manufacturer ?? null,
         kind: input.kind,
         tracking: input.tracking,
@@ -174,7 +171,7 @@ export class PartService {
       patch.tracking = input.tracking;
     }
     if (input.category !== undefined) {
-      patch.categoryId = input.category ? await this.ensureCategory(tx, input.category) : null;
+      patch.categoryId = input.category ? await this.categories.ensure(tx, input.category) : null;
     }
     if (input.attributes !== undefined) {
       const categoryId = patch.categoryId !== undefined ? patch.categoryId : part.categoryId;
@@ -339,7 +336,7 @@ export class PartService {
       updatedAt: part.updatedAt,
       lots: await this.stock.lotsOfPart(part.id),
       attachments: await this.files.attachmentsOf('part', part.id),
-      fields: summary!.category ? (await this.categoryFields(summary!.category)).effective : [],
+      fields: summary!.category ? (await this.categories.fields(summary!.category)).effective : [],
       history: history.map((m) => ({
         at: m.at,
         reason: m.reason,
@@ -655,119 +652,12 @@ export class PartService {
     attributes: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
     if (!category) return attributes;
-    const colourKeys = (await this.categoryFields(category, ex)).effective
+    const colourKeys = (await this.categories.fields(category, ex)).effective
       .filter((f) => f.type === 'colour')
       .map((f) => f.key);
     const out = { ...attributes };
     for (const key of colourKeys) if (key in out) out[key] = toColourValue(out[key]);
     return out;
-  }
-
-  /** Returns the id of the category at `path` ("Pneumatics/Vacuum"), creating missing levels. */
-  async ensureCategory(ex: Executor, path: string): Promise<string> {
-    const names = path
-      .split('/')
-      .map((n) => n.trim())
-      .filter(Boolean);
-    let parentId: string | null = null;
-    let current = '';
-    for (const name of names) {
-      current = current ? `${current}/${name}` : name;
-      const existing = await ex
-        .select()
-        .from(categories)
-        .where(eq(sql`lower(${categories.path})`, current.toLowerCase()))
-        .get();
-      if (existing) {
-        parentId = existing.id;
-        current = existing.path;
-        continue;
-      }
-      const id = newId();
-      await ex.insert(categories).values({ id, parentId, name, path: current });
-      parentId = id;
-    }
-    if (!parentId) throw new AppError('invalid', 'Category path is empty');
-    return parentId;
-  }
-
-  async listCategories(): Promise<CategoryInfo[]> {
-    const rows = await this.db
-      .select({
-        path: categories.path,
-        template: categories.attributeTemplate,
-        parts: sql<number>`count(${parts.id})`,
-      })
-      .from(categories)
-      .leftJoin(parts, eq(parts.categoryId, categories.id))
-      .groupBy(categories.id)
-      .orderBy(asc(categories.path))
-      .all();
-    return rows.map((r) => ({
-      path: r.path,
-      parts: Number(r.parts),
-      fields: r.template?.length ?? 0,
-    }));
-  }
-
-  /** A category's fields, own and inherited. Unknown paths have none. */
-  async categoryFields(path: string, ex: Executor = this.db): Promise<CategoryFields> {
-    const names = path
-      .split('/')
-      .map((n) => n.trim())
-      .filter(Boolean);
-    const chain: (AttributeField[] | null)[] = [];
-    let own: AttributeField[] = [];
-    let current = '';
-    let canonical = names.join('/');
-    for (const name of names) {
-      current = current ? `${current}/${name}` : name;
-      const row = await ex
-        .select()
-        .from(categories)
-        .where(eq(sql`lower(${categories.path})`, current.toLowerCase()))
-        .get();
-      chain.push(row?.attributeTemplate ?? null);
-      if (row && current.length === canonical.length) {
-        own = row.attributeTemplate ?? [];
-        canonical = row.path;
-      }
-    }
-    return { path: canonical, own, effective: effectiveFields(chain) };
-  }
-
-  /** Replaces a category's own fields (creating the category if needed). */
-  async setCategoryFields(
-    path: string,
-    fields: AttributeField[],
-    actor: Actor | null,
-  ): Promise<CategoryFields> {
-    const who = requireScope(actor, 'write');
-    const keys = new Set<string>();
-    for (const f of fields) {
-      if (keys.has(f.key)) throw new AppError('invalid', `Field key "${f.key}" is used twice`);
-      keys.add(f.key);
-    }
-    await this.db.transaction(async (tx) => {
-      const id = await this.ensureCategory(tx, path);
-      await tx.update(categories).set({ attributeTemplate: fields }).where(eq(categories.id, id));
-      await audit(tx, who, 'fields', 'category', id, { path, fields: fields.map((f) => f.key) });
-    });
-    return this.categoryFields(path);
-  }
-
-  /** Adds the starter categories and their fields; existing fields are left alone. Returns the categories changed. */
-  async seedStarterCategories(actor: Actor | null): Promise<string[]> {
-    requireScope(actor, 'write');
-    const changed: string[] = [];
-    for (const [path, fields] of Object.entries(STARTER_CATEGORIES)) {
-      const current = await this.categoryFields(path);
-      if (current.own.length === 0) {
-        await this.setCategoryFields(path, fields, actor);
-        changed.push(path);
-      }
-    }
-    return changed;
   }
 
   async listTags(): Promise<{ name: string; parts: number }[]> {

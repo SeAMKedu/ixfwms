@@ -34,7 +34,7 @@ const SearchQuery = PartSearchInput.omit({ attributes: true }).extend({
 });
 
 export function registerPartRoutes(app: FastifyInstance, { services }: AppDeps): void {
-  const { parts } = services;
+  const { parts, categories } = services;
 
   app.get('/api/parts', async (request) => {
     const { attr, ...q } = parse(SearchQuery, request.query);
@@ -73,11 +73,11 @@ export function registerPartRoutes(app: FastifyInstance, { services }: AppDeps):
     return parts.mergeInto(ref, into, request.actor);
   });
 
-  app.get('/api/categories', () => parts.listCategories());
+  app.get('/api/categories', () => categories.list());
 
   app.get('/api/categories/fields', async (request) => {
     const { path } = parse(z.object({ path: z.string().min(1) }), request.query);
-    return parts.categoryFields(path);
+    return categories.fields(path);
   });
 
   app.put('/api/categories/fields', async (request) => {
@@ -85,11 +85,29 @@ export function registerPartRoutes(app: FastifyInstance, { services }: AppDeps):
       z.object({ path: z.string().trim().min(1), fields: AttributeFields }),
       request.body,
     );
-    return parts.setCategoryFields(body.path, body.fields, request.actor);
+    return categories.setFields(body.path, body.fields, request.actor);
+  });
+
+  /** Renames or moves a category with everything below it; `to` is the new full path. */
+  app.post('/api/categories/move', async (request) => {
+    const body = parse(
+      z.object({ path: z.string().trim().min(1), to: z.string().trim().min(1).max(300) }),
+      request.body,
+    );
+    return { path: await categories.move(body.path, body.to, request.actor) };
+  });
+
+  /** Deletes a category without sub-categories; its parts go to `moveTo`. */
+  app.delete('/api/categories', async (request) => {
+    const query = parse(
+      z.object({ path: z.string().trim().min(1), moveTo: z.string().trim().max(300).optional() }),
+      request.query,
+    );
+    return { moved: await categories.remove(query.path, query.moveTo || null, request.actor) };
   });
 
   app.post('/api/categories/starter', async (request) => ({
-    added: await parts.seedStarterCategories(request.actor),
+    added: await categories.seedStarter(request.actor),
   }));
   app.get('/api/tags', () => parts.listTags());
 }

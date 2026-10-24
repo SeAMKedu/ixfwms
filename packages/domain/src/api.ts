@@ -390,7 +390,10 @@ export interface PlaceOption extends LocationSummary {
 
 export interface CategoryInfo {
   path: string;
+  /** Parts in this category and every category below it. */
   parts: number;
+  /** Parts in this category itself. */
+  ownParts: number;
   /** Number of the category's own fields. */
   fields: number;
 }

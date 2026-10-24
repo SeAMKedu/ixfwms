@@ -215,6 +215,18 @@ export const useSetCategoryFields = () =>
 export const useSeedCategories = () =>
   useChange(() => api<{ added: string[] }>('/api/categories/starter', { body: {} }));
 
+export const useMoveCategory = () =>
+  useChange((input: { path: string; to: string }) =>
+    api<{ path: string }>('/api/categories/move', { body: input }),
+  );
+
+export const useDeleteCategory = () =>
+  useChange((input: { path: string; moveTo: string | null }) =>
+    api<{ moved: number }>(`/api/categories${qs({ path: input.path, moveTo: input.moveTo })}`, {
+      method: 'DELETE',
+    }),
+  );
+
 export const useMapLayers = (code: string) =>
   useQuery({
     queryKey: ['maps', code],

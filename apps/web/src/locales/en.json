@@ -412,7 +412,17 @@
     "offerTitle": "Start with ready-made categories?",
     "offerText": "Adds common lab categories with useful fields: screws and nuts (thread, length, head), suction cups, ejectors, fittings, tubing, wire, terminal blocks, PLCs and filament (material, colour, diameter). You can change or delete them later. This is also in the ⋯ menu.",
     "offerYes": "Add them",
-    "offerNo": "No thanks"
+    "offerNo": "No thanks",
+    "itemsBelow": "Items in this category and the ones below it",
+    "manage": "Name and place",
+    "renameOrMove": "Name, with the categories above it",
+    "renameHint": "Fix a typo, or give another path to move it with everything below it, e.g. Pneumatics/Vacuum/Suction cups.",
+    "saveName": "Rename or move",
+    "delete": "Delete category",
+    "deleteConfirm": "Delete the category {{path}}?",
+    "deleteHasChildren": "It has categories below it. Move or delete those first to delete this one.",
+    "moveItemsTo_one": "Its {{count}} item goes to",
+    "moveItemsTo_other": "Its {{count}} items go to"
   },
   "import": {
     "title": "Import from a spreadsheet",

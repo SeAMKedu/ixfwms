@@ -96,8 +96,8 @@ describe('REST routes, end to end', () => {
     ).toBe(1);
     expect((await req<{ total: number }>('GET', `/api/parts?location=${cell.code}`)).total).toBe(1);
     expect(await req('GET', '/api/categories')).toEqual([
-      { path: 'Pneumatics', parts: 0, fields: 0 },
-      { path: 'Pneumatics/Vacuum', parts: 1, fields: 0 },
+      { path: 'Pneumatics', parts: 1, ownParts: 0, fields: 0 },
+      { path: 'Pneumatics/Vacuum', parts: 1, ownParts: 1, fields: 0 },
     ]);
     expect(await req('GET', '/api/tags')).toEqual(
       expect.arrayContaining([{ name: 'spare', parts: 1 }]),
