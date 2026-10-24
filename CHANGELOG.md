@@ -1,6 +1,25 @@
 # Changelog
 
 All notable changes to ixfwms.
+## 0.11.0 (2026-10-24)
+
+### Features
+- rename, move and delete categories, with counts that include sub-categories
+- units count in place and stock filters, and show in the history
+- stock remembers where it belongs; one lot per place and origin; whole-number counts
+- error messages in the user's language
+
+### Fixes
+- **server:** status change and project tagging each run in one transaction
+- **web:** settings get more width, and pages no longer shift sideways
+
+### Documentation
+- plan notes after 0.10; stop promising a Postgres switch
+- backlog note on limiting what anonymous readers see
+
+### Maintenance
+- **server:** keep the Postgres option; SQLite-only SQL moves to db/dialect.ts
+- browser tests for search-take, scan-carry-put down and clearing a bench
 ## 0.10.0 (2026-10-24)
 
 ### Features
