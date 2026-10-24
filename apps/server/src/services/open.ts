@@ -71,17 +71,17 @@ export class OpenActionService {
       const dest = await this.locations.resolve(to, tx);
       if (dest.kind === 'in_transit') throw invalid('Pick it up to carry it');
       const summary = await this.locations.summarize(tx, dest);
-      const back = dest.id === (await this.stock.originOf(tx, lot));
+      const back = dest.id === lot.originLocationId;
       const who = await this.allow(actor, back ? 'put_back' : 'workstation', summary.workstation);
       const destLot = await this.stock.moveWithin(tx, lot.id, dest.id, quantity, who, guest);
       return this.stock.view(tx, destLot);
     });
   }
 
-  /** Puts stock back where it came from (the place it was last moved from). */
+  /** Puts stock back where it came from (its origin, kept since it left there). */
   async putBackLot(lotId: string, guest: string | null, actor: Actor | null): Promise<LotView> {
     const lot = await this.lotRow(lotId);
-    const origin = await this.stock.originOf(this.db, lot);
+    const origin = lot.originLocationId;
     if (!origin) throw invalid('Nobody knows where this came from; move it by hand');
     return this.moveLot(lot.id, origin, null, guest, actor);
   }
@@ -115,7 +115,7 @@ export class OpenActionService {
         .where(eq(stockLots.locationId, place.id))
         .all();
       for (const { lot, name } of lots) {
-        const origin = await this.stock.originOf(tx, lot);
+        const origin = lot.originLocationId;
         if (!origin || origin === place.id) {
           result.left.push({ kind: 'lot', name });
           continue;

@@ -174,7 +174,8 @@
     "trackingIndividualHint": "Jokaisella oma koodi, sarjanumero, kotipaikka ja loki: työkalut, robotit, logiikoiden CPU:t.",
     "aliases": "Muut nimet",
     "aliasesHint": "Muita käytettyjä nimiä pilkuilla erotettuina, esim. iskuporakone, akkuporakone. Haku löytää myös nämä.",
-    "alsoCalled": "Myös: {{names}}"
+    "alsoCalled": "Myös: {{names}}",
+    "belongsAt": "Kuuluu paikkaan {{place}}"
   },
   "identifierKinds": {
     "order_no": "Tilausnro",

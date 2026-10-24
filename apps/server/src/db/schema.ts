@@ -211,12 +211,28 @@ export const stockLots = sqliteTable(
     tareG: real('tare_g'),
     note: text('note'),
     lastCheckedAt: text('last_checked_at'),
+    /**
+     * Where this stock belongs back to: the place it was moved from (past "being carried").
+     * Null at home. Put back and Clear the bench use it, and lots only merge with lots from
+     * the same place.
+     */
+    originLocationId: text('origin_location_id').references(() => locations.id, {
+      onDelete: 'set null',
+    }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (t) => [
     index('stock_lots_part_idx').on(t.partId),
     index('stock_lots_location_idx').on(t.locationId),
+    // One lot per part, place, kind of amount and origin.
+    uniqueIndex('stock_lots_one_per_place').on(
+      t.partId,
+      t.locationId,
+      t.mode,
+      sql`coalesce(${t.unit}, '')`,
+      sql`coalesce(${t.originLocationId}, '')`,
+    ),
   ],
 );
 
@@ -237,6 +253,8 @@ export const stockMovements = sqliteTable(
     after: text('after', { mode: 'json' }).$type<Record<string, unknown>>(),
     note: text('note'),
     userId: text('user_id').references(() => users.id),
+    /** Name given by someone without an account. */
+    reporterName: text('reporter_name'),
     at: createdAt(),
   },
   (t) => [index('stock_movements_part_idx').on(t.partId), index('stock_movements_at_idx').on(t.at)],

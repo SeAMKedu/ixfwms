@@ -249,14 +249,7 @@ export class PartService {
         await tx.update(units).set({ partId: target.id }).where(eq(units.partId, source.id));
         await tx.update(parts).set({ tracking: 'individual' }).where(eq(parts.id, target.id));
       }
-      await tx.update(stockLots).set({ partId: target.id }).where(eq(stockLots.partId, source.id));
-      for (const lot of await tx
-        .select()
-        .from(stockLots)
-        .where(eq(stockLots.partId, target.id))
-        .all()) {
-        await this.stock.consolidate(tx, lot.id);
-      }
+      await this.stock.moveLotsToPart(tx, source.id, target.id);
       const idents = await tx
         .select()
         .from(partIdentifiers)

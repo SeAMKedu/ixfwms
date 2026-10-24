@@ -96,6 +96,8 @@ export interface LotView {
   lastCheckedAt: string | null;
   location: LocationSummary;
   path: LocationSummary[];
+  /** Where it belongs back to, while it's at a workstation, a temporary place or being carried. */
+  origin: { code: string; name: string } | null;
 }
 
 export interface PartSummary {

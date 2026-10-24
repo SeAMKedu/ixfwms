@@ -10,14 +10,15 @@ import {
   type MovementReason,
   type StockAmount,
   type StockLevel,
+  type StockMode,
 } from '@ixfwms/domain';
-import { and, desc, eq, lte } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import type { Db, Executor } from '../db/client.js';
-import { locations, parts, stockLots, stockMovements } from '../db/schema.js';
+import { parts, stockLots, stockMovements } from '../db/schema.js';
 import { invalid, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
 import { requireScope, type Actor } from './context.js';
-import type { LocationService } from './locations.js';
+import type { LocationRow, LocationService } from './locations.js';
 import type { PartResolver } from './parts.js';
 import type { SettingsService } from './settings.js';
 
@@ -43,6 +44,12 @@ function toAmount(input: AmountInput): StockAmount {
     level: input.mode === 'level' ? (input.level ?? null) : null,
     tareG: input.tareG ?? null,
   };
+}
+
+/** Pieces are counted in whole numbers; weights and lengths may have decimals. */
+function checkWhole(mode: StockMode, quantity: number): void {
+  if (mode === 'count' && !Number.isInteger(quantity))
+    throw invalid(`${quantity} isn't a whole number of pieces`);
 }
 
 export class StockService {
@@ -102,6 +109,7 @@ export class StockService {
       throw invalid(`${part.name} is tracked one by one; add units instead of an amount`);
     if (amount.mode === 'level' && amount.level)
       amount = { ...amount, level: await this.levelKey(amount.level) };
+    if (amount.quantity != null) checkWhole(amount.mode, amount.quantity);
     const levels = await this.levels();
     const location = locationRef
       ? await this.locations.resolve(locationRef, tx)
@@ -110,7 +118,13 @@ export class StockService {
       await tx
         .select()
         .from(stockLots)
-        .where(and(eq(stockLots.partId, partId), eq(stockLots.locationId, location.id)))
+        .where(
+          and(
+            eq(stockLots.partId, partId),
+            eq(stockLots.locationId, location.id),
+            isNull(stockLots.originLocationId),
+          ),
+        )
         .all()
     ).find((lot) => isCompatible(lot, amount));
 
@@ -158,6 +172,7 @@ export class StockService {
           .where(eq(stockLots.id, lot.id));
       } else {
         if (quantity == null || quantity <= 0) throw invalid('Give how much was taken');
+        checkWhole(lot.mode, quantity);
         const left = (lot.quantity ?? 0) - quantity;
         if (left < 0)
           throw invalid(`Only ${formatAmount(amountOf(lot))} here, can't take ${quantity}`);
@@ -214,35 +229,44 @@ export class StockService {
     });
   }
 
-  /** `who` is null for someone without an account (allowed only for some moves, see OpenActions). */
+  /**
+   * Where stock belongs after moving to `dest`. Back at its origin it's home again; at a
+   * workstation, a temporary place or being carried it is visiting, and remembers where it
+   * came from; anywhere else is its new home.
+   */
+  private async originAfter(tx: Executor, lot: LotRow, dest: LocationRow): Promise<string | null> {
+    if (dest.id === lot.originLocationId) return null;
+    const summary = await this.locations.summarize(tx, dest);
+    const visiting =
+      summary.kind === 'in_transit' || summary.workstation || summary.stayDays !== null;
+    return visiting ? (lot.originLocationId ?? lot.locationId) : null;
+  }
+
+  /** `who` is null for someone without an account (allowed only for some moves, see OpenActions), who may give a name. */
   async moveWithin(
     tx: Executor,
     lotId: string,
     toRef: string,
     quantity: number | null,
     who: Actor | null,
-    note: string | null = null,
+    guest: string | null = null,
   ): Promise<string> {
     const lot = await this.lot(tx, lotId);
     const dest = await this.locations.resolve(toRef, tx);
     if (dest.id === lot.locationId) return lot.id;
     const whole = quantity == null || lot.mode === 'level' || quantity >= (lot.quantity ?? 0);
     if (!whole && quantity <= 0) throw invalid('Give a positive quantity to move');
+    if (!whole) checkWhole(lot.mode, quantity);
 
     const moved: StockAmount = whole ? amountOf(lot) : { ...amountOf(lot), quantity };
-    const target = (
-      await tx
-        .select()
-        .from(stockLots)
-        .where(and(eq(stockLots.partId, lot.partId), eq(stockLots.locationId, dest.id)))
-        .all()
-    ).find((l) => isCompatible(l, lot));
+    const origin = await this.originAfter(tx, lot, dest);
+    const target = await this.matchingLot(tx, lot, dest.id, origin);
 
     let destLotId: string;
     if (whole && !target) {
       await tx
         .update(stockLots)
-        .set({ locationId: dest.id, updatedAt: nowIso() })
+        .set({ locationId: dest.id, originLocationId: origin, updatedAt: nowIso() })
         .where(eq(stockLots.id, lot.id));
       destLotId = lot.id;
     } else {
@@ -264,6 +288,7 @@ export class StockService {
           level: lot.level,
           note: lot.note,
           lastCheckedAt: lot.lastCheckedAt,
+          originLocationId: origin,
         });
       }
       if (whole) await tx.delete(stockLots).where(eq(stockLots.id, lot.id));
@@ -278,69 +303,62 @@ export class StockService {
       to: dest.id,
       delta: moved.quantity,
       who,
-      note,
+      guest,
       partId: lot.partId,
     });
     return destLotId;
   }
 
-  /**
-   * Where a lot came from: the place of the last move into where it is now, looking past
-   * "being carried" (scan, carry, scan) to where it was picked up. Null when nobody knows.
-   */
-  async originOf(ex: Executor, lot: LotRow): Promise<string | null> {
-    let place = lot.locationId;
-    let before: string | undefined;
-    for (let hop = 0; hop < 4; hop++) {
-      const conditions = [
-        eq(stockMovements.partId, lot.partId),
-        eq(stockMovements.toLocationId, place),
-        eq(stockMovements.reason, 'move'),
-      ];
-      if (before) conditions.push(lte(stockMovements.at, before));
-      const last = await ex
-        .select()
-        .from(stockMovements)
-        .where(and(...conditions))
-        .orderBy(desc(stockMovements.at))
-        .limit(1)
-        .get();
-      if (!last?.fromLocationId) return null;
-      const from = await ex
-        .select({ kind: locations.kind })
-        .from(locations)
-        .where(eq(locations.id, last.fromLocationId))
-        .get();
-      if (!from) return null;
-      if (from.kind !== 'in_transit') return last.fromLocationId;
-      place = last.fromLocationId;
-      before = last.at;
-    }
-    return null;
-  }
-
-  /** Folds other compatible lots of the same part at the same place into this one. */
-  async consolidate(tx: Executor, lotId: string): Promise<void> {
-    const lot = await tx.select().from(stockLots).where(eq(stockLots.id, lotId)).get();
-    if (!lot) return;
-    const siblings = (
+  /** The lot at `locationId` that stock like `lot`, with this origin, merges into. */
+  private async matchingLot(
+    tx: Executor,
+    lot: LotRow,
+    locationId: string,
+    origin: string | null,
+    partId = lot.partId,
+  ): Promise<LotRow | undefined> {
+    return (
       await tx
         .select()
         .from(stockLots)
-        .where(and(eq(stockLots.partId, lot.partId), eq(stockLots.locationId, lot.locationId)))
+        .where(
+          and(
+            eq(stockLots.partId, partId),
+            eq(stockLots.locationId, locationId),
+            origin ? eq(stockLots.originLocationId, origin) : isNull(stockLots.originLocationId),
+          ),
+        )
         .all()
-    ).filter((l) => l.id !== lot.id && isCompatible(l, lot));
-    let amount = amountOf(lot);
+    ).find((l) => l.id !== lot.id && isCompatible(l, lot));
+  }
+
+  /**
+   * Gives every lot of one part to another (merging duplicates): where the other part already
+   * has a lot like it, at the same place and from the same place, the amounts add up.
+   */
+  async moveLotsToPart(tx: Executor, fromPartId: string, toPartId: string): Promise<void> {
     const levels = await this.levels();
-    for (const s of siblings) {
-      amount = { ...amount, ...merge(amount, amountOf(s), levels) };
-      await tx.delete(stockLots).where(eq(stockLots.id, s.id));
-    }
-    if (siblings.length) {
+    for (const lot of await tx
+      .select()
+      .from(stockLots)
+      .where(eq(stockLots.partId, fromPartId))
+      .all()) {
+      const target = await this.matchingLot(
+        tx,
+        lot,
+        lot.locationId,
+        lot.originLocationId,
+        toPartId,
+      );
+      if (!target) {
+        await tx.update(stockLots).set({ partId: toPartId }).where(eq(stockLots.id, lot.id));
+        continue;
+      }
       await tx
         .update(stockLots)
-        .set({ quantity: amount.quantity, level: amount.level, updatedAt: nowIso() })
-        .where(eq(stockLots.id, lot.id));
+        .set({ ...merge(amountOf(target), amountOf(lot), levels), updatedAt: nowIso() })
+        .where(eq(stockLots.id, target.id));
+      await tx.delete(stockLots).where(eq(stockLots.id, lot.id));
     }
   }
 
@@ -366,6 +384,9 @@ export class StockService {
     const location = await this.locations.resolve(lot.locationId, ex);
     const path = await this.locations.pathOf(location, ex);
     const amount = amountOf(lot);
+    const origin = lot.originLocationId
+      ? await this.locations.resolve(lot.originLocationId, ex)
+      : null;
     return {
       id: lot.id,
       partId: lot.partId,
@@ -376,6 +397,7 @@ export class StockService {
       lastCheckedAt: lot.lastCheckedAt,
       location: path[path.length - 1]!,
       path,
+      origin: origin && { code: origin.code, name: origin.name },
     };
   }
 
@@ -395,6 +417,7 @@ export class StockService {
       delta?: number | null;
       note?: string | null;
       who: Actor | null;
+      guest?: string | null;
       partId?: string;
     },
   ): Promise<void> {
@@ -411,6 +434,7 @@ export class StockService {
       after: lot ? { ...amountOf(lot), locationId: lot.locationId } : null,
       note: m.note ?? null,
       userId: m.who?.userId ?? null,
+      reporterName: m.who ? null : (m.guest ?? null),
     });
   }
 }

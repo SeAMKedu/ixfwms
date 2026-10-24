@@ -113,6 +113,8 @@ export const AmountInput = z
   .superRefine((a, ctx) => {
     if (a.mode === 'count' && a.quantity == null)
       ctx.addIssue({ code: 'custom', message: 'count mode needs a quantity' });
+    if (a.mode === 'count' && a.quantity != null && !Number.isInteger(a.quantity))
+      ctx.addIssue({ code: 'custom', message: 'a count is a whole number' });
     if (a.mode === 'measure' && (a.quantity == null || a.unit == null))
       ctx.addIssue({ code: 'custom', message: 'measure mode needs a quantity and a unit' });
     if (a.mode === 'level' && a.level == null)

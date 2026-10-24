@@ -174,7 +174,8 @@
     "trackingIndividualHint": "Each one has its own code, serial number, home place and log: tools, robots, PLC CPUs.",
     "aliases": "Also called",
     "aliasesHint": "Other names people use, separated by commas, e.g. impact driver, iskuporakone. Search finds these too.",
-    "alsoCalled": "Also called: {{names}}"
+    "alsoCalled": "Also called: {{names}}",
+    "belongsAt": "Belongs at {{place}}"
   },
   "identifierKinds": {
     "order_no": "Order no.",

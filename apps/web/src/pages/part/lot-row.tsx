@@ -122,6 +122,11 @@ export function LotRow({
           {t('part.checked', { date: formatDate(lot.lastCheckedAt) })}
         </span>
       )}
+      {lot.origin && (
+        <span className="text-[12px] text-muted">
+          {t('part.belongsAt', { place: lot.origin.name })}
+        </span>
+      )}
       {!canEdit && (open.toWorkstation || (open.putBack && lot.location.workstation)) && (
         <div className="flex flex-wrap gap-1.5">
           {open.putBack && lot.location.workstation && (

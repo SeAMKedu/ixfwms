@@ -144,7 +144,7 @@ export class HistoryService {
         kind: 'stock' as const,
         id: m.id,
         at: m.at,
-        user: m.userId ? (userNames.get(m.userId) ?? null) : null,
+        user: m.userId ? (userNames.get(m.userId) ?? null) : m.reporterName,
         action: m.reason,
         part: partRows.get(m.partId) ?? null,
         place: place(m.toLocationId ?? m.fromLocationId),
