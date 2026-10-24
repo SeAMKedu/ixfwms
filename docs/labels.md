@@ -88,6 +88,13 @@ registers the box with that code. An AI assistant can do the same: `create_locat
 
 The same works for parts. Every code change is in the history.
 
+- **Two parts were the same thing and got merged:** the duplicate's code is retired, but its
+  labels keep working: scanning one opens the part it was merged into.
+
+Places, items, units and blank labels share one set of codes, and the database itself refuses a
+code that is already on something or was retired, so a code can't end up on two things. Anything
+deleted (a place, a merged part) retires its code.
+
 ## Laser marking
 
 On a place or part page, **Label › DXF for laser** downloads the QR as vector rectangles in
