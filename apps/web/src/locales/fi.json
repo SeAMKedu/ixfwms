@@ -97,7 +97,6 @@
     "columns": {
       "part": "Tavara",
       "maker": "Valmistaja",
-      "orderNo": "Tilausnro",
       "where": "Missä",
       "stock": "Saldo",
       "tags": "Tunnisteet"

@@ -30,6 +30,35 @@ test.describe('everyday flows on a phone', () => {
     await expect(page.getByText('7 pcs')).toBeVisible();
   });
 
+  test('search lists a tool by its units, one tap to the one you want', async ({
+    page,
+    api,
+    signedIn: _,
+  }) => {
+    const shelf = await post<Place>(api, '/api/locations', {
+      name: unique('Tool shelf'),
+      type: 'shelf',
+    });
+    const name = unique('Impact drill');
+    const drill = await post<Place>(api, '/api/parts', {
+      name,
+      kind: 'tool',
+      tracking: 'individual',
+      status: 'active',
+    });
+    const [first, second] = await post<{ code: string; name: string }[]>(api, '/api/units', {
+      part: drill.code,
+      location: shelf.code,
+      units: [{}, { serialNo: 'SN-2' }],
+    });
+
+    await page.goto('/');
+    await page.getByLabel('Search items').fill(name);
+    await expect(page.getByRole('link', { name: first!.name })).toBeVisible();
+    await page.getByRole('link', { name: second!.name }).click();
+    await expect(page).toHaveURL(new RegExp(`/u/${second!.code}$`));
+  });
+
   test('scan, carry, put down', async ({ page, api, signedIn: _ }) => {
     const shelf = await post<Place>(api, '/api/locations', {
       name: unique('Shelf'),

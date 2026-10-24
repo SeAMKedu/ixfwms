@@ -75,6 +75,55 @@ describe('search page', () => {
     expect(screen.getAllByText('14 pcs').length).toBeGreaterThan(0);
     expect(screen.getAllByText('draft').length).toBeGreaterThan(0);
   });
+
+  it('lists individually tracked items by their units, linking straight to each', async () => {
+    const place = (code: string, name: string) => ({
+      id: code,
+      code,
+      name,
+      type: 'shelf' as const,
+      kind: 'normal' as const,
+      ...NO_ADDRESS,
+    });
+    const unit = (code: string, name: string, at: string, status: 'ok' | 'retired' = 'ok') => ({
+      id: code,
+      code,
+      name,
+      ownName: null,
+      serialNo: null,
+      status,
+      location: place(at, `Shelf ${at}`),
+      home: null,
+      atHome: true,
+      loan: null,
+      lastSeenAt: '2026-10-23T08:00:00.000Z',
+    });
+    renderAt('/?q=D2D2', [{ path: '/', element: <SearchPage /> }], {
+      '/api/parts': {
+        total: 1,
+        items: [
+          part({
+            code: 'M1L1',
+            name: 'Impact drill',
+            manufacturer: 'Milwaukee',
+            kind: 'tool',
+            tracking: 'individual',
+            units: [
+              unit('D1D1', 'Impact drill D1D1', 'S1S1'),
+              unit('D2D2', 'Impact drill D2D2', 'S2S2'),
+              unit('D3D3', 'Impact drill D3D3', 'S3S3', 'retired'),
+            ],
+          }),
+        ],
+      },
+      '/api/categories': [],
+      '/api/tags': [],
+    });
+    const links = await screen.findAllByRole('link', { name: 'Impact drill D2D2' });
+    expect(links[0]!.getAttribute('href')).toBe('/u/D2D2');
+    expect(screen.queryByText('Impact drill D1D1')).toBeNull();
+    expect(screen.queryByText('Order no.')).toBeNull();
+  });
 });
 
 describe('scan page', () => {

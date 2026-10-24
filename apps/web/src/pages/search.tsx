@@ -1,4 +1,10 @@
-import { PART_KINDS, type PartKind, type PartStatus, type PartSummary } from '@ixfwms/domain';
+import {
+  PART_KINDS,
+  type PartKind,
+  type PartStatus,
+  type PartSummary,
+  type UnitBrief,
+} from '@ixfwms/domain';
 import { Plus, Search } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -16,10 +22,11 @@ import {
   ErrorBox,
   Loading,
   PageHeader,
+  Pill,
   Select,
   StatusPill,
 } from '../components/ui';
-import { UnitCount } from '../components/units';
+import { UnitCount, UnitStatusPill, UnitWhere } from '../components/units';
 
 const PAGE = 50;
 
@@ -35,6 +42,50 @@ function StockSummary({ part }: { part: PartSummary }) {
         <span className="text-[12px] text-muted">+{part.stock.length - 2}</span>
       )}
     </span>
+  );
+}
+
+type Row =
+  | { kind: 'part'; part: PartSummary; href: string }
+  | { kind: 'unit'; part: PartSummary; unit: UnitBrief; href: string };
+
+/**
+ * Individually tracked items are listed by their units, so one click lands on the thing itself
+ * and where it is. When the query names particular units (own name, serial, code), only those.
+ */
+function resultRows(items: PartSummary[], q: string): Row[] {
+  const needle = q.trim().toLowerCase();
+  return items.flatMap((part): Row[] => {
+    const live = part.units.filter((u) => u.status !== 'retired');
+    if (part.tracking !== 'individual' || live.length === 0)
+      return [{ kind: 'part', part, href: `/p/${part.code}` }];
+    const named = needle
+      ? live.filter((u) =>
+          [u.name, u.serialNo, u.code].some((v) => v?.toLowerCase().includes(needle)),
+        )
+      : [];
+    return (named.length ? named : live).map((unit) => ({
+      kind: 'unit',
+      part,
+      unit,
+      href: `/u/${unit.code}`,
+    }));
+  });
+}
+
+function RowName({ row }: { row: Row }) {
+  if (row.kind === 'part')
+    return (
+      <>
+        <span className="truncate font-medium">{row.part.name}</span>
+        <StatusPill status={row.part.status} />
+      </>
+    );
+  return (
+    <>
+      <span className="truncate font-medium">{row.unit.name}</span>
+      <UnitStatusPill status={row.unit.status} />
+    </>
   );
 }
 
@@ -89,7 +140,8 @@ export function SearchPage() {
     setParams(p, { replace: true });
     setLimit(PAGE);
   };
-  const count = parts.data?.items.length ?? 0;
+  const rows = resultRows(parts.data?.items ?? [], q);
+  const count = rows.length;
   /** j/k (or ↓ from the search box) move through results; Enter opens the selected one. */
   const select = (i: number) => {
     const next = Math.max(0, Math.min(count - 1, i));
@@ -104,8 +156,8 @@ export function SearchPage() {
     'Enter',
     t('shortcuts.open'),
     () => {
-      const part = parts.data?.items[selected];
-      if (part) void navigate(`/p/${part.code}`);
+      const row = rows[selected];
+      if (row) void navigate(row.href);
     },
     selected >= 0,
   );
@@ -140,7 +192,7 @@ export function SearchPage() {
             setSelected(-1);
           }}
           onKeyDown={(e) => {
-            if (e.key === 'ArrowDown' && (parts.data?.items.length ?? 0) > 0) {
+            if (e.key === 'ArrowDown' && count > 0) {
               e.preventDefault();
               e.currentTarget.blur();
               select(0);
@@ -252,27 +304,33 @@ export function SearchPage() {
           <>
             {/* Phone: compact rows */}
             <ul className="md:hidden overflow-hidden rounded-xl border border-line bg-surface">
-              {parts.data.items.map((p, i) => (
+              {rows.map((row, i) => (
                 <li
-                  key={p.id}
+                  key={row.kind === 'unit' ? row.unit.id : row.part.id}
                   data-result={i}
                   className={`border-t border-line first:border-t-0 ${i === selected ? 'bg-link-soft' : ''}`}
                 >
                   <Link
-                    to={`/p/${p.code}`}
+                    to={row.href}
                     className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3 py-2.5"
                   >
                     <span className="min-w-0">
                       <span className="flex items-center gap-1.5">
-                        <span className="truncate font-medium">{p.name}</span>
-                        <StatusPill status={p.status} />
+                        <RowName row={row} />
                       </span>
                       <span className="block truncate font-mono text-[11.5px] text-muted">
-                        {[p.manufacturer, p.identifiers[0]?.value].filter(Boolean).join(' · ') ||
-                          p.code}
+                        {row.part.manufacturer || row.part.code}
                       </span>
                     </span>
-                    <StockSummary part={p} />
+                    {row.kind === 'part' ? (
+                      <StockSummary part={row.part} />
+                    ) : row.unit.loan ? (
+                      <Pill tone={row.unit.loan.overdue ? 'crit' : 'warn'}>
+                        {t('units.lentOut')}
+                      </Pill>
+                    ) : (
+                      <PlaceTag place={row.unit.location} />
+                    )}
                   </Link>
                 </li>
               ))}
@@ -284,56 +342,51 @@ export function SearchPage() {
                   <tr>
                     <th className="px-3 py-2 font-medium">{t('parts.columns.part')}</th>
                     <th className="px-3 py-2 font-medium">{t('parts.columns.maker')}</th>
-                    <th className="px-3 py-2 font-medium">{t('parts.columns.orderNo')}</th>
                     <th className="px-3 py-2 font-medium">{t('parts.columns.where')}</th>
                     <th className="px-3 py-2 text-right font-medium">{t('parts.columns.stock')}</th>
                     <th className="px-3 py-2 font-medium">{t('parts.columns.tags')}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {parts.data.items.map((p, i) => (
-                    <tr
-                      key={p.id}
-                      data-result={i}
-                      className={`border-t border-line hover:bg-surface-2 ${i === selected ? 'bg-link-soft' : ''}`}
-                    >
-                      <td className="px-3 py-2">
-                        <Link
-                          to={`/p/${p.code}`}
-                          className="inline-flex items-center gap-1.5 font-medium hover:underline"
-                        >
-                          {p.name}
-                          <StatusPill status={p.status} />
-                        </Link>
-                      </td>
-                      <td className="px-3 py-2 text-muted">{p.manufacturer}</td>
-                      <td className="px-3 py-2 font-mono text-[12.5px]">
-                        {p.identifiers[0]?.value}
-                      </td>
-                      <td className="px-3 py-2">
-                        <span className="flex flex-wrap gap-1">
-                          {[
-                            ...new Map(
-                              [
-                                ...p.stock.map((s) => s.place),
-                                ...p.units.map((u) => u.location),
-                              ].map((place) => [place.code, place]),
-                            ).values(),
-                          ]
-                            .slice(0, 3)
-                            .map((place) => (
-                              <Link key={place.code} to={`/l/${place.code}`} title={place.name}>
-                                <PlaceTag place={place} />
-                              </Link>
-                            ))}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 text-right">
-                        <StockSummary part={p} />
-                      </td>
-                      <td className="px-3 py-2 text-muted">{p.tags.join(', ')}</td>
-                    </tr>
-                  ))}
+                  {rows.map((row, i) => {
+                    const p = row.part;
+                    return (
+                      <tr
+                        key={row.kind === 'unit' ? row.unit.id : p.id}
+                        data-result={i}
+                        className={`border-t border-line hover:bg-surface-2 ${i === selected ? 'bg-link-soft' : ''}`}
+                      >
+                        <td className="px-3 py-2">
+                          <Link
+                            to={row.href}
+                            className="inline-flex items-center gap-1.5 hover:underline"
+                          >
+                            <RowName row={row} />
+                          </Link>
+                        </td>
+                        <td className="px-3 py-2 text-muted">{p.manufacturer}</td>
+                        <td className="px-3 py-2">
+                          {row.kind === 'unit' ? (
+                            <UnitWhere unit={row.unit} />
+                          ) : (
+                            <span className="flex flex-wrap gap-1">
+                              {[...new Map(p.stock.map((s) => [s.place.code, s.place])).values()]
+                                .slice(0, 3)
+                                .map((place) => (
+                                  <Link key={place.code} to={`/l/${place.code}`} title={place.name}>
+                                    <PlaceTag place={place} />
+                                  </Link>
+                                ))}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          {row.kind === 'part' && <StockSummary part={p} />}
+                        </td>
+                        <td className="px-3 py-2 text-muted">{p.tags.join(', ')}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

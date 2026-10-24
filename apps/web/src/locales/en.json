@@ -97,7 +97,6 @@
     "columns": {
       "part": "Item",
       "maker": "Maker",
-      "orderNo": "Order no.",
       "where": "Where",
       "stock": "Stock",
       "tags": "Tags"
