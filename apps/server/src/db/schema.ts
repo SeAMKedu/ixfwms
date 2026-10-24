@@ -29,8 +29,8 @@ import type {
 } from '@ixfwms/domain';
 
 /*
- * SQLite schema. Kept to portable column types (text, integer, real, json-as-text)
- * so a Postgres variant stays a mechanical translation.
+ * SQLite schema. The app is SQLite through and through (strftime defaults, json_extract,
+ * VACUUM INTO backups, the code triggers), which suits one lab server with one file.
  * Timestamps are ISO-8601 strings in UTC.
  */
 
