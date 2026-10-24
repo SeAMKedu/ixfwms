@@ -1135,6 +1135,12 @@
       "notLent": "Tämä ei ole lainassa",
       "lendInstead": "Lainaa se sen sijaan, että siirtäisit sen ulos labrasta"
     },
+    "builds": {
+      "dismantled": "{{name}} on purettu; siihen ei voi enää laittaa mitään",
+      "notBuild": "{{name}} ei ole rakennelma",
+      "alreadyDismantled": "{{name}} on jo purettu",
+      "outside": "Valitse paikka {{name}}-rakennelman ulkopuolelta, johon osat lasketaan"
+    },
     "carry": {
       "pickWhat": "Valitse paikka, saldoerä tai yksilö",
       "nothing": "Ei mitään laskettavaa alas",

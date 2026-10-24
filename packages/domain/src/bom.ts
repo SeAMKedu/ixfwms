@@ -23,12 +23,21 @@ export interface BomLineResult {
   part: { code: string; name: string; manufacturer: string | null } | null;
   /** Other possible parts when the match is only by name. */
   candidates: { code: string; name: string; score: number }[];
-  /** Pieces we can count (weighed stock included when the piece mass is known). */
+  /** Free pieces we can count (weighed stock included when the piece mass is known), and
+   *  usable units; what's built into something doesn't count. */
   available: number;
+  /** Pieces built into builds, which could be had by taking them apart. */
+  salvageable: number;
   /** Some stock is only tracked as a level ("plenty"/"low") or as a length without a piece count. */
   uncounted: boolean;
   status: BomStatus;
-  where: { code: string; path: string; display: string }[];
+  /** Where the stock and units are; `build` is set for what's built into one. */
+  where: {
+    code: string;
+    path: string;
+    display: string;
+    build: { code: string; name: string } | null;
+  }[];
 }
 
 export interface BomCheck {

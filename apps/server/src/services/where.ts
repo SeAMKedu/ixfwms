@@ -1,4 +1,5 @@
 import type {
+  BuildBrief,
   LocationSummary,
   PartSummary,
   StockLevelDef,
@@ -16,6 +17,8 @@ const STATUS_TEXT: Record<string, string> = {
 };
 
 const place = (p: LocationSummary) => p.address || p.name;
+/** Where something is: in a build it's "built into Gripper v3", anywhere else "at <address>". */
+const at = (p: LocationSummary) => (p.inBuild ? `built into ${p.inBuild.name}` : `at ${place(p)}`);
 
 /**
  * "Where is the impact drill?": short sentences, one per thing found, meant to be read out
@@ -28,10 +31,13 @@ export class WhereService {
   ) {}
 
   async ask(query: string, limit = 5): Promise<WhereIsAnswer[]> {
-    const { rows, items } = await this.parts.search({ q: query, limit, offset: 0 });
+    const { rows, items, builds } = await this.parts.search({ q: query, limit, offset: 0 });
     const levels = await this.stock.levels();
     const byId = new Map(items.map((i) => [i.id, i]));
-    return rows.map((row) => answerFor(byId.get(row.partId)!, row.unitId, levels));
+    return [
+      ...builds.map(buildAnswer),
+      ...rows.map((row) => answerFor(byId.get(row.partId)!, row.unitId, levels)),
+    ].slice(0, limit);
   }
 }
 
@@ -50,9 +56,22 @@ function answerFor(
   // Level-tracked stock shows the level's key; say its name instead.
   const amount = (display: string) =>
     levels.find((l) => l.key === display)?.name.toLowerCase() ?? display;
-  const shown = item.stock.slice(0, 3).map((s) => `${amount(s.display)} at ${place(s.place)}`);
+  const shown = item.stock.slice(0, 3).map((s) => `${amount(s.display)} ${at(s.place)}`);
   const more = item.stock.length > 3 ? `, and ${item.stock.length - 3} more places` : '';
   return { item: ref, unit: null, text: `${item.name}: ${shown.join(', ')}${more}.` };
+}
+
+function buildAnswer(b: BuildBrief): WhereIsAnswer {
+  const item = { code: b.code, name: b.name, kind: 'build' as const };
+  if (b.dismantledAt)
+    return {
+      item,
+      unit: null,
+      text: `${b.name}: a build, dismantled ${b.dismantledAt.slice(0, 10)}.`,
+    };
+  const where = b.in ? ` at ${place(b.in)}` : '';
+  const things = b.items === 1 ? '1 thing' : `${b.items} things`;
+  return { item, unit: null, text: `${b.name}: a build${where}, ${things} in it.` };
 }
 
 function unitSentence(u: UnitBrief): string {
@@ -64,6 +83,6 @@ function unitSentence(u: UnitBrief): string {
   }
   if (u.location.kind === 'in_transit')
     return `${u.name}: being moved right now (${u.location.name}).${status}`;
-  if (u.atHome || !u.home) return `${u.name}: at ${place(u.location)}.${status}`;
-  return `${u.name}: now at ${place(u.location)}; it belongs at ${place(u.home)}.${status}`;
+  if (u.atHome || !u.home) return `${u.name}: ${at(u.location)}.${status}`;
+  return `${u.name}: now ${at(u.location)}; it belongs at ${place(u.home)}.${status}`;
 }

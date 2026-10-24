@@ -8,6 +8,7 @@ export * from './api.js';
 export * from './attributes.js';
 export * from './import.js';
 export * from './bom.js';
+export * from './builds.js';
 export * from './maps.js';
 export * from './colours.js';
 export * from './names.js';

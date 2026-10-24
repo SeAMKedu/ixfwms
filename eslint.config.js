@@ -54,7 +54,7 @@ export default tseslint.config(
   ...Object.entries({
     'apps/server/src/db/schema.ts': [450],
     'apps/server/src/mcp/server.ts': [700, 650],
-    'apps/server/src/services/locations.ts': [600],
+    'apps/server/src/services/locations.ts': [520],
     'apps/server/src/services/maps.ts': [550],
     'apps/server/src/services/parts.ts': [540],
     'apps/server/src/services/stock.ts': [410],

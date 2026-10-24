@@ -10,7 +10,7 @@ import { many, one, type Db, type Executor } from '../db/client.js';
 import { locations, parts, stockLots } from '../db/schema.js';
 import { fail, invalid } from '../lib/errors.js';
 import { requireScope, type Actor } from './context.js';
-import type { LocationService } from './locations.js';
+import type { LocationRow, LocationService } from './locations.js';
 import type { SettingsService } from './settings.js';
 import type { StockService } from './stock.js';
 import type { UnitService } from './units.js';
@@ -95,44 +95,59 @@ export class OpenActionService {
       const summary = await this.locations.summarize(tx, place);
       if (!summary.workstation) throw invalid('open.onlyWorkstations');
       const who = await this.allow(actor, 'workstation', true);
-      const result: ClearResult = { returned: [], left: [] };
-      const unitRows = await this.units.directlyAt(place.id, tx);
-      const briefs = await this.units.briefs(unitRows, tx);
-      for (const [i, unit] of unitRows.entries()) {
-        const name = briefs[i]!.name;
-        if (!unit.homeLocationId || unit.homeLocationId === place.id) {
-          result.left.push({ kind: 'unit', name });
-          continue;
-        }
-        await this.units.moveWithin(tx, unit, unit.homeLocationId, who, guest);
-        result.returned.push({ kind: 'unit', name, to: briefs[i]!.home! });
-      }
-      const lots = await many(
-        tx
-          .select({ lot: stockLots, name: parts.name })
-          .from(stockLots)
-          .innerJoin(parts, eq(parts.id, stockLots.partId))
-          .where(eq(stockLots.locationId, place.id)),
-      );
-      for (const { lot, name } of lots) {
-        const origin = lot.originLocationId;
-        if (!origin || origin === place.id) {
-          result.left.push({ kind: 'lot', name });
-          continue;
-        }
-        await this.stock.moveWithin(tx, lot.id, origin, null, who, guest);
-        result.returned.push({
-          kind: 'lot',
-          name,
-          to: await this.locations.summarize(tx, await this.locations.resolve(origin, tx)),
-        });
-      }
-      for (const box of await many(
-        tx.select({ name: locations.name }).from(locations).where(eq(locations.parentId, place.id)),
-      ))
-        result.left.push({ kind: 'place', name: box.name });
-      return result;
+      return this.sendBack(tx, place, who, guest);
     });
+  }
+
+  /**
+   * Units directly at `place` go home, stock goes back where it came from. What belongs here or
+   * inside, or nobody knows a place for, stays and is listed (boxes and other places too).
+   */
+  async sendBack(
+    tx: Executor,
+    place: LocationRow,
+    who: Actor | null,
+    guest: string | null,
+  ): Promise<ClearResult> {
+    const result: ClearResult = { returned: [], left: [] };
+    const inside = (id: string) =>
+      this.locations.resolve(id, tx).then((l) => l.path.startsWith(place.path));
+    const unitRows = await this.units.directlyAt(place.id, tx);
+    const briefs = await this.units.briefs(unitRows, tx);
+    for (const [i, unit] of unitRows.entries()) {
+      const name = briefs[i]!.name;
+      if (!unit.homeLocationId || (await inside(unit.homeLocationId))) {
+        result.left.push({ kind: 'unit', name });
+        continue;
+      }
+      await this.units.moveWithin(tx, unit, unit.homeLocationId, who, guest);
+      result.returned.push({ kind: 'unit', name, to: briefs[i]!.home! });
+    }
+    const lots = await many(
+      tx
+        .select({ lot: stockLots, name: parts.name })
+        .from(stockLots)
+        .innerJoin(parts, eq(parts.id, stockLots.partId))
+        .where(eq(stockLots.locationId, place.id)),
+    );
+    for (const { lot, name } of lots) {
+      const origin = lot.originLocationId;
+      if (!origin || (await inside(origin))) {
+        result.left.push({ kind: 'lot', name });
+        continue;
+      }
+      await this.stock.moveWithin(tx, lot.id, origin, null, who, guest);
+      result.returned.push({
+        kind: 'lot',
+        name,
+        to: await this.locations.summarize(tx, await this.locations.resolve(origin, tx)),
+      });
+    }
+    for (const box of await many(
+      tx.select({ name: locations.name }).from(locations).where(eq(locations.parentId, place.id)),
+    ))
+      result.left.push({ kind: 'place', name: box.name });
+    return result;
   }
 
   /** The actor to record (null without an account), or an error when the move isn't allowed. */

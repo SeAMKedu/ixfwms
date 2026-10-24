@@ -19,6 +19,9 @@ const NO_ADDRESS = {
   dueAt: null,
   overdue: false,
   workstation: false,
+  build: false,
+  inBuild: null,
+  dismantledAt: null,
 };
 
 const part = (over: Partial<PartSummary>): PartSummary => ({
@@ -179,6 +182,8 @@ describe('location page', () => {
       typeStayDays: null,
       contact: null,
       lastActivityAt: '2026-10-23T08:00:00.000Z',
+      createdAt: '2026-10-01T08:00:00.000Z',
+      wasInIt: [],
       description: null,
       path: [
         {
@@ -266,6 +271,8 @@ describe('carry page', () => {
       typeStayDays: null,
       contact: null,
       lastActivityAt: '2026-10-23T08:00:00.000Z',
+      createdAt: '2026-10-01T08:00:00.000Z',
+      wasInIt: [],
       description: null,
       path: [
         {

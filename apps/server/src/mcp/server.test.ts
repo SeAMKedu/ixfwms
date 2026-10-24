@@ -133,4 +133,47 @@ describe('MCP tools', () => {
       (await call<{ text: string }[]>('where_is', { query: 'nothing like this' }))[0]!.text,
     ).toMatch(/Nothing found/);
   });
+  it('makes a build, says where its parts are, and dismantles it', async () => {
+    const shelf = await call<{ code: string }>('create_location', {
+      name: 'Shelf 3',
+      type: 'shelf',
+    });
+    const cell = await call<{ code: string }>('create_location', {
+      name: 'Robot cell 2',
+      type: 'zone',
+    });
+    const [screw] = await call<{ code: string }[]>('create_part_drafts', {
+      parts: [
+        {
+          name: 'Socket head screw M3x10',
+          stock: { location: shelf.code, amount: { mode: 'count', quantity: 20 } },
+        },
+      ],
+    });
+    const made = await call<{ build: { code: string }; moved: unknown[]; left: unknown[] }>(
+      'make_build',
+      { name: 'Gripper v3', parent: cell.code, lines: [{ part: screw!.code, quantity: 8 }] },
+    );
+    expect(made.moved).toHaveLength(1);
+    expect(made.left).toEqual([]);
+
+    const answers = await call<{ text: string }[]>('where_is', { query: 'M3x10' });
+    expect(answers[0]!.text).toMatch(/8 pcs built into Gripper v3/);
+    const gripper = await call<{ text: string }[]>('where_is', { query: 'gripper' });
+    expect(gripper[0]!.text).toMatch(/^Gripper v3: a build at \S+, 1 thing in it\.$/);
+    const found = await call<{ builds: { code: string; url: string }[] }>('search_parts', {
+      kind: 'build',
+    });
+    expect(found.builds.map((b) => b.url)).toEqual([`http://lab.test/l/${made.build.code}`]);
+    const check = await call<{ lines: { available: number; salvageable: number }[] }>(
+      'check_availability',
+      { lines: [{ ref: screw!.code, quantity: 20 }] },
+    );
+    expect(check.lines[0]).toMatchObject({ available: 12, salvageable: 8 });
+
+    const done = await call<{ dismantled: boolean }>('dismantle_build', {
+      ref: made.build.code,
+    });
+    expect(done.dismantled).toBe(true);
+  });
 });

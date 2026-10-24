@@ -31,13 +31,14 @@ import {
 } from '../db/schema.js';
 import { AppError, invalid, notFound, ruleConflict } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
+import type { BuildService } from './builds.js';
 import type { CategoryService } from './categories.js';
 import { toAmount } from './amounts.js';
 import { allocateCode, retireCode } from './codes.js';
 import { audit, placeName, requireScope, type Actor } from './context.js';
 import type { FileService } from './files.js';
 import type { LocationService } from './locations.js';
-import { PartSearch, type SearchInput } from './part-search.js';
+import { hasItemFilters, PartSearch, type SearchInput } from './part-search.js';
 import { contains, partSearchText } from './search-text.js';
 import type { StockService } from './stock.js';
 import type { UnitService } from './units.js';
@@ -70,6 +71,7 @@ export class PartService {
     private readonly files: FileService,
     private readonly units: UnitService,
     private readonly categories: CategoryService,
+    private readonly builds: BuildService,
   ) {
     this.searcher = new PartSearch(db, locations, stock, categories);
   }
@@ -355,7 +357,14 @@ export class PartService {
       ? await many(this.db.select().from(parts).where(inArray(parts.id, ids)))
       : [];
     const byId = new Map(found.map((p) => [p.id, p]));
-    return { rows, items: await this.summaries(ids.map((id) => byId.get(id)!)), total };
+    return {
+      rows,
+      items: await this.summaries(ids.map((id) => byId.get(id)!)),
+      total,
+      // Builds come along when the search is by text or kind only: item filters don't fit them.
+      builds:
+        input.offset || hasItemFilters(input) ? [] : await this.builds.find(input.q, input.kind),
+    };
   }
 
   /**

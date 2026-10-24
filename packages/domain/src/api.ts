@@ -8,6 +8,7 @@ import type {
   AttachmentKind,
   LocationKind,
   PartKind,
+  SearchKind,
   PartStatus,
   ReportKind,
   Scope,
@@ -16,6 +17,7 @@ import type {
   UnitStatus,
   UserRole,
 } from './enums.js';
+import type { BuildBrief } from './builds.js';
 import type { StockAmount } from './quantity.js';
 
 export interface LocationSummary {
@@ -41,6 +43,12 @@ export interface LocationSummary {
   overdue: boolean;
   /** A workstation (table): anyone may bring things here, and it can be cleared in one go. */
   workstation: boolean;
+  /** A build: a thing made from parts (its type is a build type). */
+  build: boolean;
+  /** The build this place is, or is inside: what's here is built in, not free stock. */
+  inBuild: { code: string; name: string } | null;
+  /** When a build was taken apart; nothing can be put in it after that. */
+  dismantledAt: string | null;
 }
 
 /** A temporary place left untouched longer than expected. */
@@ -69,6 +77,7 @@ export interface LocationTypeInfo {
   /** Places of this type are temporary, expected to stay at most this many days. */
   stayDays: number | null;
   workstation: boolean;
+  build: boolean;
   sort: number;
   /** How many places are of this type (a type in use can't be removed). */
   places: number;
@@ -254,7 +263,7 @@ export interface ClearResult {
 
 /** One readable answer to "where is …?", made to be read aloud. */
 export interface WhereIsAnswer {
-  item: { code: string; name: string; kind: PartKind };
+  item: { code: string; name: string; kind: SearchKind };
   unit: string | null;
   text: string;
 }
@@ -283,6 +292,9 @@ export interface LocationDetail extends LocationSummary {
   typeStayDays: number | null;
   contact: string | null;
   lastActivityAt: string;
+  createdAt: string;
+  /** Builds: everything that has been in it (parts and units), for after it's dismantled. */
+  wasInIt: { kind: 'part' | 'unit'; code: string; name: string }[];
 }
 
 export interface SearchResult<T> {
@@ -299,6 +311,8 @@ export interface PartSearchRow {
 /** A page of search results. `items` are the parts its rows belong to; `total` counts rows. */
 export interface PartSearchResult extends SearchResult<PartSummary> {
   rows: PartSearchRow[];
+  /** Builds the text matches (or all of them, for the Builds filter), on the first page. */
+  builds: BuildBrief[];
 }
 
 export interface SessionUser {

@@ -9,6 +9,7 @@ import {
   type BomLine,
   type BomLineResult,
   type BomStatus,
+  USABLE_UNIT_STATUSES,
 } from '@ixfwms/domain';
 import { eq, inArray } from 'drizzle-orm';
 import { many, one, type Db } from '../db/client.js';
@@ -17,6 +18,7 @@ import { invalid } from '../lib/errors.js';
 import { requireScope, type Actor } from './context.js';
 import type { PartRow, PartService } from './parts.js';
 import type { StockService } from './stock.js';
+import type { UnitService } from './units.js';
 
 const MAX_LINES = 1000;
 const NAME_MATCH_SCORE = 0.75;
@@ -27,6 +29,7 @@ export class BomService {
     private readonly db: Db,
     private readonly parts: PartService,
     private readonly stock: StockService,
+    private readonly units: UnitService,
   ) {}
 
   async check(lines: BomLine[]): Promise<BomCheck> {
@@ -99,6 +102,7 @@ export class BomService {
         match: 'none',
         part: null,
         available: 0,
+        salvageable: 0,
         uncounted: false,
         status: 'missing',
         where: [],
@@ -107,11 +111,14 @@ export class BomService {
     const lots = await this.stock.lotsOfPart(part.id);
     const levels = await this.stock.levels();
     let available = 0;
+    let salvageable = 0;
     let uncounted = false;
     let plenty = false;
     for (const lot of lots) {
       const n = estimateCount(lot.amount, part.unitMassG);
-      if (n != null) available += n;
+      // Built into something: could be had by taking it apart, but isn't free.
+      if (lot.location.inBuild) salvageable += n ?? 0;
+      else if (n != null) available += n;
       else if (isUnknown(lot.amount)) {
         // There is some, nobody has said how much: it may well be enough.
         uncounted = true;
@@ -125,6 +132,13 @@ export class BomService {
         if (lot.amount.mode === 'measure' || levelState(lot.amount.level, levels) === 'ok')
           plenty = true;
       }
+    }
+    const units = ((await this.units.briefsForParts([part.id])).get(part.id) ?? []).filter(
+      (u) => USABLE_UNIT_STATUSES.includes(u.status) && !u.loan,
+    );
+    for (const u of units) {
+      if (u.location.inBuild) salvageable++;
+      else available++;
     }
     const status: BomStatus =
       available >= input.quantity
@@ -141,13 +155,23 @@ export class BomService {
       match,
       part: { code: part.code, name: part.name, manufacturer: part.manufacturer },
       available,
+      salvageable,
       uncounted,
       status,
-      where: lots.map((l) => ({
-        code: l.location.code,
-        path: l.path.map((p) => p.name).join(' › '),
-        display: l.display,
-      })),
+      where: [
+        ...lots.map((l) => ({
+          code: l.location.code,
+          path: l.path.map((p) => p.name).join(' › '),
+          display: l.display,
+          build: l.location.inBuild,
+        })),
+        ...units.map((u) => ({
+          code: u.location.code,
+          path: u.location.name,
+          display: u.name,
+          build: u.location.inBuild,
+        })),
+      ],
     };
   }
 

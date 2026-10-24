@@ -5,6 +5,7 @@ import { pendingMigrations, runMigrations } from '../db/migrate.js';
 import { AuthService } from './auth.js';
 import { BackupService } from './backup.js';
 import { BomService } from './bom.js';
+import { BuildService } from './builds.js';
 import { CarryService } from './carry.js';
 import { CategoryService } from './categories.js';
 import { ExportService } from './export.js';
@@ -16,6 +17,7 @@ import { LocationViews } from './location-views.js';
 import { LocationService } from './locations.js';
 import { MapService } from './maps.js';
 import { OpenActionService } from './open.js';
+import { PlaceTypeService } from './place-types.js';
 import { PartResolver, PartService } from './parts.js';
 import { ReportService } from './reports.js';
 import { fillSearchText } from './search-text.js';
@@ -30,6 +32,7 @@ export interface Services {
   auth: AuthService;
   backup: BackupService;
   bom: BomService;
+  builds: BuildService;
   categories: CategoryService;
   carry: CarryService;
   export: ExportService;
@@ -42,6 +45,7 @@ export interface Services {
   maps: MapService;
   open: OpenActionService;
   parts: PartService;
+  placeTypes: PlaceTypeService;
   reports: ReportService;
   settings: SettingsService;
   stock: StockService;
@@ -61,11 +65,14 @@ export function createServices(
   const stock = new StockService(db, locations, resolver, settings);
   const units = new UnitService(db, locations, resolver);
   const categories = new CategoryService(db);
-  const parts = new PartService(db, resolver, locations, stock, files, units, categories);
+  const open = new OpenActionService(db, locations, stock, units, settings);
+  const builds = new BuildService(db, locations, stock, units, open, resolver);
+  const parts = new PartService(db, resolver, locations, stock, files, units, categories, builds);
   return {
     auth: new AuthService(db),
     backup: new BackupService(database.client, join(config.dataDir, 'backups'), config.backupKeep),
-    bom: new BomService(db, parts, stock),
+    bom: new BomService(db, parts, stock, units),
+    builds,
     categories,
     carry: new CarryService(db, locations, stock, units),
     export: new ExportService(db),
@@ -74,10 +81,11 @@ export function createServices(
     import: new ImportService(db, locations, parts, stock),
     labels: new LabelService(db, locations),
     locations,
-    locationViews: new LocationViews(db, locations, parts, files, units),
+    locationViews: new LocationViews(db, locations, parts, files, units, builds),
     maps: new MapService(db, locations, files),
-    open: new OpenActionService(db, locations, stock, units, settings),
+    open,
     parts,
+    placeTypes: new PlaceTypeService(db),
     reports: new ReportService(db, locations, resolver, units),
     settings,
     stock,

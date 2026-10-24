@@ -80,6 +80,8 @@ export const locationTypes = sqliteTable('location_types', {
   stayDays: integer('stay_days'),
   /** Tables people bring things to: anyone may bring things here, and they can be cleared in one go. */
   workstation: integer('workstation', { mode: 'boolean' }).notNull().default(false),
+  /** Things made from parts (a gripper, a test rig): what's in them isn't free stock. */
+  build: integer('build', { mode: 'boolean' }).notNull().default(false),
 });
 
 export const locations = sqliteTable(
@@ -101,6 +103,8 @@ export const locations = sqliteTable(
     contact: text('contact'),
     /** Last time stock went in or out (here or inside), it moved, or someone said it's still needed. */
     lastActivityAt: text('last_activity_at'),
+    /** A build taken apart: kept so its code still scans and what was in it can be looked up. */
+    dismantledAt: text('dismantled_at'),
     description: text('description'),
     /** Materialised path of ids, e.g. "/a/b/c/" (includes this location), for subtree queries. */
     path: text('path').notNull(),

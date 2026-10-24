@@ -7,6 +7,7 @@ import {
   PART_KINDS,
   PART_STATUSES,
   REPORT_KINDS,
+  SEARCH_KINDS,
   TRACKING_MODES,
   UNIT_LOG_KINDS,
   UNIT_STATUSES,
@@ -60,6 +61,31 @@ export const CreateLocationInput = z.object({
     .describe('Use this code (e.g. from a pre-printed blank label) instead of a new one'),
 });
 export type CreateLocationInput = z.infer<typeof CreateLocationInput>;
+
+/** A build made from a parts list: the parts are moved into it from free stock. */
+export const MakeBuildInput = z.object({
+  name: z.string().trim().min(1).max(200),
+  parent: RefSchema.nullish().describe('Where the build sits (place id or code)'),
+  type: z.string().trim().min(1).max(40).default('build').describe('A build type key'),
+  contact: z.string().trim().max(200).nullish().describe('Who to ask about it'),
+  description: z.string().trim().max(2000).nullish(),
+  lines: z
+    .array(
+      z.object({
+        part: RefSchema.describe('Part code or id'),
+        quantity: z.number().int().positive().max(100_000),
+      }),
+    )
+    .max(1000),
+});
+export type MakeBuildInput = z.input<typeof MakeBuildInput>;
+
+export const DismantleInput = z.object({
+  to: RefSchema.nullish().describe(
+    'Put everything on this place (a workstation, say); omit to put everything back where it came from',
+  ),
+});
+export type DismantleInput = z.infer<typeof DismantleInput>;
 
 export const DuplicateLocationInput = z.object({
   name: z
@@ -209,7 +235,7 @@ export type UpdatePartInput = z.infer<typeof UpdatePartInput>;
 
 export const PartSearchInput = z.object({
   q: z.string().trim().max(200).optional(),
-  kind: z.enum(PART_KINDS).optional(),
+  kind: z.enum(SEARCH_KINDS).optional().describe('part, tool, device, or build (only builds)'),
   category: z.string().trim().max(300).optional(),
   tag: z.string().trim().max(60).optional(),
   status: z.enum(PART_STATUSES).optional(),
@@ -254,6 +280,8 @@ export const LocationTypeInput = z.object({
   movable: z.boolean().default(false),
   /** A table people bring things to work on: things left there show up the next day. */
   workstation: z.boolean().default(false),
+  /** Things made from parts: what's in them isn't free stock, and they can be dismantled. */
+  build: z.boolean().default(false),
   stayDays: z.number().int().min(1).max(3650).nullable().default(null),
   sort: z.number().int().min(0).max(1000).optional(),
 });

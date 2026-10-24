@@ -1,6 +1,8 @@
 import {
   CreateLocationInput,
+  DismantleInput,
   DuplicateLocationInput,
+  MakeBuildInput,
   LocationTypeInput,
   UpdateLocationInput,
   buildCodeUrl,
@@ -13,7 +15,7 @@ import { baseUrl, parse, QueryBool, type AppDeps } from '../context.js';
 const RefParams = z.object({ ref: z.string() });
 
 export function registerLocationRoutes(app: FastifyInstance, { config, services }: AppDeps): void {
-  const { locations, locationViews, maps } = services;
+  const { builds, locations, locationViews, maps, placeTypes } = services;
 
   app.get('/api/locations', async (request) => {
     const q = parse(
@@ -31,17 +33,17 @@ export function registerLocationRoutes(app: FastifyInstance, { config, services 
   });
 
   /** Place types: what can be picked for a place, and which are movable containers. */
-  app.get('/api/location-types', async () => locations.types());
+  app.get('/api/location-types', async () => placeTypes.types());
 
   app.post('/api/location-types', async (request, reply) =>
     reply
       .status(201)
-      .send(await locations.createType(parse(LocationTypeInput, request.body), request.actor)),
+      .send(await placeTypes.createType(parse(LocationTypeInput, request.body), request.actor)),
   );
 
   app.patch('/api/location-types/:key', async (request) => {
     const { key } = parse(z.object({ key: z.string() }), request.params);
-    return locations.updateType(
+    return placeTypes.updateType(
       key,
       parse(LocationTypeInput.partial(), request.body),
       request.actor,
@@ -50,7 +52,7 @@ export function registerLocationRoutes(app: FastifyInstance, { config, services 
 
   app.delete('/api/location-types/:key', async (request, reply) => {
     const { key } = parse(z.object({ key: z.string() }), request.params);
-    await locations.deleteType(key, request.actor);
+    await placeTypes.deleteType(key, request.actor);
     return reply.status(204).send();
   });
 
@@ -71,6 +73,20 @@ export function registerLocationRoutes(app: FastifyInstance, { config, services 
     const created = await locations.create(parse(CreateLocationInput, request.body), request.actor);
     return reply.status(201).send(created);
   });
+
+  /** A build made from a parts list: the parts are moved in from free stock. */
+  app.post('/api/builds', async (request, reply) =>
+    reply.status(201).send(await builds.make(parse(MakeBuildInput, request.body), request.actor)),
+  );
+
+  /** Takes a build apart: back where everything came from, or onto `to`. */
+  app.post('/api/locations/:ref/dismantle', async (request) =>
+    builds.dismantle(
+      parse(RefParams, request.params).ref,
+      parse(DismantleInput, request.body ?? {}),
+      request.actor,
+    ),
+  );
 
   app.patch('/api/locations/:ref', async (request) => {
     const { ref } = parse(RefParams, request.params);

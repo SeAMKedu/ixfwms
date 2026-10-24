@@ -17,6 +17,9 @@ const place = (code: string, ...path: string[]): PlaceOption => ({
   dueAt: null,
   overdue: false,
   workstation: false,
+  build: false,
+  inBuild: null,
+  dismantledAt: null,
   path,
   pathCodes: [],
 });

@@ -8,6 +8,7 @@ import {
   IdentifierInput,
   LendInput,
   PART_KINDS,
+  SEARCH_KINDS,
   PART_STATUSES,
   REPORT_KINDS,
   TRACKING_MODES,
@@ -15,16 +16,18 @@ import {
   UpdateUnitInput,
 } from '@ixfwms/domain';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { AppError, ruleConflict } from '../lib/errors.js';
 import type { Actor, Services } from '../services/index.js';
+import { registerBuildTools } from './build-tools.js';
+import { read, tool, write } from './tool.js';
 
 const MCP_INSTRUCTIONS = `ixfwms is the robotics lab's inventory: parts, tools and devices we own, how much, and where they are. ("Parts" in tool names means all items.)
 
 Places form a tree (lab › cabinet › shelf › box). Every place, item and unit has a short code like A3F9, printed on its QR label; any tool taking a "ref" accepts that code or the internal id.
 
 Bulk items (screws, suction cups, filament) are tracked per place as a count (pcs), a measure (g, kg, m, mm, ml, l) or a level (the lab's own list, e.g. plenty, low, empty: list_stock_levels). Weighed fasteners show an estimated count when the part's unitMassG is known.
+
+Builds are things made from parts (a gripper, a test rig): places whose parts are built in, not free stock. Parts in a build remember where they came from, so dismantle_build can put them back.
 
 Individual items (tools, robots, PLC CPUs, licence dongles) have units, each with its own code, serial number, where it is now, its home place (where it belongs), a status and a log. Units can be lent out of the lab (a person with an account is responsible). For "where is the …?" questions call where_is first: it answers in short sentences that can be read aloud.
 
@@ -35,32 +38,6 @@ Doing the initial inventory:
 4. Photos: upload with the curl command from get_upload_info, then attach_file with the returned file id.
 
 New parts are drafts until a person confirms them. Prefer exact order numbers over guesses; never invent order numbers. Ask the person when unsure about quantities or where something is.`;
-
-type Handler<A> = (args: A) => Promise<unknown>;
-
-function ok(value: unknown): CallToolResult {
-  return { content: [{ type: 'text', text: JSON.stringify(value, null, 1) }] };
-}
-
-/** Wraps a tool handler: AppErrors become readable tool errors instead of protocol failures. */
-function tool<A>(fn: Handler<A>) {
-  return async (args: A): Promise<CallToolResult> => {
-    try {
-      return ok(await fn(args));
-    } catch (thrown) {
-      const err = ruleConflict(thrown) ?? thrown;
-      if (err instanceof AppError)
-        return { isError: true, content: [{ type: 'text', text: err.message }] };
-      if (err instanceof z.ZodError) {
-        return {
-          isError: true,
-          content: [{ type: 'text', text: `Invalid input: ${z.prettifyError(err)}` }],
-        };
-      }
-      throw err;
-    }
-  };
-}
 
 const DraftInput = CreatePartInput.omit({ status: true });
 
@@ -75,8 +52,6 @@ export function createMcpServer(
   const { parts, categories, locations, locationViews, stock, files } = services;
   const abs = (href: string) => (href.startsWith('/') ? `${baseUrl}${href}` : href);
   const partUrl = (code: string) => `${baseUrl}/p/${code}`;
-  const read = { readOnlyHint: true, openWorldHint: false } as const;
-  const write = { readOnlyHint: false, destructiveHint: false, openWorldHint: false } as const;
 
   const withPartLinks = async (ref: string) => {
     const p = await parts.get(ref);
@@ -92,7 +67,7 @@ export function createMcpServer(
     {
       title: 'Search parts',
       description:
-        'Search the inventory by text (name, description, manufacturer, order number, code) and filters. Each result is one thing to open: a bulk item, or one unit of a tool or device (only the units the text names, if it names any). `limit`, `offset` and `total` count results; `items` are their parts.',
+        'Search the inventory by text (name, description, manufacturer, order number, code) and filters. Each result is one thing to open: a bulk item, or one unit of a tool or device (only the units the text names, if it names any). `limit`, `offset` and `total` count results; `items` are their parts. `builds` are builds (things made from parts) the text matches, on the first page and without item filters; kind "build" lists the builds still standing. Stock in a build has `place.inBuild` set: it is built in, not free.',
       inputSchema: {
         q: z
           .string()
@@ -100,7 +75,7 @@ export function createMcpServer(
           .describe(
             'Free text, e.g. "suction cup 30", "6ES7214" or "impact drill" (aliases, unit names and serial numbers match too)',
           ),
-        kind: z.enum(PART_KINDS).optional().describe('part, tool or device'),
+        kind: z.enum(SEARCH_KINDS).optional().describe('part, tool, device, or build'),
         category: z.string().optional().describe('Category path prefix, e.g. "Pneumatics/Vacuum"'),
         tag: z.string().optional().describe('Tag or project name'),
         status: z.enum(PART_STATUSES).optional(),
@@ -131,6 +106,7 @@ export function createMcpServer(
         total: r.total,
         results,
         items: r.items.map((p) => ({ ...p, url: partUrl(p.code) })),
+        builds: r.builds.map((b) => ({ ...b, url: `${baseUrl}/l/${b.code}` })),
       };
     }),
   );
@@ -171,7 +147,7 @@ export function createMcpServer(
       inputSchema: {},
       annotations: read,
     },
-    tool(async () => locations.types()),
+    tool(async () => services.placeTypes.types()),
   );
 
   server.registerTool(
@@ -250,7 +226,7 @@ export function createMcpServer(
     {
       title: 'Check a parts list',
       description:
-        'Can we build this? Matches a parts list (order numbers, part codes or names, with quantities) against stock: what we have, where it is, and what is missing. Also returns how many complete sets can be built.',
+        'Can we build this? Matches a parts list (order numbers, part codes or names, with quantities) against stock: what we have, where it is, and what is missing. Also returns how many complete sets can be built. Only free stock counts as available; `salvageable` is what is built into builds (where entries with `build` set) and could be had by dismantling them.',
       inputSchema: {
         lines: z
           .array(BomLine)
@@ -749,5 +725,6 @@ export function createMcpServer(
     tool(async ({ id, resolution }) => reports.resolve(id, resolution ?? null, actor)),
   );
 
+  registerBuildTools(server, services, actor, baseUrl);
   return server;
 }

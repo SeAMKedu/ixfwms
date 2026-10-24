@@ -5,14 +5,15 @@ import {
   type AttributeFilter,
   type PartSearchInput,
   type PartSearchRow,
-  type UnitStatus,
+  USABLE_UNIT_STATUSES,
 } from '@ixfwms/domain';
-import { and, eq, exists, inArray, like, ne, or, sql, type SQL } from 'drizzle-orm';
+import { and, eq, exists, inArray, like, ne, notInArray, or, sql, type SQL } from 'drizzle-orm';
 import { many, type Db } from '../db/client.js';
 import { jsonValue } from '../db/dialect.js';
 import {
   categories,
   locations,
+  locationTypes,
   partIdentifiers,
   parts,
   partTags,
@@ -24,9 +25,6 @@ import { withinCategory, type CategoryService } from './categories.js';
 import type { LocationService } from './locations.js';
 import { contains, unitSearchText } from './search-text.js';
 import type { StockService } from './stock.js';
-
-/** Unit states that count as having the thing (for in stock and low stock). */
-const USABLE_UNIT: UnitStatus[] = ['ok', 'needs_attention'];
 
 const NOTHING = sql`1 = 0`;
 
@@ -124,7 +122,8 @@ export class PartSearch {
     const where: SQL[] = [];
     if (input.q) where.push(this.matchesText(input.q));
     if (input.status) where.push(eq(parts.status, input.status));
-    if (input.kind) where.push(eq(parts.kind, input.kind));
+    if (input.kind === 'build') where.push(NOTHING);
+    else if (input.kind) where.push(eq(parts.kind, input.kind));
     if (input.category) {
       const cat = await this.categories.lookup(input.category);
       where.push(
@@ -173,9 +172,13 @@ export class PartSearch {
         )!,
       );
     }
-    // Units that can be used now: not retired, broken or in repair, and not lent out.
+    // What's built into something isn't free stock.
+    const built = await this.builtPlaces();
+    const freeLot = built.length ? notInArray(stockLots.locationId, built) : sql`1 = 1`;
+    const freeUnit = built.length ? notInArray(units.locationId, built) : sql`1 = 1`;
+    // Units that can be used now: not retired, broken or in repair, lent out or built in.
     const usableUnits = sql`(select count(*) from ${units} inner join ${locations} on ${locations.id} = ${units.locationId}
-      where ${units.partId} = ${parts.id} and ${inArray(units.status, USABLE_UNIT)} and ${locations.kind} <> 'away')`;
+      where ${units.partId} = ${parts.id} and ${inArray(units.status, USABLE_UNIT_STATUSES)} and ${locations.kind} <> 'away' and ${freeUnit})`;
     const levels = await this.stock.levels();
     const keysWhere = (ok: (state: string) => boolean) => {
       const keys = levels.filter((l) => ok(l.state)).map((l) => l.key);
@@ -187,9 +190,10 @@ export class PartSearch {
     if (input.uncounted) where.push(hasUncounted);
     if (input.lowStock) {
       const low = keysWhere((s) => s !== 'ok');
-      // Below the minimum only when every lot is counted: uncounted stock may be plenty.
-      where.push(sql`((${parts.minStock} is not null and not ${hasUncounted} and coalesce((select sum(${stockLots.quantity}) from ${stockLots} where ${stockLots.partId} = ${parts.id} and ${stockLots.mode} = 'count'), 0) + ${usableUnits} < ${parts.minStock})
-        or exists (select 1 from ${stockLots} where ${stockLots.partId} = ${parts.id} and ${inArray(stockLots.level, low)}))`);
+      const freeUncounted = sql`exists (select 1 from ${stockLots} where ${stockLots.partId} = ${parts.id} and (${uncounted}) and ${freeLot})`;
+      // Below the minimum only when every free lot is counted: uncounted stock may be plenty.
+      where.push(sql`((${parts.minStock} is not null and not ${freeUncounted} and coalesce((select sum(${stockLots.quantity}) from ${stockLots} where ${stockLots.partId} = ${parts.id} and ${stockLots.mode} = 'count' and ${freeLot}), 0) + ${usableUnits} < ${parts.minStock})
+        or exists (select 1 from ${stockLots} where ${stockLots.partId} = ${parts.id} and ${inArray(stockLots.level, low)} and ${freeLot}))`);
     }
     for (const filter of input.attributes ?? [])
       if (!isTextFilter(filter)) where.push(numberCondition(filter));
@@ -201,6 +205,7 @@ export class PartSearch {
           .where(
             and(
               eq(stockLots.partId, parts.id),
+              freeLot,
               or(
                 sql`${stockLots.quantity} > 0`,
                 uncounted,
@@ -216,6 +221,25 @@ export class PartSearch {
       where.push(input.inStock ? available : sql`not ${available}`);
     }
     return where.length ? and(...where) : undefined;
+  }
+
+  /** Ids of the places that are builds or inside one (a few, next to the whole lab). */
+  private async builtPlaces(): Promise<string[]> {
+    const builds = await many(
+      this.db
+        .select({ path: locations.path })
+        .from(locations)
+        .innerJoin(locationTypes, eq(locationTypes.id, locations.typeId))
+        .where(eq(locationTypes.build, true)),
+    );
+    if (!builds.length) return [];
+    const inside = await many(
+      this.db
+        .select({ id: locations.id })
+        .from(locations)
+        .where(or(...builds.map((b) => like(locations.path, `${b.path}%`)))),
+    );
+    return inside.map((r) => r.id);
   }
 
   /** Name, description, maker, aliases, code, identifiers, or a live unit's name, serial or code. */
@@ -255,6 +279,20 @@ export class PartSearch {
     }
     return or(...conditions)!;
   }
+}
+
+/** Filters only items have (builds have no status, category, stock…). */
+export function hasItemFilters(input: SearchInput): boolean {
+  return !!(
+    input.status ||
+    input.category ||
+    input.tag ||
+    input.location ||
+    input.inStock !== undefined ||
+    input.lowStock ||
+    input.uncounted ||
+    input.attributes?.length
+  );
 }
 
 /** Plain code-point order on folded text, the same everywhere. */

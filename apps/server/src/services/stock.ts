@@ -92,7 +92,7 @@ export class StockService {
       amount = { ...amount, level: await this.levelKey(amount.level) };
     checkWhole(amount.mode, amount.quantity);
     const location = locationRef
-      ? await this.locations.resolve(locationRef, tx)
+      ? this.locations.checkOpen(await this.locations.resolve(locationRef, tx))
       : await this.locations.inbox(tx);
     const lotId = await this.put(tx, { partId, ...amount }, location.id, null, amount, {
       note,
@@ -184,15 +184,14 @@ export class StockService {
 
   /**
    * Where stock belongs after moving to `dest`. Back at its origin it's home again; at a
-   * workstation, a temporary place or being carried it is visiting, and remembers where it
-   * came from; anywhere else is its new home.
+   * workstation, a temporary place, in a build or being carried it is visiting, and remembers
+   * where it came from; anywhere else is its new home.
    */
   private async originAfter(tx: Executor, lot: LotRow, dest: LocationRow): Promise<string | null> {
     if (dest.id === lot.originLocationId) return null;
-    const summary = await this.locations.summarize(tx, dest);
-    const visiting =
-      summary.kind === 'in_transit' || summary.workstation || summary.stayDays !== null;
-    return visiting ? (lot.originLocationId ?? lot.locationId) : null;
+    return (await this.locations.visiting(tx, dest))
+      ? (lot.originLocationId ?? lot.locationId)
+      : null;
   }
 
   /**
@@ -212,6 +211,7 @@ export class StockService {
     const lot = await this.lot(tx, lotId);
     const dest = await this.locations.resolve(toRef, tx);
     if (dest.id === lot.locationId) return lot.id;
+    this.locations.checkOpen(dest);
     if (quantity != null && lot.mode !== 'level' && lot.quantity == null)
       throw invalid('stock.uncountedPart');
     const whole = quantity == null || lot.mode === 'level' || quantity >= (lot.quantity ?? 0);

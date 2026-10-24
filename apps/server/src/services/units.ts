@@ -528,10 +528,14 @@ export class UnitService {
     });
   }
 
-  /** Units can't be put in "Out of the lab" (lend them) or someone's carry list (pick them up). */
+  /**
+   * Units can't be put in "Out of the lab" (lend them), someone's carry list (pick them up) or
+   * a dismantled build.
+   */
   checkDestination(dest: LocationRow): void {
     if (dest.kind === 'away') throw invalid('units.lendInstead');
     if (dest.kind === 'in_transit') throw invalid('stock.pickUpToCarry');
+    this.locations.checkOpen(dest);
   }
 
   async openLoan(ex: Executor, unitId: string): Promise<LoanRow | undefined> {

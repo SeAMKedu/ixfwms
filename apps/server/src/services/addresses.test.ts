@@ -78,24 +78,37 @@ describe('place addresses', () => {
 describe('place types', () => {
   it('lists, adds, changes and removes types; built-in ones are hidden', async () => {
     const { locations } = env.services;
-    const types = await locations.types();
+    const types = await env.services.placeTypes.types();
     expect(types.find((t) => t.key === 'pallet')).toMatchObject({ movable: true });
     expect(types.find((t) => t.key === 'shelf')).toMatchObject({ movable: false });
     expect(types.some((t) => t.key === 'system' || t.key === 'in_transit')).toBe(false);
 
-    const cart = await locations.createType({ name: 'Tool cart', movable: true }, env.admin);
+    const cart = await env.services.placeTypes.createType(
+      { name: 'Tool cart', movable: true },
+      env.admin,
+    );
     expect(cart).toMatchObject({ key: 'tool_cart', movable: true, places: 0 });
     await locations.create({ name: 'Cart 1', type: 'tool_cart' }, env.admin);
-    await expect(locations.deleteType('tool_cart', env.admin)).rejects.toThrow(/exist/);
+    await expect(env.services.placeTypes.deleteType('tool_cart', env.admin)).rejects.toThrow(
+      /exist/,
+    );
     expect(
-      await locations.updateType('tool_cart', { name: 'Trolley', movable: false }, env.admin),
+      await env.services.placeTypes.updateType(
+        'tool_cart',
+        { name: 'Trolley', movable: false },
+        env.admin,
+      ),
     ).toMatchObject({ name: 'Trolley', movable: false, places: 1 });
-    await locations.deleteType('pallet', env.admin);
-    await expect(locations.deleteType('system', env.admin)).rejects.toThrow(/not found/);
-    await expect(locations.createType({ name: 'X' }, env.inventory)).rejects.toThrow();
+    await env.services.placeTypes.deleteType('pallet', env.admin);
+    await expect(env.services.placeTypes.deleteType('system', env.admin)).rejects.toThrow(
+      /not found/,
+    );
+    await expect(
+      env.services.placeTypes.createType({ name: 'X' }, env.inventory),
+    ).rejects.toThrow();
 
     // A removed default type stays removed after a restart.
     await locations.ensureDefaults();
-    expect((await locations.types()).some((t) => t.key === 'pallet')).toBe(false);
+    expect((await env.services.placeTypes.types()).some((t) => t.key === 'pallet')).toBe(false);
   });
 });

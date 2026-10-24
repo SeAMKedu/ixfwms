@@ -84,14 +84,14 @@ describe('temporary places', () => {
   });
 
   it('keeps per-type stays editable', async () => {
-    const { locations } = env.services;
-    const cart = await locations.createType(
+    const { placeTypes } = env.services;
+    const cart = await placeTypes.createType(
       { name: 'Loan cart', movable: true, stayDays: 7 },
       env.admin,
     );
     expect(cart.stayDays).toBe(7);
     expect(
-      (await locations.updateType('loan_cart', { stayDays: null }, env.admin)).stayDays,
+      (await placeTypes.updateType('loan_cart', { stayDays: null }, env.admin)).stayDays,
     ).toBeNull();
   });
 });
@@ -116,9 +116,9 @@ describe('lab settings', () => {
   });
 
   it('changes one field of a place type without resetting the others', async () => {
-    const { locations } = env.services;
-    await locations.updateType('pallet', { name: 'EUR pallet' }, env.admin);
-    const pallet = (await locations.types()).find((t) => t.key === 'pallet')!;
+    const { placeTypes } = env.services;
+    await placeTypes.updateType('pallet', { name: 'EUR pallet' }, env.admin);
+    const pallet = (await placeTypes.types()).find((t) => t.key === 'pallet')!;
     expect(pallet).toMatchObject({ name: 'EUR pallet', movable: true, stayDays: 14 });
   });
 });

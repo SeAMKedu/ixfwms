@@ -1,7 +1,8 @@
 import { formatAmount, type LocationDetail } from '@ixfwms/domain';
 import { eq, inArray, like, sql } from 'drizzle-orm';
 import { many, one, type Db } from '../db/client.js';
-import { locations, parts, stockLots } from '../db/schema.js';
+import { locations, locationTypes, parts, stockLots } from '../db/schema.js';
+import type { BuildService } from './builds.js';
 import type { FileService } from './files.js';
 import type { LocationService } from './locations.js';
 import type { PartService } from './parts.js';
@@ -15,6 +16,7 @@ export class LocationViews {
     private readonly parts: PartService,
     private readonly files: FileService,
     private readonly units: UnitService,
+    private readonly builds: BuildService,
   ) {}
 
   async detail(ref: string, opts: { recursive?: boolean } = {}): Promise<LocationDetail> {
@@ -76,7 +78,6 @@ export class LocationViews {
       .sort((a, b) => a.part.name.localeCompare(b.part.name));
 
     const summary = await this.locations.summarize(this.db, loc);
-    const summaryType = summary.type;
     return {
       ...summary,
       description: loc.description,
@@ -88,9 +89,18 @@ export class LocationViews {
       clashes: await this.locations.clashes(loc),
       ownStayDays: loc.stayDays,
       typeStayDays:
-        (await this.locations.types()).find((ty) => ty.key === summaryType)?.stayDays ?? null,
+        (
+          await one(
+            this.db
+              .select({ stayDays: locationTypes.stayDays })
+              .from(locationTypes)
+              .where(eq(locationTypes.id, loc.typeId)),
+          )
+        )?.stayDays ?? null,
       contact: loc.contact,
       lastActivityAt: loc.lastActivityAt ?? loc.updatedAt,
+      createdAt: loc.createdAt,
+      wasInIt: summary.build ? await this.builds.wasInIt(loc) : [],
     };
   }
 }

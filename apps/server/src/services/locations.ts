@@ -2,9 +2,7 @@ import {
   addressOf,
   BUILT_IN_LOCATION_TYPES,
   DEFAULT_LOCATION_TYPES,
-  LocationTypeInput,
   nextShortName,
-  type LocationTypeInfo,
   type OverduePlace,
   isValidCode,
   normalizeCode,
@@ -48,6 +46,7 @@ export class LocationService {
         movable: false,
         stayDays: null,
         workstation: false,
+        build: false,
       },
     ];
     // Only for a new database: types removed in the app on purpose stay removed.
@@ -61,6 +60,7 @@ export class LocationService {
           movable: t.movable,
           stayDays: t.stayDays,
           workstation: t.workstation,
+          build: t.build,
           sort: sort++,
         });
       }
@@ -113,24 +113,33 @@ export class LocationService {
 
   async create(input: CreateLocationInput, actor: Actor | null): Promise<LocationSummary> {
     const who = requireScope(actor, 'inventory');
-    return this.db.transaction(async (tx) => {
-      const row = await this.insert(tx, {
-        name: input.name,
-        parent: input.parent ?? null,
-        typeKey: input.type,
-        kind: 'normal',
-        description: input.description ?? null,
-        code: input.code ?? null,
-        shortName: input.shortName ?? null,
-        stayDays: input.stayDays ?? null,
-        contact: input.contact ?? null,
-      });
-      await audit(tx, who, 'create', 'location', row.id, {
-        name: row.name,
-        parentId: row.parentId,
-      });
-      return this.summarize(tx, row);
+    return this.db.transaction(async (tx) =>
+      this.summarize(tx, await this.createWithin(tx, input, who)),
+    );
+  }
+
+  /** Create logic for callers that already hold a transaction. */
+  async createWithin(
+    tx: Executor,
+    input: Omit<CreateLocationInput, 'type'> & { type: string },
+    who: Actor,
+  ): Promise<LocationRow> {
+    const row = await this.insert(tx, {
+      name: input.name,
+      parent: input.parent ?? null,
+      typeKey: input.type,
+      kind: 'normal',
+      description: input.description ?? null,
+      code: input.code ?? null,
+      shortName: input.shortName ?? null,
+      stayDays: input.stayDays ?? null,
+      contact: input.contact ?? null,
     });
+    await audit(tx, who, 'create', 'location', row.id, {
+      name: row.name,
+      parentId: row.parentId,
+    });
+    return row;
   }
 
   async update(
@@ -254,6 +263,7 @@ export class LocationService {
     if (parent && parent.path.startsWith(loc.path)) {
       throw invalid('places.intoItself', { name: loc.name });
     }
+    if (parent) this.checkOpen(parent);
     if ((parent?.id ?? null) === loc.parentId) return;
     const newPath = `${parent?.path ?? '/'}${loc.id}/`;
     await tx
@@ -390,9 +400,10 @@ export class LocationService {
         .filter((x): x is LocationRow => x != null);
       const { parent, short, address } = addressOf(path.map(part));
       const stayDays =
-        r.kind !== 'normal' || r.stayDays === 0
+        r.kind !== 'normal' || r.stayDays === 0 || r.dismantledAt
           ? null
           : (r.stayDays ?? types.get(r.typeId)?.stayDays ?? null);
+      const build = [...path].reverse().find((p) => types.get(p.typeId)?.build);
       const since = Date.parse(r.lastActivityAt ?? r.updatedAt);
       const due = stayDays ? since + stayDays * DAY_MS : null;
       return {
@@ -410,8 +421,23 @@ export class LocationService {
         dueAt: due ? new Date(due).toISOString() : null,
         overdue: due !== null && now > due,
         workstation: types.get(r.typeId)?.workstation ?? false,
+        build: types.get(r.typeId)?.build ?? false,
+        inBuild: build ? { code: build.code, name: build.name } : null,
+        dismantledAt: r.dismantledAt,
       };
     });
+  }
+
+  /** Stock at `dest` is visiting (being carried, at a workstation, a temporary place or in a build). */
+  async visiting(ex: Executor, dest: LocationRow): Promise<boolean> {
+    const s = await this.summarize(ex, dest);
+    return s.kind === 'in_transit' || s.workstation || s.stayDays !== null || s.inBuild !== null;
+  }
+
+  /** Refuses to put anything in a dismantled build (dismantling empties it, places inside too). */
+  checkOpen<T extends Pick<LocationRow, 'dismantledAt' | 'name'>>(dest: T): T {
+    if (dest.dismantledAt) throw invalid('builds.dismantled', { name: dest.name });
+    return dest;
   }
 
   /**
@@ -473,92 +499,6 @@ export class LocationService {
     return all.filter((s) => s.id !== loc.id && !s.movable && s.short === own.short);
   }
 
-  // --- place types ---------------------------------------------------------------------------
-
-  async types(): Promise<LocationTypeInfo[]> {
-    const rows = await many(this.db.select().from(locationTypes).orderBy(asc(locationTypes.sort)));
-    const counts = await many(
-      this.db
-        .select({ typeId: locations.typeId, n: sql<number>`count(*)` })
-        .from(locations)
-        .groupBy(locations.typeId),
-    );
-    const byType = new Map(counts.map((c) => [c.typeId, Number(c.n)]));
-    return rows
-      .filter((t) => !BUILT_IN_LOCATION_TYPES.some((b) => b === t.key))
-      .map((t) => ({
-        key: t.key,
-        name: t.name,
-        movable: t.movable,
-        stayDays: t.stayDays,
-        workstation: t.workstation,
-        sort: t.sort,
-        places: byType.get(t.id) ?? 0,
-      }));
-  }
-
-  async createType(input: LocationTypeInput, actor: Actor | null): Promise<LocationTypeInfo> {
-    const who = requireScope(actor, 'write');
-    const { name, movable, stayDays, workstation, sort } = LocationTypeInput.parse(input);
-    const existing = await many(this.db.select().from(locationTypes));
-    const base = typeKey(name);
-    let key = base;
-    for (let n = 2; existing.some((t) => t.key === key); n++) key = `${base}_${n}`;
-    const next = Math.max(0, ...existing.map((t) => t.sort)) + 1;
-    await this.db
-      .insert(locationTypes)
-      .values({ id: newId(), key, name, movable, stayDays, workstation, sort: sort ?? next });
-    await audit(this.db, who, 'create', 'location-type', key, { name, movable });
-    return (await this.types()).find((t) => t.key === key)!;
-  }
-
-  async updateType(
-    key: string,
-    input: Partial<LocationTypeInput>,
-    actor: Actor | null,
-  ): Promise<LocationTypeInfo> {
-    const who = requireScope(actor, 'write');
-    const type = await this.editableType(key);
-    // Only the fields given: a partial schema would fill the others with their defaults.
-    const parsed = LocationTypeInput.partial().parse(input);
-    const patch = Object.fromEntries(
-      Object.entries(parsed).filter(([k]) => k in input),
-    ) as typeof parsed;
-    await this.db
-      .update(locationTypes)
-      .set({
-        ...(patch.name !== undefined && { name: patch.name }),
-        ...(patch.movable !== undefined && { movable: patch.movable }),
-        ...(patch.stayDays !== undefined && { stayDays: patch.stayDays }),
-        ...(patch.workstation !== undefined && { workstation: patch.workstation }),
-        ...(patch.sort !== undefined && { sort: patch.sort }),
-      })
-      .where(eq(locationTypes.id, type.id));
-    await audit(this.db, who, 'update', 'location-type', key, { ...patch });
-    return (await this.types()).find((t) => t.key === key)!;
-  }
-
-  async deleteType(key: string, actor: Actor | null): Promise<void> {
-    const who = requireScope(actor, 'write');
-    const type = await this.editableType(key);
-    const used = await many(
-      this.db
-        .select({ id: locations.id })
-        .from(locations)
-        .where(eq(locations.typeId, type.id))
-        .limit(1),
-    );
-    if (used.length) throw invalid('places.typeInUse', { type: type.name });
-    await this.db.delete(locationTypes).where(eq(locationTypes.id, type.id));
-    await audit(this.db, who, 'delete', 'location-type', key);
-  }
-
-  private async editableType(key: string) {
-    const type = await one(this.db.select().from(locationTypes).where(eq(locationTypes.key, key)));
-    if (!type || BUILT_IN_LOCATION_TYPES.some((b) => b === key)) throw notFound('placeType', key);
-    return type;
-  }
-
   /** An explicitly set short name must differ from the fixed places next to it. */
   private async checkShortName(
     ex: Executor,
@@ -610,6 +550,7 @@ export class LocationService {
     if (parent && parent.kind !== 'normal' && input.kind === 'normal') {
       throw invalid('places.cantCreateInside', { name: parent.name });
     }
+    if (parent) this.checkOpen(parent);
     if (type.movable === false)
       await this.checkShortName(ex, parent?.id ?? null, input.shortName ?? null, null);
     const id = newId();
@@ -635,16 +576,4 @@ export class LocationService {
 
 function levelOf(path: string): number {
   return path.split('/').filter(Boolean).length;
-}
-
-/** "Tool cart" → "tool_cart": keys for new place types. */
-function typeKey(name: string): string {
-  const key = name
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_|_$/g, '')
-    .slice(0, 30);
-  return key || 'type';
 }

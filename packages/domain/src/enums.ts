@@ -8,6 +8,9 @@ export type PartStatus = (typeof PART_STATUSES)[number];
 /** What an item is, for filtering lists: stock parts, tools, or devices and machines. */
 export const PART_KINDS = ['part', 'tool', 'device'] as const;
 export type PartKind = (typeof PART_KINDS)[number];
+/** What search can be narrowed to: a kind of item, or builds (things made from parts). */
+export const SEARCH_KINDS = [...PART_KINDS, 'build'] as const;
+export type SearchKind = (typeof SEARCH_KINDS)[number];
 
 /** Bulk items have stock lots (amounts per place); individual ones have units, each with its own code. */
 export const TRACKING_MODES = ['bulk', 'individual'] as const;
@@ -15,6 +18,8 @@ export type TrackingMode = (typeof TRACKING_MODES)[number];
 
 export const UNIT_STATUSES = ['ok', 'needs_attention', 'broken', 'in_repair', 'retired'] as const;
 export type UnitStatus = (typeof UNIT_STATUSES)[number];
+/** Unit states that count as having the thing (in stock, low stock, "Can we build it?"). */
+export const USABLE_UNIT_STATUSES: UnitStatus[] = ['ok', 'needs_attention'];
 
 /** Entries in a unit's log. The first five can be written by hand; the rest are recorded by the app. */
 export const UNIT_LOG_KINDS = ['note', 'maintenance', 'firmware', 'problem', 'repaired'] as const;
@@ -80,27 +85,87 @@ export function hasScope(granted: readonly Scope[], required: Scope): boolean {
  * Movable ones (containers) aren't part of addresses, so carrying them around doesn't change any.
  * Types with `stayDays` are temporary: their places are flagged when left untouched that long.
  * Workstation types are tables people bring things to; anyone may bring things there (see ANONYMOUS_ACTIONS).
+ * Build types are things made from parts (a gripper, a test rig): what's in them isn't free stock.
  */
 export const DEFAULT_LOCATION_TYPES = [
-  { key: 'building', name: 'Building', movable: false, stayDays: null, workstation: false },
-  { key: 'floor', name: 'Floor', movable: false, stayDays: null, workstation: false },
-  { key: 'room', name: 'Room / lab', movable: false, stayDays: null, workstation: false },
-  { key: 'zone', name: 'Zone / cell', movable: false, stayDays: null, workstation: false },
-  { key: 'cabinet', name: 'Cabinet', movable: false, stayDays: null, workstation: false },
-  { key: 'shelf', name: 'Shelf', movable: false, stayDays: null, workstation: false },
-  { key: 'pallet', name: 'Pallet', movable: true, stayDays: 14, workstation: false },
-  { key: 'drawer', name: 'Drawer', movable: true, stayDays: null, workstation: false },
-  { key: 'box', name: 'Box', movable: true, stayDays: null, workstation: false },
-  { key: 'bin', name: 'Bin / bag', movable: true, stayDays: null, workstation: false },
+  {
+    key: 'building',
+    name: 'Building',
+    movable: false,
+    stayDays: null,
+    workstation: false,
+    build: false,
+  },
+  { key: 'floor', name: 'Floor', movable: false, stayDays: null, workstation: false, build: false },
+  {
+    key: 'room',
+    name: 'Room / lab',
+    movable: false,
+    stayDays: null,
+    workstation: false,
+    build: false,
+  },
+  {
+    key: 'zone',
+    name: 'Zone / cell',
+    movable: false,
+    stayDays: null,
+    workstation: false,
+    build: false,
+  },
+  {
+    key: 'cabinet',
+    name: 'Cabinet',
+    movable: false,
+    stayDays: null,
+    workstation: false,
+    build: false,
+  },
+  { key: 'shelf', name: 'Shelf', movable: false, stayDays: null, workstation: false, build: false },
+  { key: 'pallet', name: 'Pallet', movable: true, stayDays: 14, workstation: false, build: false },
+  {
+    key: 'drawer',
+    name: 'Drawer',
+    movable: true,
+    stayDays: null,
+    workstation: false,
+    build: false,
+  },
+  { key: 'box', name: 'Box', movable: true, stayDays: null, workstation: false, build: false },
+  {
+    key: 'bin',
+    name: 'Bin / bag',
+    movable: true,
+    stayDays: null,
+    workstation: false,
+    build: false,
+  },
   {
     key: 'workstation',
     name: 'Workstation / table',
     movable: false,
     stayDays: 1,
     workstation: true,
+    build: false,
   },
-  { key: 'device', name: 'Device', movable: false, stayDays: null, workstation: false },
-  { key: 'system', name: 'System', movable: false, stayDays: null, workstation: false },
+  // Checked on once a year: is it still in use, or can it be taken apart for parts?
+  { key: 'build', name: 'Build', movable: true, stayDays: 365, workstation: false, build: true },
+  {
+    key: 'device',
+    name: 'Device',
+    movable: false,
+    stayDays: null,
+    workstation: false,
+    build: false,
+  },
+  {
+    key: 'system',
+    name: 'System',
+    movable: false,
+    stayDays: null,
+    workstation: false,
+    build: false,
+  },
 ] as const;
 
 /** Types the app uses itself (the Inbox, people carrying things); not editable. */
