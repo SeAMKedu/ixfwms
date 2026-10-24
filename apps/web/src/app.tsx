@@ -14,17 +14,14 @@ import { ImportPage } from './pages/import';
 import { InboxPage } from './pages/inbox';
 import { LabelsPage } from './pages/labels';
 import { MapsPage } from './pages/maps';
-import {
-  CarryingSection,
-  GuestsSection,
-  LevelsSection,
-  LabelsSection,
-  MappingsSection,
-  ServerSection,
-  SettingsIndex,
-  SettingsLayout,
-  TypesSection,
-} from './pages/settings';
+import { SettingsIndex, SettingsLayout } from './pages/settings';
+import { CarryingSection } from './pages/settings/carrying';
+import { GuestsSection } from './pages/settings/guests';
+import { LabelsSection } from './pages/settings/labels';
+import { LevelsSection } from './pages/settings/levels';
+import { MappingsSection } from './pages/settings/mappings';
+import { ServerSection } from './pages/settings/server';
+import { TypesSection } from './pages/settings/types';
 import { LocationPage } from './pages/location';
 import { LoginPage } from './pages/login';
 import { NotFoundPage } from './pages/not-found';
