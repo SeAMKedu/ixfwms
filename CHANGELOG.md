@@ -1,6 +1,23 @@
 # Changelog
 
 All notable changes to ixfwms.
+## 0.10.0 (2026-10-24)
+
+### Features
+- **server:** one codes table, with the namespace enforced by triggers
+
+### Fixes
+- retire a merged part's code and send scans of it to the part kept
+
+### Documentation
+- merged labels forward, one code namespace
+- plan status for 0.10
+
+### Maintenance
+- **web:** split the part page into section files
+- **web:** split the place page into section files
+- **web:** split the unit page into section files
+- **web:** one file per settings section
 ## 0.9.0 (2026-10-24)
 
 ### Features

@@ -1,6 +1,6 @@
 {
   "name": "@ixfwms/server",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "private": true,
   "description": "ixfwms API, MCP server and database",
   "type": "module",
@@ -15,7 +15,7 @@
   "dependencies": {
     "@fastify/multipart": "^10.1.6",
     "@fastify/static": "^10.1.7",
-    "@ixfwms/domain": "0.9.0",
+    "@ixfwms/domain": "0.10.0",
     "@libsql/client": "^0.18.0",
     "@modelcontextprotocol/sdk": "^1.32.1",
     "drizzle-orm": "^0.45.4",
