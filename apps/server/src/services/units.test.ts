@@ -202,7 +202,8 @@ describe('problem reports', () => {
     });
     expect(res.statusCode).toBe(201);
     const report = res.json<{ id: string; by: string; guest: boolean }>();
-    expect(report).toMatchObject({ by: 'Pekka', guest: true });
+    // Without a login, the answer leaves the name out; it's still recorded.
+    expect(report).toMatchObject({ by: null, guest: true });
     const broken = await env.services.units.detail(unit.code, null);
     expect(broken.status).toBe('broken');
     expect(broken.reports).toHaveLength(1);

@@ -13,7 +13,7 @@ import {
   users,
 } from '../db/schema.js';
 import { invalid, notFound } from '../lib/errors.js';
-import { requireScope, type Actor } from './context.js';
+import { personName, placeName, requireScope, type Actor } from './context.js';
 import type { LocationService } from './locations.js';
 import type { StockService } from './stock.js';
 
@@ -112,7 +112,7 @@ export class HistoryService {
               .where(inArray(locations.id, [...locIds])),
           )
         : []
-      ).map((l) => [l.id, { code: l.code, name: l.name }]),
+      ).map((l) => [l.id, { code: l.code, name: placeName(l) }]),
     );
     const partIds = new Set([
       ...moves.map((m) => m.partId),
@@ -143,7 +143,7 @@ export class HistoryService {
         kind: 'stock' as const,
         id: m.id,
         at: m.at,
-        user: m.userId ? (userNames.get(m.userId) ?? null) : m.reporterName,
+        user: personName(m.userId ? userNames.get(m.userId) : m.reporterName),
         action: m.reason,
         part: partRows.get(m.partId) ?? null,
         place: place(m.toLocationId ?? m.fromLocationId),
@@ -157,7 +157,7 @@ export class HistoryService {
         kind: 'location' as const,
         id: m.id,
         at: m.at,
-        user: m.userId ? (userNames.get(m.userId) ?? null) : null,
+        user: m.userId ? personName(userNames.get(m.userId)) : null,
         action: 'move',
         part: null,
         place: place(m.locationId),
@@ -171,7 +171,7 @@ export class HistoryService {
         kind: 'unit' as const,
         id: e.id,
         at: e.at,
-        user: e.userId ? (userNames.get(e.userId) ?? null) : e.reporterName,
+        user: personName(e.userId ? userNames.get(e.userId) : e.reporterName),
         action: e.kind,
         part: null,
         place: null,
@@ -193,7 +193,7 @@ export class HistoryService {
           kind: 'edit' as const,
           id: e.id,
           at: e.at,
-          user: e.userId ? (userNames.get(e.userId) ?? null) : null,
+          user: e.userId ? personName(userNames.get(e.userId)) : null,
           action: e.action,
           part:
             e.entityType === 'part'

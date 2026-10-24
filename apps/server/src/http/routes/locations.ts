@@ -7,6 +7,7 @@ import {
 } from '@ixfwms/domain';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { placeName } from '../../services/context.js';
 import { baseUrl, parse, QueryBool, type AppDeps } from '../context.js';
 
 const RefParams = z.object({ ref: z.string() });
@@ -99,7 +100,7 @@ export function registerLocationRoutes(app: FastifyInstance, { config, services 
     const path = await locations.pathOf(loc);
     return {
       code: loc.code,
-      name: loc.name,
+      name: placeName(loc),
       path: path.map((p) => p.name).join(' › '),
       qr: buildCodeUrl(baseUrl(config, request), 'location', loc.code),
     };

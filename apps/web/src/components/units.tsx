@@ -50,8 +50,12 @@ export function UnitWhere({ unit }: { unit: UnitBrief }) {
       <span className="flex flex-wrap items-center gap-1.5 text-[13px]">
         <Pill tone={unit.loan.overdue ? 'crit' : 'warn'}>{t('units.lentOut')}</Pill>
         <span className="text-muted">
-          {unit.loan.responsible}
-          {unit.loan.dueAt && ` · ${t('units.dueBack', { date: formatDay(unit.loan.dueAt) })}`}
+          {[
+            unit.loan.responsible,
+            unit.loan.dueAt && t('units.dueBack', { date: formatDay(unit.loan.dueAt) }),
+          ]
+            .filter(Boolean)
+            .join(' · ')}
         </span>
       </span>
     );

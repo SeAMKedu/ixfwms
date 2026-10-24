@@ -45,7 +45,7 @@ import {
 import { invalid, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
 import { allocateCode, claimCode } from './codes.js';
-import { audit, requireScope, type Actor } from './context.js';
+import { audit, personName, requireScope, type Actor } from './context.js';
 import type { LocationRow, LocationService } from './locations.js';
 import type { PartResolver } from './parts.js';
 import { unitSearchText } from './search-text.js';
@@ -352,7 +352,7 @@ export class UnitService {
         target: { code: unit.code, name: brief!.name },
         kind: r.kind,
         note: r.note,
-        by: user ?? r.reporterName,
+        by: personName(user ?? r.reporterName),
         guest: !user,
         createdAt: r.createdAt,
         resolvedAt: r.resolvedAt,
@@ -614,13 +614,13 @@ export class UnitService {
           code: u?.code ?? '?',
           name: u?.name ?? `${u?.part ?? '?'} ${u?.code ?? ''}`.trim(),
         },
-        responsible: names.get(r.responsibleUserId) ?? '?',
+        responsible: personName(names.get(r.responsibleUserId) ?? '?'),
         description: r.description,
         outAt: r.outAt,
         dueAt: r.dueAt,
         overdue: !r.returnedAt && !!r.dueAt && r.dueAt < today(),
         returnedAt: r.returnedAt,
-        returnedBy: r.returnedBy ? (names.get(r.returnedBy) ?? null) : null,
+        returnedBy: r.returnedBy ? personName(names.get(r.returnedBy)) : null,
       };
     });
   }

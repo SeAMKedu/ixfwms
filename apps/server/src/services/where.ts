@@ -59,7 +59,8 @@ function unitSentence(u: UnitBrief): string {
   const status = STATUS_TEXT[u.status] ? ` ${STATUS_TEXT[u.status]}` : '';
   if (u.loan) {
     const due = u.loan.dueAt ? `, expected back ${u.loan.dueAt}` : '';
-    return `${u.name}: lent out of the lab, ${u.loan.responsible} is responsible (${u.loan.description})${due}.${status}`;
+    const who = u.loan.responsible ? `, ${u.loan.responsible} is responsible` : '';
+    return `${u.name}: lent out of the lab${who} (${u.loan.description})${due}.${status}`;
   }
   if (u.location.kind === 'in_transit')
     return `${u.name}: being moved right now (${u.location.name}).${status}`;

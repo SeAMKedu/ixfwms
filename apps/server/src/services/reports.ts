@@ -4,7 +4,7 @@ import { many, one, type Db } from '../db/client.js';
 import { locations, parts, reports, units, users } from '../db/schema.js';
 import { notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
-import { audit, requireScope, type Actor } from './context.js';
+import { audit, personName, placeName, requireScope, type Actor } from './context.js';
 import type { LocationService } from './locations.js';
 import type { PartResolver } from './parts.js';
 import type { UnitService } from './units.js';
@@ -143,11 +143,16 @@ export class ReportService {
     if (placeIds.length)
       for (const l of await many(
         this.db
-          .select({ id: locations.id, code: locations.code, name: locations.name })
+          .select({
+            id: locations.id,
+            code: locations.code,
+            name: locations.name,
+            kind: locations.kind,
+          })
           .from(locations)
           .where(inArray(locations.id, placeIds)),
       ))
-        targets.set(l.id, { code: l.code, name: l.name });
+        targets.set(l.id, { code: l.code, name: placeName(l) });
     const userIds = [
       ...new Set(rows.flatMap((r) => [r.userId, r.resolvedBy]).filter((x): x is string => !!x)),
     ];
@@ -165,11 +170,11 @@ export class ReportService {
       target: targets.get(r.ownerId) ?? { code: '?', name: '(removed)' },
       kind: r.kind,
       note: r.note,
-      by: r.userId ? (names.get(r.userId) ?? null) : r.reporterName,
+      by: personName(r.userId ? names.get(r.userId) : r.reporterName),
       guest: !r.userId,
       createdAt: r.createdAt,
       resolvedAt: r.resolvedAt,
-      resolvedBy: r.resolvedBy ? (names.get(r.resolvedBy) ?? null) : null,
+      resolvedBy: r.resolvedBy ? personName(names.get(r.resolvedBy)) : null,
       resolution: r.resolution,
     }));
   }

@@ -3,6 +3,7 @@
   "version": "0.12.0",
   "private": true,
   "description": "ixfwms API, MCP server and database",
+  "license": "MIT",
   "type": "module",
   "main": "dist/main.js",
   "scripts": {

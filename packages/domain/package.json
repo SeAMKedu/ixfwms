@@ -3,6 +3,7 @@
   "version": "0.12.0",
   "private": true,
   "description": "Pure domain logic and shared schemas for ixfwms (no I/O)",
+  "license": "MIT",
   "type": "module",
   "exports": {
     ".": {

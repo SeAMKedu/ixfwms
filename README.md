@@ -138,7 +138,7 @@ Reads are open on the lab network; writes need `Authorization: Bearer <token>`. 
 | `POST` / `GET` / `DELETE /api/session` · `POST /api/session/password`                                                                                                                             | web login                                                            |
 | `GET` / `POST /api/users` · `PATCH /api/users/:name` · `POST /api/users/:name/tokens` · `DELETE /api/tokens/:id`                                                                                  | users and tokens (admin)                                             |
 | `GET /api/history` · `POST /api/history/undo`                                                                                                                                                     | history, undo moves                                                  |
-| `GET` / `POST /api/backups` · `GET /api/backups/:name` · `GET /api/export`                                                                                                                        | backups (admin), JSON export                                         |
+| `GET` / `POST /api/backups` · `GET /api/backups/:name` · `GET /api/export`                                                                                                                        | backups and JSON export (admin)                                      |
 | `GET /api/info` · `GET /api/setup` · `/api/setup/root.crt` · `/healthz`                                                                                                                           | server info                                                          |
 
 ## Development

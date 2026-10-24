@@ -64,7 +64,8 @@ export function UnitPage() {
               {pastLoans.map((l) => (
                 <li key={l.id} className="flex flex-wrap justify-between gap-2">
                   <span>
-                    {l.description} <span className="text-muted">· {l.responsible}</span>
+                    {l.description}{' '}
+                    {l.responsible && <span className="text-muted">· {l.responsible}</span>}
                   </span>
                   <span className="text-[12px] text-muted tabular">
                     {formatDay(l.outAt)} – {l.returnedAt && formatDay(l.returnedAt)}

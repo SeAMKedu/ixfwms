@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import type { Scope, UserRole } from '@ixfwms/domain';
 import { hasScope } from '@ixfwms/domain';
 import type { Executor } from '../db/client.js';
@@ -11,6 +12,31 @@ export interface Actor {
   name: string;
   role: UserRole;
   scopes: Scope[];
+}
+
+const viewer = new AsyncLocalStorage<{ anonymous: boolean }>();
+
+/**
+ * Runs `fn` for this caller. Without an account (`null`), views leave people's names out: who is
+ * responsible, who reported, who moved it, whose carry list. The HTTP layer wraps every request.
+ */
+export function viewAs<T>(actor: Actor | null, fn: () => T): T {
+  return viewer.run({ anonymous: !actor }, fn);
+}
+
+/** True inside a request with no login. Outside one (CLI, backups, MCP), names are shown. */
+export function namesHidden(): boolean {
+  return viewer.getStore()?.anonymous ?? false;
+}
+
+/** A person's name, or null for anonymous readers. */
+export function personName(name: string | null | undefined): string | null {
+  return namesHidden() ? null : (name ?? null);
+}
+
+/** A place's name; a carry list ("Carried by <name>") is just "Being carried" for anonymous readers. */
+export function placeName(row: { name: string; kind: string }): string {
+  return row.kind === 'in_transit' && namesHidden() ? 'Being carried' : row.name;
 }
 
 export function requireScope(actor: Actor | null, scope: Scope): Actor {

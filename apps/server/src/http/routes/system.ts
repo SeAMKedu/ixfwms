@@ -41,7 +41,9 @@ export function registerSystemRoutes(
     };
   });
 
-  app.get('/api/export', async (_request, reply) => {
+  /** Everything, people and network details included: admins only. */
+  app.get('/api/export', async (request, reply) => {
+    requireScope(request.actor, 'admin');
     const data = await services.export.exportAll();
     const stamp = new Date().toISOString().slice(0, 10);
     return reply

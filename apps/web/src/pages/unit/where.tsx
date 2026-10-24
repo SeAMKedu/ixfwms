@@ -75,9 +75,13 @@ export function Where({ unit }: { unit: UnitDetail }) {
           <strong>{t('units.lentOutSince', { date: formatDate(loan.outAt) })}</strong>
           <span className="text-ink">{loan.description}</span>
           <span className="text-ink">
-            {t('units.responsible', { name: loan.responsible })}
-            {loan.dueAt && ` · ${t('units.dueBack', { date: formatDay(loan.dueAt) })}`}
-            {loan.overdue && ` · ${t('units.overdue')}`}
+            {[
+              loan.responsible && t('units.responsible', { name: loan.responsible }),
+              loan.dueAt && t('units.dueBack', { date: formatDay(loan.dueAt) }),
+              loan.overdue && t('units.overdue'),
+            ]
+              .filter(Boolean)
+              .join(' · ')}
           </span>
         </div>
       ) : (

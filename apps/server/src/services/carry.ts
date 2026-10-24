@@ -3,7 +3,7 @@ import { asc, eq } from 'drizzle-orm';
 import { many, type Db } from '../db/client.js';
 import { locations, parts, stockLots, units, users } from '../db/schema.js';
 import { invalid } from '../lib/errors.js';
-import { requireScope, type Actor } from './context.js';
+import { personName, requireScope, type Actor } from './context.js';
 import type { LocationService } from './locations.js';
 import type { StockService } from './stock.js';
 import type { UnitService } from './units.js';
@@ -102,7 +102,7 @@ export class CarryService {
       const times = [...lots, ...boxes, ...carried].map((r) => r.at).sort();
       if (times.length === 0) continue;
       out.push({
-        user,
+        user: personName(user),
         location: await this.locations.summarize(this.db, loc),
         count: times.length,
         since: times[0]!,

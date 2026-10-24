@@ -182,7 +182,8 @@ export interface UnitEventView {
 export interface LoanView {
   id: string;
   unit: { code: string; name: string };
-  responsible: string;
+  /** User name; null for readers without a login. */
+  responsible: string | null;
   description: string;
   outAt: string;
   dueAt: string | null;
@@ -461,7 +462,8 @@ export interface UserDetail extends UserInfo {
 
 /** Someone's carry list, for the "still being carried" reminder. */
 export interface CarrySummary {
-  user: string;
+  /** Null for readers without a login. */
+  user: string | null;
   location: LocationSummary;
   count: number;
   since: string;

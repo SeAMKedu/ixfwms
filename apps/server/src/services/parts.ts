@@ -34,7 +34,7 @@ import { newId, nowIso } from '../lib/ids.js';
 import type { CategoryService } from './categories.js';
 import { toAmount } from './amounts.js';
 import { allocateCode, retireCode } from './codes.js';
-import { audit, requireScope, type Actor } from './context.js';
+import { audit, placeName, requireScope, type Actor } from './context.js';
 import type { FileService } from './files.js';
 import type { LocationService } from './locations.js';
 import { PartSearch, type SearchInput } from './part-search.js';
@@ -473,7 +473,7 @@ export class PartService {
         .filter((l) => l.lot.partId === r.id)
         .map((l) => ({
           display: formatAmount(l.lot),
-          location: l.loc.name,
+          location: placeName(l.loc),
           locationCode: l.loc.code,
           place: places.get(l.loc.id)!,
         })),

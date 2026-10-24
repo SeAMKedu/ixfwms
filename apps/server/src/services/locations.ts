@@ -23,7 +23,7 @@ import { locationMoves, locations, locationTypes } from '../db/schema.js';
 import { invalid, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
 import { allocateCode, claimCode } from './codes.js';
-import { audit, requireScope, type Actor } from './context.js';
+import { audit, placeName, requireScope, type Actor } from './context.js';
 
 export type LocationRow = typeof locations.$inferSelect;
 export type { LocationNode, LocationSummary };
@@ -378,7 +378,7 @@ export class LocationService {
     }
     const now = Date.now();
     const part = (r: LocationRow) => ({
-      name: r.name,
+      name: placeName(r),
       shortName: r.shortName,
       movable: types.get(r.typeId)?.movable ?? false,
     });
@@ -398,7 +398,7 @@ export class LocationService {
       return {
         id: r.id,
         code: r.code,
-        name: r.name,
+        name: placeName(r),
         type: types.get(r.typeId)?.key ?? 'unknown',
         kind: r.kind,
         shortName: r.shortName,

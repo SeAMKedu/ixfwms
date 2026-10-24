@@ -3,6 +3,7 @@ import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastif
 import { ZodError } from 'zod';
 import { errorMessage } from '@ixfwms/domain';
 import { AppError, fail, ruleConflict } from '../lib/errors.js';
+import { viewAs } from '../services/context.js';
 import { registerMcp } from '../mcp/http.js';
 import type { AppDeps } from './context.js';
 import { registerAdminRoutes } from './routes/admin.js';
@@ -42,6 +43,8 @@ export async function buildApp(
     if (!actor) throw fail('unauthorized', 'auth.unknownToken');
     request.actor = actor;
   });
+  // Without a login, the handler's views leave people's names out.
+  app.addHook('preHandler', (request, _reply, done) => viewAs(request.actor, done));
 
   app.setErrorHandler((raw, request, reply) => {
     const error = ruleConflict(raw) ?? raw;

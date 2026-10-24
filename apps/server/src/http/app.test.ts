@@ -108,8 +108,8 @@ describe('HTTP API', () => {
     expect(download.headers['content-type']).toContain('text/plain');
   });
 
-  it('exports everything as JSON', async () => {
-    const res = await env.app.inject({ url: '/api/export' });
+  it('exports everything as JSON for admins', async () => {
+    const res = await env.app.inject({ url: '/api/export', headers: auth(env.adminToken) });
     expect(res.json()).toMatchObject({ format: 'ixfwms-export', version: 1 });
     // The Inbox and "Out of the lab".
     expect(res.json<{ locations: unknown[] }>().locations).toHaveLength(2);

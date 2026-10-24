@@ -160,7 +160,7 @@ function OutOnLoan() {
             <span className="text-[12px] text-muted">
               {[
                 l.description,
-                t('units.responsible', { name: l.responsible }),
+                l.responsible && t('units.responsible', { name: l.responsible }),
                 l.dueAt && t('units.dueBack', { date: formatDay(l.dueAt) }),
               ]
                 .filter(Boolean)
@@ -262,7 +262,7 @@ function StillCarried() {
                 className={old ? 'text-warn hover:underline' : 'hover:underline'}
               >
                 {t('inbox.carryingItem', {
-                  user: c.user,
+                  user: c.user ?? t('places.types.in_transit'),
                   count: c.count,
                   date: formatDate(c.since),
                 })}

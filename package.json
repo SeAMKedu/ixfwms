@@ -3,6 +3,7 @@
   "version": "0.12.0",
   "private": true,
   "description": "Lab inventory / warehouse management for the robotics lab",
+  "license": "MIT",
   "type": "module",
   "workspaces": [
     "packages/*",

@@ -1,5 +1,6 @@
 import type { LocationSummary, UnitEventView } from '@ixfwms/domain';
 import type { unitEvents } from '../db/schema.js';
+import { personName } from './context.js';
 
 export function eventView(
   e: typeof unitEvents.$inferSelect,
@@ -13,7 +14,7 @@ export function eventView(
     value: e.value,
     from: e.fromLocationId ? (places.get(e.fromLocationId) ?? null) : null,
     to: e.toLocationId ? (places.get(e.toLocationId) ?? null) : null,
-    by: user ?? e.reporterName,
+    by: personName(user ?? e.reporterName),
     guest: !user,
     at: e.at,
   };
