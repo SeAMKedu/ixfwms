@@ -8,6 +8,7 @@ import {
   useCreateUser,
   useDeactivateUser,
   useDeleteUser,
+  useEraseUser,
   useInfo,
   useReactivateUser,
   useRevokeToken,
@@ -158,13 +159,16 @@ function Tokens({ user }: { user: UserDetail }) {
   );
 }
 
-/** Turning a user off (or back on), or removing one that has no history. */
+/** Turning a user off (or back on), removing one that has no history, or erasing one that has. */
 function Status({ user }: { user: UserDetail }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const off = useDeactivateUser();
   const on = useReactivateUser();
   const remove = useDeleteUser();
+  const erase = useEraseUser();
+  // No history: remove the account. History: erase the person, keep what they did.
+  const gone = user.canDelete ? remove : erase;
   const [confirm, setConfirm] = useState(false);
   const blocked = user.openLoans > 0 || user.carrying > 0;
   return (
@@ -201,31 +205,39 @@ function Status({ user }: { user: UserDetail }) {
         <p className="max-w-prose text-sm text-muted">
           {user.canDelete ? t('users.removeHint') : t('users.cantRemove', { count: user.history })}
         </p>
-        {user.canDelete &&
-          (confirm ? (
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="primary"
-                className="!border-crit !bg-crit"
-                busy={remove.isPending}
-                onClick={() =>
-                  void remove
-                    .mutateAsync(user.name)
-                    .then(() => navigate('/settings/users', { replace: true }))
-                }
-              >
-                {t('users.removeConfirm', { name: user.name })}
-              </Button>
-              <Button onClick={() => setConfirm(false)}>{t('common.cancel')}</Button>
-            </div>
-          ) : (
-            <Button className="self-start" onClick={() => setConfirm(true)}>
-              <Trash2 className="size-4" aria-hidden />
-              {t('users.remove')}
+        {!user.canDelete && (
+          <p className="max-w-prose text-sm text-muted">{t('users.eraseHint')}</p>
+        )}
+        {confirm ? (
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="primary"
+              className="!border-crit !bg-crit"
+              busy={gone.isPending}
+              onClick={() =>
+                void gone
+                  .mutateAsync(user.name)
+                  .then(() => navigate('/settings/users', { replace: true }))
+              }
+            >
+              {t(user.canDelete ? 'users.removeConfirm' : 'users.eraseConfirm', {
+                name: user.name,
+              })}
             </Button>
-          ))}
+            <Button onClick={() => setConfirm(false)}>{t('common.cancel')}</Button>
+          </div>
+        ) : (
+          <Button
+            className="self-start"
+            disabled={!user.canDelete && blocked}
+            onClick={() => setConfirm(true)}
+          >
+            <Trash2 className="size-4" aria-hidden />
+            {t(user.canDelete ? 'users.remove' : 'users.erase')}
+          </Button>
+        )}
       </div>
-      <ErrorBox error={off.error ?? on.error ?? remove.error} />
+      <ErrorBox error={off.error ?? on.error ?? gone.error} />
     </Card>
   );
 }

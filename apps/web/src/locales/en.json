@@ -626,8 +626,8 @@
     "turnOn": "Turn account back on",
     "offSince": "Turned off since {{date}}. No logins, no tokens; the history keeps the name.",
     "removeHint": "This account has no history (added by mistake, say), so it can be removed for good.",
-    "cantRemove_one": "Can't be removed: {{count}} entry in the history names this person. Turn the account off instead, so the history still says who did what.",
-    "cantRemove_other": "Can't be removed: {{count}} entries in the history name this person. Turn the account off instead, so the history still says who did what.",
+    "cantRemove_one": "{{count}} entry in the history names this person, so the account can't simply be removed. Turn it off to keep the name, or erase the person.",
+    "cantRemove_other": "{{count}} entries in the history name this person, so the account can't simply be removed. Turn it off to keep the name, or erase the person.",
     "remove": "Remove user",
     "removeConfirm": "Remove {{name}} for good",
     "notFound": "No user {{name}}.",
@@ -642,7 +642,10 @@
     "tokensOnly": "tokens only",
     "open": "Open {{name}}",
     "showOff_one": "Show {{count}} turned-off account",
-    "showOff_other": "Show {{count}} turned-off accounts"
+    "showOff_other": "Show {{count}} turned-off accounts",
+    "eraseHint": "Erasing (for a GDPR request, say) deletes the account, its password and tokens. What the person did stays in the history as “Removed user”. Names typed into notes or loan descriptions are not changed, and older backups still have the name until they are rotated out.",
+    "erase": "Erase personal data",
+    "eraseConfirm": "Erase {{name}} for good"
   },
   "account": {
     "more": "More",

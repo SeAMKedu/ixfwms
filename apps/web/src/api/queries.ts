@@ -374,16 +374,15 @@ export const useUser = (name: string, enabled: boolean) =>
     queryFn: () => api<UserDetail>(`/api/users/${encodeURIComponent(name)}`),
     enabled,
   });
+const userUrl = (name: string, action = '') => `/api/users/${encodeURIComponent(name)}${action}`;
 export const useDeactivateUser = () =>
-  useChange((name: string) =>
-    api(`/api/users/${encodeURIComponent(name)}/deactivate`, { body: {} }),
-  );
+  useChange((name: string) => api(userUrl(name, '/deactivate'), { body: {} }));
 export const useReactivateUser = () =>
-  useChange((name: string) =>
-    api(`/api/users/${encodeURIComponent(name)}/reactivate`, { body: {} }),
-  );
+  useChange((name: string) => api(userUrl(name, '/reactivate'), { body: {} }));
 export const useDeleteUser = () =>
-  useChange((name: string) => api(`/api/users/${encodeURIComponent(name)}`, { method: 'DELETE' }));
+  useChange((name: string) => api(userUrl(name), { method: 'DELETE' }));
+export const useEraseUser = () =>
+  useChange((name: string) => api(userUrl(name, '/erase'), { body: {} }));
 export const useCreateToken = () =>
   useChange((input: { user: string; name: string; scopes: Scope[] }) =>
     api<{ token: string; id: string }>(`/api/users/${encodeURIComponent(input.user)}/tokens`, {

@@ -626,8 +626,8 @@
     "turnOn": "Avaa tunnus uudelleen",
     "offSince": "Suljettu {{date}} alkaen. Ei kirjautumisia eikä avaimia; historia säilyttää nimen.",
     "removeHint": "Tällä tunnuksella ei ole historiaa (esim. lisätty vahingossa), joten sen voi poistaa kokonaan.",
-    "cantRemove_one": "Ei voi poistaa: {{count}} historiamerkintä mainitsee tämän henkilön. Sulje tunnus sen sijaan, niin historia kertoo yhä kuka teki mitä.",
-    "cantRemove_other": "Ei voi poistaa: {{count}} historiamerkintää mainitsee tämän henkilön. Sulje tunnus sen sijaan, niin historia kertoo yhä kuka teki mitä.",
+    "cantRemove_one": "Historiassa on {{count}} merkintä tämän henkilön nimellä, joten tunnusta ei voi vain poistaa. Ota tunnus pois käytöstä, jos nimi saa jäädä, tai poista henkilön tiedot.",
+    "cantRemove_other": "Historiassa on {{count}} merkintää tämän henkilön nimellä, joten tunnusta ei voi vain poistaa. Ota tunnus pois käytöstä, jos nimi saa jäädä, tai poista henkilön tiedot.",
     "remove": "Poista käyttäjä",
     "removeConfirm": "Poista {{name}} pysyvästi",
     "notFound": "Käyttäjää {{name}} ei ole.",
@@ -642,7 +642,10 @@
     "tokensOnly": "vain avaimilla",
     "open": "Avaa {{name}}",
     "showOff_one": "Näytä {{count}} suljettu tunnus",
-    "showOff_other": "Näytä {{count}} suljettua tunnusta"
+    "showOff_other": "Näytä {{count}} suljettua tunnusta",
+    "eraseHint": "Tietojen poisto (esim. GDPR-pyynnöstä) poistaa tunnuksen, salasanan ja tokenit. Henkilön tekemiset jäävät historiaan nimellä “Removed user”. Muistiinpanoihin tai lainojen kuvauksiin kirjoitettuja nimiä ei muuteta, ja vanhoissa varmuuskopioissa nimi säilyy, kunnes ne vanhenevat.",
+    "erase": "Poista henkilötiedot",
+    "eraseConfirm": "Poista {{name}} lopullisesti"
   },
   "account": {
     "more": "Lisää",

@@ -14,31 +14,13 @@ import {
   type UserInfo,
   type UserRole,
 } from '@ixfwms/domain';
-import { and, eq, gt, isNull, ne, or, sql, type AnyColumn, type SQL } from 'drizzle-orm';
+import { and, eq, gt, isNull, ne, or, sql, type SQL } from 'drizzle-orm';
 import { many, one, type Db } from '../db/client.js';
-import {
-  apiTokens,
-  attachments,
-  auditLog,
-  codes,
-  files,
-  importMappings,
-  loans,
-  locationMoves,
-  locations,
-  mapDrawings,
-  parts,
-  reports,
-  settings,
-  stockLots,
-  stockMovements,
-  unitEvents,
-  units,
-  users,
-} from '../db/schema.js';
+import { apiTokens, loans, locations, stockLots, units, users } from '../db/schema.js';
 import { conflict, fail, invalid, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
-import type { Actor } from './context.js';
+import { audit, type Actor } from './context.js';
+import { eraseUser, REMOVED_USER_ID, REMOVED_USER_NAME, USER_REFERENCES } from './user-erase.js';
 
 const TOKEN_PREFIX = 'ixf_';
 const LAST_USED_RESOLUTION_MS = 60_000;
@@ -97,8 +79,7 @@ export class AuthService {
   async setPassword(userName: string, password: string): Promise<void> {
     if (password.length < MIN_PASSWORD_LENGTH)
       throw invalid('auth.passwordTooShort', { min: MIN_PASSWORD_LENGTH });
-    const user = await one(this.db.select().from(users).where(eq(users.name, userName)));
-    if (!user) throw notFound('user', userName);
+    const user = await this.byName(userName);
     await this.db
       .update(users)
       .set({ passwordHash: await hashPassword(password) })
@@ -151,7 +132,9 @@ export class AuthService {
     role: UserRole = 'member',
   ): Promise<{ id: string; name: string; role: UserRole }> {
     const existing = await one(this.db.select().from(users).where(eq(users.name, name)));
-    if (existing) throw conflict('users.exists', { name });
+    // "Removed user" is kept for erased people's history.
+    if (existing || name.toLowerCase() === REMOVED_USER_NAME.toLowerCase())
+      throw conflict('users.exists', { name });
     const user = { id: newId(), name, role };
     await this.db.insert(users).values(user);
     return user;
@@ -182,7 +165,9 @@ export class AuthService {
 
   /** Users with their active tokens, for the admin page. Token hashes never leave the server. */
   async listUsersWithTokens(): Promise<UserInfo[]> {
-    const all = await many(this.db.select().from(users).orderBy(users.name));
+    const all = await many(
+      this.db.select().from(users).where(ne(users.id, REMOVED_USER_ID)).orderBy(users.name),
+    );
     const tokens = await many(
       this.db
         .select()
@@ -226,8 +211,7 @@ export class AuthService {
   async setRole(userName: string, role: UserRole): Promise<void> {
     if (!USER_ROLES.includes(role))
       throw invalid('users.badRole', { roles: USER_ROLES.join(', ') });
-    const user = await one(this.db.select().from(users).where(eq(users.name, userName)));
-    if (!user) throw notFound('user', userName);
+    const user = await this.byName(userName);
     await this.db.update(users).set({ role }).where(eq(users.id, user.id));
   }
 
@@ -264,6 +248,31 @@ export class AuthService {
   async deactivate(userName: string, actor: Actor): Promise<void> {
     const user = await this.byName(userName);
     if (user.id === actor.userId) throw invalid('users.notYourself');
+    await this.checkLetGo(user);
+    await this.db.update(users).set({ disabledAt: nowIso() }).where(eq(users.id, user.id));
+    await this.db
+      .update(apiTokens)
+      .set({ revokedAt: nowIso() })
+      .where(and(eq(apiTokens.userId, user.id), isNull(apiTokens.revokedAt)));
+  }
+
+  /**
+   * Erases a person for good (GDPR), history or not: what they did stays, under "Removed user".
+   * The same rules as turning them off: not yourself, not the last admin, no loans, nothing carried.
+   */
+  async erase(userName: string, actor: Actor): Promise<void> {
+    const user = await this.byName(userName);
+    if (user.id === actor.userId) throw invalid('users.cantRemoveSelf');
+    await this.checkLetGo(user);
+    await this.db.transaction(async (tx) => {
+      await eraseUser(tx, user);
+      // The record of the erasure itself names nobody.
+      await audit(tx, actor, 'erase', 'user', REMOVED_USER_ID);
+    });
+  }
+
+  /** Not the last admin, not responsible for a loan, not carrying anything. */
+  private async checkLetGo(user: typeof users.$inferSelect): Promise<void> {
     if (user.role === 'admin' && (await this.activeAdmins(user.id)) === 0)
       throw invalid('users.lastAdmin');
     const openLoans = await this.db.$count(
@@ -273,11 +282,6 @@ export class AuthService {
     if (openLoans) throw invalid('users.hasLoans', { name: user.name, count: openLoans });
     const carrying = await this.carryCount(user.id);
     if (carrying) throw invalid('users.isCarrying', { name: user.name, count: carrying });
-    await this.db.update(users).set({ disabledAt: nowIso() }).where(eq(users.id, user.id));
-    await this.db
-      .update(apiTokens)
-      .set({ revokedAt: nowIso() })
-      .where(and(eq(apiTokens.userId, user.id), isNull(apiTokens.revokedAt)));
   }
 
   async reactivate(userName: string): Promise<void> {
@@ -306,7 +310,7 @@ export class AuthService {
 
   private async byName(userName: string) {
     const user = await one(this.db.select().from(users).where(eq(users.name, userName)));
-    if (!user) throw notFound('user', userName);
+    if (!user || user.id === REMOVED_USER_ID) throw notFound('user', userName);
     return user;
   }
 
@@ -320,26 +324,9 @@ export class AuthService {
 
   /** How many records name this user: the history that would lose its "who". */
   private async historyCount(userId: string): Promise<number> {
-    const columns: [Parameters<Db['$count']>[0], AnyColumn][] = [
-      [auditLog, auditLog.userId],
-      [stockMovements, stockMovements.userId],
-      [locationMoves, locationMoves.userId],
-      [unitEvents, unitEvents.userId],
-      [loans, loans.responsibleUserId],
-      [loans, loans.returnedBy],
-      [loans, loans.createdBy],
-      [reports, reports.userId],
-      [reports, reports.resolvedBy],
-      [parts, parts.createdBy],
-      [files, files.createdBy],
-      [attachments, attachments.createdBy],
-      [codes, codes.createdBy],
-      [mapDrawings, mapDrawings.createdBy],
-      [importMappings, importMappings.updatedBy],
-      [settings, settings.updatedBy],
-    ];
     let n = 0;
-    for (const [table, column] of columns) n += await this.db.$count(table, eq(column, userId));
+    for (const { table, column } of USER_REFERENCES)
+      n += await this.db.$count(table, eq(column, userId));
     return n;
   }
 

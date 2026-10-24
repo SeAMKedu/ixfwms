@@ -41,6 +41,13 @@ export function registerUserRoutes(app: FastifyInstance, { services }: AppDeps):
     return reply.status(204).send();
   });
 
+  /** GDPR erasure: the account goes, its history stays under "Removed user". */
+  app.post('/api/users/:name/erase', async (request, reply) => {
+    const who = requireScope(request.actor, 'admin');
+    await auth.erase(parse(NameParams, request.params).name, who);
+    return reply.status(204).send();
+  });
+
   app.post('/api/users', async (request, reply) => {
     requireScope(request.actor, 'admin');
     const body = parse(
