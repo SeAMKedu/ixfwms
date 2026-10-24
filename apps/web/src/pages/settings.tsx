@@ -90,7 +90,7 @@ export function SettingsLayout() {
         <PageHeader title={t('settings.title')} />
         <SectionNav />
       </div>
-      <div className="flex min-w-0 flex-col gap-4">
+      <div className="@container flex min-w-0 flex-col gap-4">
         {!atIndex && (
           <Link
             to="/settings"

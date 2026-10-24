@@ -126,7 +126,7 @@ function FieldsForm({
         {rows.map((r, i) => (
           <div
             key={i}
-            className="grid gap-2 border-t border-line pt-3 first:border-t-0 first:pt-0 sm:grid-cols-[minmax(0,2fr)_8rem_5rem_auto]"
+            className="grid gap-2 border-t border-line pt-3 first:border-t-0 first:pt-0 @md:grid-cols-[minmax(0,2fr)_8rem_5rem_auto]"
           >
             <Field label={t('categories.label')}>
               {(id) => (
@@ -175,7 +175,7 @@ function FieldsForm({
               </Button>
             )}
             {(r.type === 'enum' || r.type === 'colour') && (
-              <div className="sm:col-span-4">
+              <div className="@md:col-span-4">
                 <Field
                   label={t('categories.options')}
                   hint={
@@ -195,7 +195,7 @@ function FieldsForm({
                 </Field>
               </div>
             )}
-            <span className="font-mono text-[11px] text-muted sm:col-span-4">
+            <span className="font-mono text-[11px] text-muted @md:col-span-4">
               {t('categories.key', { key: r.key || keyFromLabel(r.label || '…') })}
             </span>
           </div>
@@ -279,7 +279,7 @@ export function CategoriesPage() {
   const seed = useSeedCategories();
   const info = categories.data?.find((c) => c.path.toLowerCase() === selected?.toLowerCase());
   return (
-    <div className="grid gap-6 md:grid-cols-[16rem_minmax(0,1fr)]">
+    <div className="grid gap-6 @3xl:grid-cols-[16rem_minmax(0,1fr)]">
       <div className="flex flex-col gap-3">
         <PageHeader
           title={t('categories.title')}
@@ -345,7 +345,7 @@ export function CategoriesPage() {
         )}
         <ErrorBox error={seed.error} />
       </div>
-      <div className="min-w-0">
+      <div className="@container min-w-0">
         {selected ? (
           <div className="flex flex-col gap-4">
             <FieldsEditor path={selected} />

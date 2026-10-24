@@ -78,6 +78,10 @@ body {
   background: var(--bg);
   color: var(--ink);
 }
+/* Space for the scrollbar is kept whether or not the page scrolls, so pages don't shift sideways. */
+html {
+  scrollbar-gutter: stable;
+}
 body {
   font-family: var(--font-sans);
   font-size: 15px;

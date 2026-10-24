@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useState, type ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, NavLink, Outlet, useLocation } from 'react-router';
+import { Link, NavLink, Outlet, useLocation, useMatch } from 'react-router';
 import { useCarry, useParts, useReports } from '../api/queries';
 import { useSession } from '../auth/session';
 import { useShortcutRegistry } from '../lib/shortcuts';
@@ -174,6 +174,8 @@ function MoreLinks({ links }: { links: SideLinkItem[] }) {
 export function Layout() {
   const { t } = useTranslation();
   const { setHelpOpen } = useShortcutRegistry();
+  // Settings has its own section list down the side, so it gets more room than other pages.
+  const wide = useMatch('/settings/*') !== null;
   const items = useNavItems();
   const secondary: SideLinkItem[] = [
     { to: '/import', label: t('nav.import'), icon: FileSpreadsheet },
@@ -238,7 +240,9 @@ export function Layout() {
           </Link>
           <UserBox />
         </header>
-        <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 px-4 py-5 pb-28 md:px-8 md:py-8 md:pb-10">
+        <main
+          className={`mx-auto flex w-full ${wide ? 'max-w-7xl' : 'max-w-5xl'} flex-1 flex-col gap-5 px-4 py-5 pb-28 md:px-8 md:py-8 md:pb-10`}
+        >
           <Outlet />
         </main>
         <CarryIndicator className="md:hidden fixed bottom-24 left-1/2 z-10 -translate-x-1/2" />
