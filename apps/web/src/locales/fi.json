@@ -47,7 +47,8 @@
     "open": "Avaa",
     "none": "Ei mitään",
     "readOnlyHint": "Kirjaudu sisään tehdäksesi muutoksia.",
-    "close": "Sulje"
+    "close": "Sulje",
+    "qrForPhone": "Skannaa puhelimella avataksesi tämän sivun siinä"
   },
   "errors": {
     "generic": "Jokin meni pieleen: {{message}}",

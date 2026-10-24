@@ -47,7 +47,8 @@
     "open": "Open",
     "none": "None",
     "readOnlyHint": "Log in to make changes.",
-    "close": "Close"
+    "close": "Close",
+    "qrForPhone": "Scan with a phone to open this page there"
   },
   "errors": {
     "generic": "Something went wrong: {{message}}",

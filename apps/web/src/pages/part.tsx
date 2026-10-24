@@ -728,6 +728,7 @@ export function PartPage() {
       <PageHeader
         eyebrow={p.category && <CategoryPath path={p.category} />}
         title={p.name}
+        qr={p.code}
         meta={
           <>
             <CodeLabel code={p.code} />
@@ -850,7 +851,7 @@ export function PartPage() {
         </Card>
         {can('write') && p.status === 'active' && <Review part={p} />}
       </div>
-      <LabelPanel code={p.code} fix={canEdit ? 'part' : undefined} />
+      {can('admin') && <LabelPanel code={p.code} fix="part" />}
     </>
   );
 }

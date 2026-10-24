@@ -433,6 +433,7 @@ export function LocationPage() {
       <PageHeader
         eyebrow={d.path.length > 1 && <LocationPath path={d.path.slice(0, -1)} linkLast={false} />}
         title={d.name}
+        qr={d.kind === 'normal' ? d.code : undefined}
         meta={
           <>
             <PlaceTag place={d} />
@@ -746,11 +747,11 @@ export function LocationPage() {
       {canEdit && layers.data && (
         <MapManager code={d.code} layers={layers.data.filter((l) => l.location.code === d.code)} />
       )}
-      {d.kind === 'normal' && (
+      {d.kind === 'normal' && can('admin') && (
         <LabelPanel
           code={d.code}
           csvHref={`/api/labels.csv?location=${d.code}&recursive=1`}
-          fix={canEdit ? 'location' : undefined}
+          fix="location"
         />
       )}
     </>

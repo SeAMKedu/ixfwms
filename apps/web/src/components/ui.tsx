@@ -102,11 +102,14 @@ export function PageHeader({
   eyebrow,
   meta,
   actions,
+  qr,
 }: {
   title: ReactNode;
   eyebrow?: ReactNode;
   meta?: ReactNode;
   actions?: ReactNode;
+  /** A code whose QR is shown on wide screens, to open the same page on a phone. */
+  qr?: string;
 }) {
   return (
     <header className="flex flex-wrap items-end justify-between gap-3">
@@ -115,8 +118,26 @@ export function PageHeader({
         <h1 className="text-[28px] leading-tight font-semibold">{title}</h1>
         {meta && <div className="flex flex-wrap items-center gap-2 text-sm text-muted">{meta}</div>}
       </div>
-      {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
+      {(actions || qr) && (
+        <div className="flex flex-wrap items-end gap-3">
+          {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
+          {qr && <PageQr code={qr} />}
+        </div>
+      )}
     </header>
+  );
+}
+
+/** The page's QR code (desktop only): scan it to open the same thing on a phone. */
+function PageQr({ code }: { code: string }) {
+  const { t } = useTranslation();
+  return (
+    <img
+      src={`/api/labels/${encodeURIComponent(code)}/qr.svg`}
+      alt={t('common.qrForPhone')}
+      title={t('common.qrForPhone')}
+      className="hidden size-20 rounded border border-line bg-white p-0.5 md:block"
+    />
   );
 }
 

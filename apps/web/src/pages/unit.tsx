@@ -720,6 +720,7 @@ export function UnitPage() {
           </span>
         }
         title={u.name}
+        qr={u.code}
         meta={
           <>
             <CodeLabel code={u.code} />
@@ -752,7 +753,7 @@ export function UnitPage() {
           </Card>
         )}
       </div>
-      <LabelPanel code={u.code} fix={can('inventory') ? 'unit' : undefined} />
+      {can('admin') && <LabelPanel code={u.code} fix="unit" />}
     </>
   );
 }
