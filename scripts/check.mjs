@@ -14,6 +14,7 @@ const TIERS = {
   ],
   patch: [['integration tests', 'npm run test:integration']],
   release: [
+    ['browser tests (scan, carry, take)', 'npm run test:e2e'],
     ['coverage', 'npm run test:coverage'],
     ['unused code and dependencies', 'npx knip'],
     ['dependency audit (runtime deps)', 'npm audit --omit=dev --audit-level=high'],

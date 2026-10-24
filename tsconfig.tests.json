@@ -10,6 +10,8 @@
     "packages/*/src",
     "apps/server/src",
     "vitest.config.ts",
-    "apps/server/drizzle.config.ts"
+    "apps/server/drizzle.config.ts",
+    "e2e",
+    "playwright.config.ts"
   ]
 }

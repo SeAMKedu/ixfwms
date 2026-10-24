@@ -12,3 +12,8 @@ Thumbs.db
 
 # Vendor documentation (not ours to commit)
 vendor-docs/
+
+# browser tests
+e2e/.data/
+test-results/
+playwright-report/

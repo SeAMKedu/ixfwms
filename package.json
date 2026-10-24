@@ -30,12 +30,14 @@
     "check:patch": "node scripts/check.mjs patch",
     "check:release": "node scripts/check.mjs release",
     "release": "node scripts/release.mjs",
-    "prepare": "lefthook install || true"
+    "prepare": "lefthook install || true",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",
     "@commitlint/config-conventional": "^21.2.4",
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "1.63.0",
     "@types/node": "^24.19.2",
     "@vitejs/plugin-react": "^5.2.0",
     "@vitest/coverage-v8": "^5.0.5",
