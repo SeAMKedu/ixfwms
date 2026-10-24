@@ -7,7 +7,7 @@ import { useLocationTree } from '../api/queries';
 import { useSession } from '../auth/session';
 import { Button, Card, Empty, ErrorBox, Loading, PageHeader, PlaceTag } from '../components/ui';
 import { MapLayers } from '../components/svg-map';
-import { NewPlaceForm } from './location';
+import { NewPlaceForm } from './location/new-place';
 
 function Node({ node, depth }: { node: LocationNode; depth: number }) {
   const [open, setOpen] = useState(depth < 1);
