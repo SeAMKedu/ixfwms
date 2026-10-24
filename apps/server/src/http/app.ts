@@ -1,7 +1,8 @@
 import multipart from '@fastify/multipart';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import { ZodError } from 'zod';
-import { AppError } from '../lib/errors.js';
+import { errorMessage } from '@ixfwms/domain';
+import { AppError, fail } from '../lib/errors.js';
 import { registerMcp } from '../mcp/http.js';
 import type { AppDeps } from './context.js';
 import { registerAdminRoutes } from './routes/admin.js';
@@ -38,29 +39,38 @@ export async function buildApp(
     if (!header) return;
     const match = /^Bearer\s+(\S+)$/i.exec(header);
     const actor = match?.[1] ? await services.auth.verify(match[1]) : null;
-    if (!actor) throw new AppError('unauthorized', 'Unknown or revoked API token');
+    if (!actor) throw fail('unauthorized', 'auth.unknownToken');
     request.actor = actor;
   });
 
   app.setErrorHandler((error, request, reply) => {
     if (error instanceof AppError) {
-      return reply
-        .status(error.status)
-        .send({ error: error.code, message: error.message, details: error.details });
+      return reply.status(error.status).send({
+        error: error.code,
+        message: error.message,
+        key: error.key,
+        params: error.params,
+        details: error.details,
+      });
     }
     if (error instanceof ZodError) {
-      return reply
-        .status(400)
-        .send({ error: 'invalid', message: 'Invalid input', details: error.issues });
+      return reply.status(400).send({
+        error: 'invalid',
+        message: errorMessage('input.invalid'),
+        key: 'input.invalid',
+        details: error.issues,
+      });
     }
     const status = (error as { statusCode?: number }).statusCode;
     if (status && status < 500) {
       return reply.status(status).send({ error: 'invalid', message: (error as Error).message });
     }
     request.log.error(error);
-    return reply
-      .status(500)
-      .send({ error: 'internal', message: 'Something went wrong on the server' });
+    return reply.status(500).send({
+      error: 'internal',
+      message: errorMessage('server.internal'),
+      key: 'server.internal',
+    });
   });
 
   registerSystemRoutes(app, deps);

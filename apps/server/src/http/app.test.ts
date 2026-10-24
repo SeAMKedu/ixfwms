@@ -46,8 +46,16 @@ describe('HTTP API', () => {
       headers: auth(env.adminToken),
     });
     expect(res.statusCode).toBe(400);
-    expect(res.json()).toMatchObject({ error: 'invalid' });
-    expect((await env.app.inject({ url: '/api/parts/ZZZZ' })).statusCode).toBe(404);
+    expect(res.json()).toMatchObject({ error: 'invalid', key: 'input.invalid' });
+    const missing = await env.app.inject({ url: '/api/parts/ZZZZ' });
+    expect(missing.statusCode).toBe(404);
+    // The web app translates by key; scripts and MCP read the English message.
+    expect(missing.json()).toEqual({
+      error: 'not_found',
+      message: 'Part not found: ZZZZ',
+      key: 'notFound.part',
+      params: { ref: 'ZZZZ' },
+    });
   });
 
   it('builds QR URLs from the request host when no public URL is configured', async () => {

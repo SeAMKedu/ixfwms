@@ -20,7 +20,7 @@ import {
 import { and, asc, eq, inArray, isNull, like, sql } from 'drizzle-orm';
 import type { Db, Executor } from '../db/client.js';
 import { locationMoves, locations, locationTypes } from '../db/schema.js';
-import { AppError, invalid, notFound } from '../lib/errors.js';
+import { invalid, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
 import { allocateCode, claimCode } from './codes.js';
 import { audit, requireScope, type Actor } from './context.js';
@@ -107,7 +107,7 @@ export class LocationService {
       ? await ex.select().from(locations).where(eq(locations.code, code)).get()
       : undefined;
     const found = row ?? (await ex.select().from(locations).where(eq(locations.id, ref)).get());
-    if (!found) throw notFound('Location', ref);
+    if (!found) throw notFound('location', ref);
     return found;
   }
 
@@ -186,8 +186,7 @@ export class LocationService {
     const { name, parent, count } = DuplicateLocationInput.parse(input);
     return this.db.transaction(async (tx) => {
       const original = await this.resolve(ref, tx);
-      if (original.kind !== 'normal')
-        throw invalid(`The ${original.name} location can't be copied`);
+      if (original.kind !== 'normal') throw invalid('places.cantCopy', { name: original.name });
       const parentId =
         parent === undefined ? original.parentId : parent && (await this.resolve(parent, tx)).id;
       const inside = await tx
@@ -248,10 +247,10 @@ export class LocationService {
     newParentRef: string | null,
     who: Actor,
   ): Promise<void> {
-    if (loc.kind !== 'normal') throw invalid(`The ${loc.name} location can't be moved`);
+    if (loc.kind !== 'normal') throw invalid('places.cantMove', { name: loc.name });
     const parent = newParentRef ? await this.resolve(newParentRef, tx) : null;
     if (parent && parent.path.startsWith(loc.path)) {
-      throw invalid(`Can't move ${loc.name} into itself or into something inside it`);
+      throw invalid('places.intoItself', { name: loc.name });
     }
     if ((parent?.id ?? null) === loc.parentId) return;
     const newPath = `${parent?.path ?? '/'}${loc.id}/`;
@@ -543,14 +542,14 @@ export class LocationService {
       .where(eq(locations.typeId, type.id))
       .limit(1)
       .all();
-    if (used.length) throw invalid(`Places of type ${type.name} exist; change their type first`);
+    if (used.length) throw invalid('places.typeInUse', { type: type.name });
     await this.db.delete(locationTypes).where(eq(locationTypes.id, type.id));
     await audit(this.db, who, 'delete', 'location-type', key);
   }
 
   private async editableType(key: string) {
     const type = await this.db.select().from(locationTypes).where(eq(locationTypes.key, key)).get();
-    if (!type || BUILT_IN_LOCATION_TYPES.some((b) => b === key)) throw notFound('Place type', key);
+    if (!type || BUILT_IN_LOCATION_TYPES.some((b) => b === key)) throw notFound('placeType', key);
     return type;
   }
 
@@ -570,7 +569,7 @@ export class LocationService {
     const taken = (await this.summaries(ex, siblings)).find(
       (s) => s.id !== selfId && !s.movable && s.short.toLowerCase() === shortName.toLowerCase(),
     );
-    if (taken) throw invalid(`${taken.name} next to it already has the short name ${taken.short}`);
+    if (taken) throw invalid('places.shortNameTaken', { name: taken.name, short: taken.short });
   }
 
   private async typeByKey(ex: Executor, key: string) {
@@ -579,7 +578,7 @@ export class LocationService {
       const known = (await ex.select({ key: locationTypes.key }).from(locationTypes).all()).map(
         (t) => t.key,
       );
-      throw invalid(`Unknown location type "${key}". Known types: ${known.join(', ')}`);
+      throw invalid('places.unknownType', { key, known: known.join(', ') });
     }
     return type;
   }
@@ -602,7 +601,7 @@ export class LocationService {
     const type = await this.typeByKey(ex, input.typeKey);
     const parent = input.parent ? await this.resolve(input.parent, ex) : null;
     if (parent && parent.kind !== 'normal' && input.kind === 'normal') {
-      throw new AppError('invalid', `Locations can't be created inside ${parent.name}`);
+      throw invalid('places.cantCreateInside', { name: parent.name });
     }
     if (type.movable === false)
       await this.checkShortName(ex, parent?.id ?? null, input.shortName ?? null, null);

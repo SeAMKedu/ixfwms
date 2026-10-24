@@ -8,7 +8,7 @@ import {
 import { eq } from 'drizzle-orm';
 import type { Db, Executor } from '../db/client.js';
 import { locations, parts, stockLots } from '../db/schema.js';
-import { AppError, invalid } from '../lib/errors.js';
+import { fail, invalid } from '../lib/errors.js';
 import { requireScope, type Actor } from './context.js';
 import type { LocationService } from './locations.js';
 import type { SettingsService } from './settings.js';
@@ -53,8 +53,7 @@ export class OpenActionService {
 
   async putBackUnit(ref: string, guest: string | null, actor: Actor | null): Promise<UnitDetail> {
     const unit = await this.units.resolve(ref);
-    if (!unit.homeLocationId)
-      throw invalid('Nobody has said where this belongs; set its home first');
+    if (!unit.homeLocationId) throw invalid('open.noHome');
     return this.moveUnit(unit.id, unit.homeLocationId, guest, actor);
   }
 
@@ -69,7 +68,7 @@ export class OpenActionService {
     return this.db.transaction(async (tx) => {
       const lot = await this.lotRow(lotId, tx);
       const dest = await this.locations.resolve(to, tx);
-      if (dest.kind === 'in_transit') throw invalid('Pick it up to carry it');
+      if (dest.kind === 'in_transit') throw invalid('stock.pickUpToCarry');
       const summary = await this.locations.summarize(tx, dest);
       const back = dest.id === lot.originLocationId;
       const who = await this.allow(actor, back ? 'put_back' : 'workstation', summary.workstation);
@@ -82,7 +81,7 @@ export class OpenActionService {
   async putBackLot(lotId: string, guest: string | null, actor: Actor | null): Promise<LotView> {
     const lot = await this.lotRow(lotId);
     const origin = lot.originLocationId;
-    if (!origin) throw invalid('Nobody knows where this came from; move it by hand');
+    if (!origin) throw invalid('open.noOrigin');
     return this.moveLot(lot.id, origin, null, guest, actor);
   }
 
@@ -94,7 +93,7 @@ export class OpenActionService {
     return this.db.transaction(async (tx) => {
       const place = await this.locations.resolve(ref, tx);
       const summary = await this.locations.summarize(tx, place);
-      if (!summary.workstation) throw invalid('Only workstations can be cleared like this');
+      if (!summary.workstation) throw invalid('open.onlyWorkstations');
       const who = await this.allow(actor, 'workstation', true);
       const result: ClearResult = { returned: [], left: [] };
       const unitRows = await this.units.directlyAt(place.id, tx);
@@ -145,15 +144,14 @@ export class OpenActionService {
   ): Promise<Actor | null> {
     if (actor) return requireScope(actor, 'inventory');
     const setting = (await this.settings.get()).anonymousActions;
-    if (wanted === 'workstation' && !toWorkstation)
-      throw new AppError('unauthorized', 'Log in to move things anywhere but a workstation');
-    if (!anonymousAllows(setting, wanted)) throw new AppError('unauthorized', 'Log in to do this');
+    if (wanted === 'workstation' && !toWorkstation) throw fail('unauthorized', 'open.logInToMove');
+    if (!anonymousAllows(setting, wanted)) throw fail('unauthorized', 'open.logIn');
     return null;
   }
 
   private async lotRow(lotId: string, ex: Executor = this.db) {
     const lot = await ex.select().from(stockLots).where(eq(stockLots.id, lotId)).get();
-    if (!lot) throw invalid(`No stock lot ${lotId}`);
+    if (!lot) throw invalid('stock.noLot', { id: lotId });
     return lot;
   }
 }

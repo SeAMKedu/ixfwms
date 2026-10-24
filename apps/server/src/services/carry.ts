@@ -119,7 +119,7 @@ export class CarryService {
   ): Promise<CarryState> {
     const who = requireScope(actor, 'inventory');
     if ([input.location, input.lotId, input.unit].filter((x) => x != null).length !== 1)
-      throw invalid('Pick a place, a stock lot or a unit');
+      throw invalid('carry.pickWhat');
     await this.db.transaction(async (tx) => {
       const carry = await this.locations.inTransitFor(who, tx);
       if (input.unit)
@@ -145,10 +145,10 @@ export class CarryService {
     const who = requireScope(actor, 'inventory');
     const current = await this.state(who);
     const chosen = current.items.filter((i) => !items || items.includes(i.id));
-    if (chosen.length === 0) throw invalid('Nothing to put down');
+    if (chosen.length === 0) throw invalid('carry.nothing');
     await this.db.transaction(async (tx) => {
       const dest = await this.locations.resolve(to, tx);
-      if (dest.kind === 'in_transit') throw invalid('Pick a real place to put things down');
+      if (dest.kind === 'in_transit') throw invalid('carry.realPlace');
       for (const item of chosen) {
         if (item.kind === 'unit') {
           this.units.checkDestination(dest);

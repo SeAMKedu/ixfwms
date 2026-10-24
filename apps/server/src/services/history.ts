@@ -224,22 +224,21 @@ export class HistoryService {
     await this.db.transaction(async (tx) => {
       if (kind === 'location') {
         const move = await tx.select().from(locationMoves).where(eq(locationMoves.id, id)).get();
-        if (!move) throw notFound('Move', id);
+        if (!move) throw notFound('move', id);
         const loc = await this.locations.resolve(move.locationId, tx);
         if (loc.parentId !== move.toParentId)
-          throw invalid(`${loc.name} has been moved again since; undo that first`);
+          throw invalid('history.movedAgain', { name: loc.name });
         await this.locations.moveWithin(tx, loc, move.fromParentId, who);
         return;
       }
       const move = await tx.select().from(stockMovements).where(eq(stockMovements.id, id)).get();
-      if (!move) throw notFound('Move', id);
+      if (!move) throw notFound('move', id);
       if (move.reason !== 'move' || !move.lotId || !move.fromLocationId)
-        throw invalid('Only moves can be undone');
+        throw invalid('history.onlyMoves');
       const lot = await tx.select().from(stockLots).where(eq(stockLots.id, move.lotId)).get();
-      if (!lot || lot.locationId !== move.toLocationId)
-        throw invalid('That stock has changed since; it can no longer be undone');
+      if (!lot || lot.locationId !== move.toLocationId) throw invalid('history.changedSince');
       if (move.delta != null && (lot.quantity ?? 0) < move.delta)
-        throw invalid('Some of it has been taken since; move it back by hand');
+        throw invalid('history.takenSince');
       await this.stock.moveWithin(tx, lot.id, move.fromLocationId, move.delta, who);
     });
   }

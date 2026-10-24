@@ -49,7 +49,7 @@ function toAmount(input: AmountInput): StockAmount {
 /** Pieces are counted in whole numbers; weights and lengths may have decimals. */
 function checkWhole(mode: StockMode, quantity: number): void {
   if (mode === 'count' && !Number.isInteger(quantity))
-    throw invalid(`${quantity} isn't a whole number of pieces`);
+    throw invalid('stock.notWhole', { quantity });
 }
 
 export class StockService {
@@ -70,7 +70,10 @@ export class StockService {
     const levels = await this.levels();
     const level = findLevel(text, levels);
     if (!level)
-      throw invalid(`Unknown level "${text}". Levels: ${levels.map((l) => l.name).join(', ')}`);
+      throw invalid('stock.unknownLevel', {
+        level: text,
+        levels: levels.map((l) => l.name).join(', '),
+      });
     return level.key;
   }
 
@@ -106,7 +109,7 @@ export class StockService {
       .where(eq(parts.id, partId))
       .get();
     if (part?.tracking === 'individual')
-      throw invalid(`${part.name} is tracked one by one; add units instead of an amount`);
+      throw invalid('stock.trackedOneByOne', { name: part.name });
     if (amount.mode === 'level' && amount.level)
       amount = { ...amount, level: await this.levelKey(amount.level) };
     if (amount.quantity != null) checkWhole(amount.mode, amount.quantity);
@@ -165,17 +168,17 @@ export class StockService {
     return this.db.transaction(async (tx) => {
       const lot = await this.lot(tx, lotId);
       if (lot.mode === 'level') {
-        if (!level) throw invalid('This stock is tracked as a level; give the new level');
+        if (!level) throw invalid('stock.giveLevel');
         await tx
           .update(stockLots)
           .set({ level: await this.levelKey(level), updatedAt: nowIso() })
           .where(eq(stockLots.id, lot.id));
       } else {
-        if (quantity == null || quantity <= 0) throw invalid('Give how much was taken');
+        if (quantity == null || quantity <= 0) throw invalid('stock.giveTaken');
         checkWhole(lot.mode, quantity);
         const left = (lot.quantity ?? 0) - quantity;
         if (left < 0)
-          throw invalid(`Only ${formatAmount(amountOf(lot))} here, can't take ${quantity}`);
+          throw invalid('stock.notEnough', { amount: formatAmount(amountOf(lot)), quantity });
         await tx
           .update(stockLots)
           .set({ quantity: left, updatedAt: nowIso() })
@@ -255,7 +258,7 @@ export class StockService {
     const dest = await this.locations.resolve(toRef, tx);
     if (dest.id === lot.locationId) return lot.id;
     const whole = quantity == null || lot.mode === 'level' || quantity >= (lot.quantity ?? 0);
-    if (!whole && quantity <= 0) throw invalid('Give a positive quantity to move');
+    if (!whole && quantity <= 0) throw invalid('stock.givePositive');
     if (!whole) checkWhole(lot.mode, quantity);
 
     const moved: StockAmount = whole ? amountOf(lot) : { ...amountOf(lot), quantity };
@@ -403,7 +406,7 @@ export class StockService {
 
   private async lot(ex: Executor, lotId: string): Promise<LotRow> {
     const lot = await ex.select().from(stockLots).where(eq(stockLots.id, lotId)).get();
-    if (!lot) throw notFound('Stock lot', lotId);
+    if (!lot) throw notFound('stockLot', lotId);
     return lot;
   }
 

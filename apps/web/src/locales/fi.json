@@ -982,5 +982,163 @@
     "onLoanTitle_one": "{{count}} lainassa labran ulkopuolella",
     "onLoanTitle_other": "{{count}} lainassa labran ulkopuolella",
     "attentionTitle": "Huomiota vaativat yksilöt"
+  },
+  "apiErrors": {
+    "input": {
+      "invalid": "Virheellinen syöte"
+    },
+    "server": {
+      "internal": "Palvelimella meni jotain pieleen"
+    },
+    "notFound": {
+      "move": "Siirtoa ei löytynyt: {{ref}}",
+      "part": "Osaa ei löytynyt: {{ref}}",
+      "report": "Ilmoitusta ei löytynyt: {{ref}}",
+      "location": "Paikkaa ei löytynyt: {{ref}}",
+      "placeType": "Paikkatyyppiä ei löytynyt: {{ref}}",
+      "stockLot": "Saldoerää ei löytynyt: {{ref}}",
+      "category": "Kategoriaa ei löytynyt: {{ref}}",
+      "unit": "Yksilöä ei löytynyt: {{ref}}",
+      "file": "Tiedostoa ei löytynyt: {{ref}}",
+      "fileContent": "Tiedoston sisältöä ei löytynyt: {{ref}}",
+      "map": "Karttaa ei löytynyt: {{ref}}",
+      "mapDrawing": "Karttapiirrosta ei löytynyt: {{ref}}",
+      "user": "Käyttäjää ei löytynyt: {{ref}}"
+    },
+    "auth": {
+      "unknownToken": "Tuntematon tai peruttu API-avain",
+      "needToken": "Tähän tarvitaan API-avain",
+      "needScope": "Tähän tarvitaan oikeus \"{{scope}}\"",
+      "logInFirst": "Kirjaudu ensin sisään",
+      "notLoggedIn": "Et ole kirjautunut",
+      "passwordTooShort": "Salasanassa on oltava vähintään {{min}} merkkiä",
+      "tooManyLogins": "Liian monta epäonnistunutta kirjautumista, yritä muutaman minuutin päästä",
+      "wrongLogin": "Väärä nimi tai salasana",
+      "accountOff": "Tämä tili on poistettu käytöstä",
+      "wrongPassword": "Nykyinen salasana on väärä"
+    },
+    "users": {
+      "exists": "Käyttäjä \"{{name}}\" on jo olemassa",
+      "accountOff": "Käyttäjän {{name}} tili on poistettu käytöstä",
+      "badScopes": "Oikeuksien on oltava näistä: {{scopes}}",
+      "badRole": "Roolin on oltava jokin näistä: {{roles}}",
+      "notYourself": "Omaa tiliä ei voi poistaa käytöstä",
+      "lastAdmin": "Tämä on viimeinen ylläpitäjä; tee ensin joku muu ylläpitäjäksi",
+      "hasLoans": "{{name}} vastaa {{count}} lainasta labran ulkopuolella; palauta ne tai lainaa ne uudelleen jonkun muun nimiin ensin",
+      "isCarrying": "{{name}} kantaa mukanaan {{count}} asiaa; laskekaa ne ensin alas",
+      "cantRemoveSelf": "Omaa tiliä ei voi poistaa",
+      "hasHistory": "Käyttäjällä {{name}} on historiaa; poista tili käytöstä poistamisen sijaan"
+    },
+    "open": {
+      "logInToMove": "Kirjaudu sisään siirtääksesi tavaroita muualle kuin työpisteelle",
+      "logIn": "Kirjaudu sisään tehdäksesi tämän",
+      "noHome": "Kukaan ei ole kertonut, minne tämä kuuluu; aseta ensin kotipaikka",
+      "noOrigin": "Kukaan ei tiedä, mistä tämä tuli; siirrä se käsin",
+      "onlyWorkstations": "Näin voi tyhjentää vain työpisteitä"
+    },
+    "admin": {
+      "noCa": "Paikallista varmenteiden myöntäjää ei ole määritetty (IXF_CA_CERT)",
+      "noBackup": "Varmuuskopiota {{name}} ei ole"
+    },
+    "files": {
+      "notMultipart": "Lähetä tiedosto multipart/form-data-muodossa kentässä \"file\"",
+      "tooLarge": "Tiedosto on suurempi kuin latausraja",
+      "noUpload": "Ladattua tiedostoa ei ole tunnuksella {{id}}"
+    },
+    "history": {
+      "movedAgain": "{{name}} on siirretty sen jälkeen uudelleen; kumoa ensin se",
+      "onlyMoves": "Vain siirtoja voi kumota",
+      "changedSince": "Saldo on muuttunut sen jälkeen; tätä ei voi enää kumota",
+      "takenSince": "Osa on otettu sen jälkeen; siirrä se takaisin käsin"
+    },
+    "parts": {
+      "mergeSelf": "Osaa ei voi yhdistää itseensä",
+      "hasAmounts": "Osalla {{name}} on saldoa; siirrä tai poista se ennen kuin seuraat sitä yksilöinä",
+      "hasUnits": "Osalla {{name}} on yksilöitä; sitä ei voi seurata määränä"
+    },
+    "bom": {
+      "tooManyLines": "Tarkista enintään {{max}} riviä kerrallaan"
+    },
+    "import": {
+      "tooManyRows": "Tuo enintään {{max}} riviä kerrallaan"
+    },
+    "places": {
+      "cantCopy": "Paikkaa {{name}} ei voi kopioida",
+      "cantMove": "Paikkaa {{name}} ei voi siirtää",
+      "intoItself": "Paikkaa {{name}} ei voi siirtää itseensä eikä sen sisällä olevaan",
+      "typeInUse": "Tyypin {{type}} paikkoja on olemassa; vaihda ensin niiden tyyppi",
+      "shortNameTaken": "Viereisellä paikalla {{name}} on jo lyhenne {{short}}",
+      "unknownType": "Tuntematon paikkatyyppi \"{{key}}\". Tunnetut tyypit: {{known}}",
+      "cantCreateInside": "Paikan {{name}} sisään ei voi luoda paikkoja"
+    },
+    "levels": {
+      "inUse": "Saldoa on tasolla {{levels}}; vaihda ne toiselle tasolle ennen poistamista"
+    },
+    "stock": {
+      "notWhole": "{{quantity}} ei ole kokonainen kappalemäärä",
+      "unknownLevel": "Tuntematon saldotaso \"{{level}}\". Tasot: {{levels}}",
+      "trackedOneByOne": "Osaa {{name}} seurataan yksilöinä; lisää yksilöitä määrän sijaan",
+      "giveLevel": "Tätä saldoa seurataan tasona; anna uusi taso",
+      "giveTaken": "Kerro, paljonko otettiin",
+      "notEnough": "Täällä on vain {{amount}}, ei voi ottaa {{quantity}}",
+      "givePositive": "Anna siirrettävä määrä, joka on suurempi kuin nolla",
+      "noLot": "Saldoerää {{id}} ei ole",
+      "pickUpToCarry": "Ota se mukaan kantaaksesi sitä"
+    },
+    "codes": {
+      "notValid": "\"{{code}}\" ei ole kelvollinen koodi",
+      "inUse": {
+        "location": "Koodi {{code}} on jo paikan käytössä",
+        "part": "Koodi {{code}} on jo osan käytössä",
+        "unit": "Koodi {{code}} on jo yksilön käytössä"
+      },
+      "retired": "Koodi {{code}} on poistettu käytöstä; heitä tarra pois ja käytä toista"
+    },
+    "labels": {
+      "blankCount": "Pyydä 1–{{max}} tyhjää tarraa",
+      "changeInstead": {
+        "location": "{{code}} on paikalla; vaihda sen paikan koodi",
+        "part": "{{code}} on osalla; vaihda sen osan koodi",
+        "unit": "{{code}} on yksilöllä; vaihda sen yksilön koodi"
+      },
+      "noPart": "Osaa {{ref}} ei ole",
+      "noUnit": "Yksilöä {{ref}} ei ole",
+      "twoPlaces": "Valitse kaksi eri paikkaa"
+    },
+    "categories": {
+      "emptyPath": "Kategorian polku on tyhjä",
+      "keyTwice": "Kentän tunnus \"{{key}}\" on käytössä kahdesti",
+      "giveName": "Anna uusi nimi tai polku",
+      "insideItself": "Kategoriaa ei voi siirtää itsensä sisään",
+      "exists": "Kategoria {{path}} on jo olemassa",
+      "hasChildren": "Kategorialla {{path}} on alakategorioita; siirrä tai poista ne ensin",
+      "whereParts": "Kategoriassa {{path}} on {{count}} osaa; kerro, mihin kategoriaan ne siirtyvät",
+      "pickAnother": "Valitse osille toinen kategoria"
+    },
+    "units": {
+      "giveVersion": "Anna nyt asennettu laiteohjelmiston tai ohjelmiston versio",
+      "writeSomething": "Kirjoita, mitä tehtiin tai huomattiin",
+      "lentReturnFirst": "Tämä on lainassa labran ulkopuolella; palauta se ensin",
+      "alreadyLent": "Tämä on jo lainassa",
+      "noResponsible": "Käyttäjää \"{{name}}\" ei ole; vastuuhenkilöllä on oltava tili (esimerkiksi opettaja)",
+      "notLent": "Tämä ei ole lainassa",
+      "lendInstead": "Lainaa se sen sijaan, että siirtäisit sen ulos labrasta"
+    },
+    "carry": {
+      "pickWhat": "Valitse paikka, saldoerä tai yksilö",
+      "nothing": "Ei mitään laskettavaa alas",
+      "realPlace": "Valitse oikea paikka, johon asiat lasketaan"
+    },
+    "maps": {
+      "uploadSvg": "Tämä kartta on SVG-piirros; lataa .svg",
+      "uploadGlb": "Tämä kartta on 3D-malli; lataa .glb",
+      "stillUsed": "Käytössä vielä {{count}} paikassa; poista se niistä ensin",
+      "notInside": "{{target}} ei ole paikan {{place}} sisällä",
+      "bothNeedMap": "Molemmilla paikoilla on oltava ensin kartta",
+      "differentDrawing": "{{name}} käyttää eri piirrosta",
+      "svgTooLarge": "Piirros on liian suuri kartaksi (enintään 10 Mt)",
+      "glbTooLarge": "Malli on liian suuri kartaksi (enintään 100 Mt)",
+      "wrongFormat": "Kartat ovat SVG-piirroksia (.svg) tai binäärisiä glTF-malleja (.glb)"
+    }
   }
 }

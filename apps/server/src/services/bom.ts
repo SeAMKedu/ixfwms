@@ -12,7 +12,7 @@ import {
 import { eq, inArray } from 'drizzle-orm';
 import type { Db } from '../db/client.js';
 import { partIdentifiers, parts } from '../db/schema.js';
-import { AppError } from '../lib/errors.js';
+import { invalid } from '../lib/errors.js';
 import { requireScope, type Actor } from './context.js';
 import type { PartRow, PartService } from './parts.js';
 import type { StockService } from './stock.js';
@@ -29,8 +29,7 @@ export class BomService {
   ) {}
 
   async check(lines: BomLine[]): Promise<BomCheck> {
-    if (lines.length > MAX_LINES)
-      throw new AppError('invalid', `Check at most ${MAX_LINES} lines at a time`);
+    if (lines.length > MAX_LINES) throw invalid('bom.tooManyLines', { max: MAX_LINES });
     const byIdent = await this.partsByIdentifier(lines);
     const results: BomLineResult[] = [];
     for (const [i, line] of lines.entries())

@@ -2,7 +2,7 @@ import type { Scope, UserRole } from '@ixfwms/domain';
 import { hasScope } from '@ixfwms/domain';
 import type { Executor } from '../db/client.js';
 import { auditLog } from '../db/schema.js';
-import { AppError } from '../lib/errors.js';
+import { fail } from '../lib/errors.js';
 import { newId } from '../lib/ids.js';
 
 /** Who is doing something. `null` means anonymous (read-only access on the lab network). */
@@ -14,9 +14,9 @@ export interface Actor {
 }
 
 export function requireScope(actor: Actor | null, scope: Scope): Actor {
-  if (!actor) throw new AppError('unauthorized', 'This needs an API token');
+  if (!actor) throw fail('unauthorized', 'auth.needToken');
   if (!hasScope(actor.scopes, scope)) {
-    throw new AppError('forbidden', `This needs the "${scope}" scope`);
+    throw fail('forbidden', 'auth.needScope', { scope });
   }
   return actor;
 }

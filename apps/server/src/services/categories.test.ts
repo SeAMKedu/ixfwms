@@ -243,7 +243,9 @@ describe('editing categories', () => {
     const screw = await parts.create(part('M3x10', 'Fastners/Screws'), env.admin);
 
     await expect(categories.remove('Fastners', null, env.admin)).rejects.toThrow(/sub-categories/);
-    await expect(categories.remove('Fastners/Screws', null, env.admin)).rejects.toThrow(/1 part;/);
+    await expect(categories.remove('Fastners/Screws', null, env.admin)).rejects.toThrow(
+      /1 part\(s\); say which/,
+    );
     expect(await categories.remove('Fastners/Screws', 'Fasteners/Screws', env.admin)).toBe(1);
     expect((await parts.get(screw.code)).category).toBe('Fasteners/Screws');
     expect(await categories.remove('Fastners', null, env.admin)).toBe(0);

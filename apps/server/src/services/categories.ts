@@ -8,7 +8,7 @@ import {
 import { asc, eq, sql } from 'drizzle-orm';
 import type { Db, Executor } from '../db/client.js';
 import { categories, parts } from '../db/schema.js';
-import { AppError, conflict, invalid, notFound } from '../lib/errors.js';
+import { conflict, invalid, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
 import { audit, requireScope, type Actor } from './context.js';
 
@@ -53,7 +53,7 @@ export class CategoryService {
       await ex.insert(categories).values({ id, parentId, name, path: current });
       parentId = id;
     }
-    if (!parentId) throw new AppError('invalid', 'Category path is empty');
+    if (!parentId) throw invalid('categories.emptyPath');
     return parentId;
   }
 
@@ -105,7 +105,7 @@ export class CategoryService {
     const who = requireScope(actor, 'write');
     const keys = new Set<string>();
     for (const f of fields) {
-      if (keys.has(f.key)) throw new AppError('invalid', `Field key "${f.key}" is used twice`);
+      if (keys.has(f.key)) throw invalid('categories.keyTwice', { key: f.key });
       keys.add(f.key);
     }
     await this.db.transaction(async (tx) => {
@@ -140,14 +140,14 @@ export class CategoryService {
     const who = requireScope(actor, 'write');
     const target = splitPath(to);
     const name = target.at(-1);
-    if (!name) throw invalid('Give the new name or path');
+    if (!name) throw invalid('categories.giveName');
     return this.db.transaction(async (tx) => {
       const row = await this.find(tx, from);
       const wanted = target.join('/').toLowerCase();
       const old = row.path.toLowerCase();
-      if (wanted.startsWith(`${old}/`)) throw invalid('A category cannot go inside itself');
+      if (wanted.startsWith(`${old}/`)) throw invalid('categories.insideItself');
       if (wanted !== old && (await tx.select().from(categories).where(samePath(wanted)).get()))
-        throw conflict(`There already is a category ${target.join('/')}`);
+        throw conflict('categories.exists', { path: target.join('/') });
 
       const parentId =
         target.length > 1 ? await this.ensure(tx, target.slice(0, -1).join('/')) : null;
@@ -176,16 +176,13 @@ export class CategoryService {
     return this.db.transaction(async (tx) => {
       const row = await this.find(tx, path);
       if (await tx.select().from(categories).where(below(row.path)).get())
-        throw invalid(`${row.path} has sub-categories; move or delete them first`);
+        throw invalid('categories.hasChildren', { path: row.path });
       const count = await tx.$count(parts, eq(parts.categoryId, row.id));
       let targetId: string | null = null;
       if (count > 0) {
-        if (!moveTo?.trim())
-          throw invalid(
-            `${row.path} has ${count} ${count === 1 ? 'part' : 'parts'}; say which category they go to`,
-          );
+        if (!moveTo?.trim()) throw invalid('categories.whereParts', { path: row.path, count });
         if (splitPath(moveTo).join('/').toLowerCase() === row.path.toLowerCase())
-          throw invalid('Pick another category for its parts');
+          throw invalid('categories.pickAnother');
         targetId = await this.ensure(tx, moveTo);
         await tx
           .update(parts)
@@ -208,7 +205,7 @@ export class CategoryService {
       .from(categories)
       .where(samePath(splitPath(path).join('/')))
       .get();
-    if (!row) throw notFound('Category', path);
+    if (!row) throw notFound('category', path);
     return row;
   }
 }

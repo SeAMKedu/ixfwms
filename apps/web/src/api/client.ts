@@ -1,4 +1,4 @@
-import type { ApiError as ApiErrorBody } from '@ixfwms/domain';
+import type { ApiError as ApiErrorBody, ErrorKey, ErrorParams } from '@ixfwms/domain';
 
 const TOKEN_KEY = 'ixfwms.token';
 
@@ -26,6 +26,9 @@ export class ApiError extends Error {
     readonly code: string,
     message: string,
     readonly details?: unknown,
+    /** The message's key in the shared catalogue, so it can be shown translated. */
+    readonly key?: ErrorKey,
+    readonly params?: ErrorParams,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -64,6 +67,8 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
       err.error ?? 'error',
       err.message ?? res.statusText,
       err.details,
+      err.key,
+      err.params,
     );
   }
   return data as T;

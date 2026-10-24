@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { AppError } from '../../lib/errors.js';
+import { fail } from '../../lib/errors.js';
 import { parse, type AppDeps } from '../context.js';
 
 /** Web login. The returned token is sent as a Bearer token like any API token. */
@@ -15,7 +15,7 @@ export function registerSessionRoutes(app: FastifyInstance, { services }: AppDep
 
   app.get('/api/session', (request) => {
     const actor = request.actor;
-    if (!actor) throw new AppError('unauthorized', 'Not logged in');
+    if (!actor) throw fail('unauthorized', 'auth.notLoggedIn');
     return { name: actor.name, role: actor.role, scopes: actor.scopes };
   });
 

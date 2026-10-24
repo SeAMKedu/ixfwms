@@ -31,7 +31,7 @@ import {
   tags,
   units,
 } from '../db/schema.js';
-import { AppError, notFound } from '../lib/errors.js';
+import { AppError, invalid, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
 import type { CategoryService } from './categories.js';
 import { allocateCode, retireCode } from './codes.js';
@@ -56,7 +56,7 @@ export class PartResolver {
       ? await ex.select().from(parts).where(eq(parts.code, code)).get()
       : undefined;
     const found = row ?? (await ex.select().from(parts).where(eq(parts.id, ref)).get());
-    if (!found) throw notFound('Part', ref);
+    if (!found) throw notFound('part', ref);
     return found;
   }
 }
@@ -235,8 +235,7 @@ export class PartService {
     const targetId = await this.db.transaction(async (tx) => {
       const source = await this.resolve(sourceRef, tx);
       const target = await this.resolve(targetRef, tx);
-      if (source.id === target.id)
-        throw new AppError('invalid', 'A part cannot be merged into itself');
+      if (source.id === target.id) throw invalid('parts.mergeSelf');
 
       const sourceUnits = await tx
         .select({ id: units.id })
@@ -639,11 +638,7 @@ export class PartService {
         .where(eq(stockLots.partId, part.id))
         .limit(1)
         .get();
-      if (lot)
-        throw new AppError(
-          'invalid',
-          `${part.name} has stock amounts; move or remove them before tracking it one by one`,
-        );
+      if (lot) throw invalid('parts.hasAmounts', { name: part.name });
     } else {
       const unit = await ex
         .select({ id: units.id })
@@ -651,8 +646,7 @@ export class PartService {
         .where(eq(units.partId, part.id))
         .limit(1)
         .get();
-      if (unit)
-        throw new AppError('invalid', `${part.name} has units; it can't be tracked as amounts`);
+      if (unit) throw invalid('parts.hasUnits', { name: part.name });
     }
   }
 

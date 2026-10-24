@@ -129,11 +129,7 @@ export class MapService {
     const drawing = await this.drawing(drawingId);
     const prepared = await this.prepare(fileId, who);
     if (prepared.kind !== drawing.kind) {
-      throw invalid(
-        drawing.kind === 'svg_2d'
-          ? 'This map is an SVG drawing; upload an .svg'
-          : 'This map is a 3D model; upload a .glb',
-      );
+      throw invalid(drawing.kind === 'svg_2d' ? 'maps.uploadSvg' : 'maps.uploadGlb');
     }
     await this.db
       .update(mapDrawings)
@@ -165,7 +161,7 @@ export class MapService {
     await this.drawing(drawingId);
     const used = await this.usagesOf(drawingId);
     if (used.length) {
-      throw invalid(`Still used by ${used.length} place(s); remove it from them first`);
+      throw invalid('maps.stillUsed', { count: used.length });
     }
     await this.db.delete(mapDrawings).where(eq(mapDrawings.id, drawingId));
     await audit(this.db, who, 'map-deleted', 'map', drawingId);
@@ -238,7 +234,7 @@ export class MapService {
     const who = requireScope(actor, 'inventory');
     const loc = await this.locations.resolve(ref);
     const usage = await this.usage(loc.id, kind);
-    if (!usage) throw notFound('Map of', loc.code);
+    if (!usage) throw notFound('map', loc.code);
     await this.db.transaction(async (tx) => {
       await tx
         .delete(mapLinks)
@@ -246,7 +242,7 @@ export class MapService {
       if (!targetRef) return;
       const target = await this.locations.resolve(targetRef, tx);
       if (target.id === loc.id || !target.path.startsWith(loc.path)) {
-        throw invalid(`${target.name} isn't inside ${loc.name}`);
+        throw invalid('maps.notInside', { target: target.name, place: loc.name });
       }
       await tx
         .delete(mapLinks)
@@ -279,9 +275,9 @@ export class MapService {
     const from = await this.locations.resolve(fromRef);
     const target = await this.usage(loc.id, kind);
     const source = await this.usage(from.id, kind);
-    if (!target || !source) throw invalid('Both places need a map first');
+    if (!target || !source) throw invalid('maps.bothNeedMap');
     if (target.drawingId !== source.drawingId) {
-      throw invalid(`${from.name} uses a different drawing`);
+      throw invalid('maps.differentDrawing', { name: from.name });
     }
     const sourceTree = await this.subtree(from);
     const targetTree = await this.subtree(loc);
@@ -336,7 +332,7 @@ export class MapService {
   async check(ref: string, kind: MapKind): Promise<MapCheck> {
     const loc = await this.locations.resolve(ref);
     const usage = await this.usage(loc.id, kind);
-    if (!usage) throw notFound('Map of', loc.code);
+    if (!usage) throw notFound('map', loc.code);
     return this.checkUsage(loc, usage, await this.drawing(usage.drawingId));
   }
 
@@ -462,7 +458,7 @@ export class MapService {
 
   private async drawing(id: string, ex: Executor = this.db): Promise<DrawingRow> {
     const row = await ex.select().from(mapDrawings).where(eq(mapDrawings.id, id)).get();
-    if (!row) throw notFound('Map drawing', id);
+    if (!row) throw notFound('mapDrawing', id);
     return row;
   }
 
@@ -479,7 +475,7 @@ export class MapService {
     const { row, path } = await this.files.get(fileId);
     if (row.mime === 'image/svg+xml' || /\.svg$/i.test(row.filename)) {
       if (row.size > MAX_SVG_BYTES) {
-        throw invalid('That drawing is too large for a map (max 10 MB)');
+        throw invalid('maps.svgTooLarge');
       }
       const { svg, added } = addMissingSvgIds(await readFile(path, 'utf8'));
       if (added === 0) return { kind: 'svg_2d', fileId: row.id, filename: row.filename };
@@ -492,11 +488,11 @@ export class MapService {
     }
     if (row.mime === 'model/gltf-binary' || /\.glb$/i.test(row.filename)) {
       if (row.size > MAX_MODEL_BYTES) {
-        throw invalid('That model is too large for a map (max 100 MB)');
+        throw invalid('maps.glbTooLarge');
       }
       return { kind: 'gltf_3d', fileId: row.id, filename: row.filename };
     }
-    throw invalid('Maps are SVG drawings (.svg) or binary glTF models (.glb)');
+    throw invalid('maps.wrongFormat');
   }
 
   /** Shape keys in a drawing: SVG element ids or 3D object names. Stored files never change. */

@@ -73,10 +73,10 @@ export class FileService {
 
   async get(id: string): Promise<{ row: FileRow; path: string }> {
     const row = await this.db.select().from(files).where(eq(files.id, id)).get();
-    if (!row) throw notFound('File', id);
+    if (!row) throw notFound('file', id);
     const path = this.pathFor(row.sha256);
     await stat(path).catch(() => {
-      throw notFound('File content', id);
+      throw notFound('fileContent', id);
     });
     return { row, path };
   }
@@ -89,7 +89,7 @@ export class FileService {
         : (await this.locations.resolve(input.ref)).id;
     if (input.fileId) {
       const file = await this.db.select().from(files).where(eq(files.id, input.fileId)).get();
-      if (!file) throw invalid(`No uploaded file with id ${input.fileId}`);
+      if (!file) throw invalid('files.noUpload', { id: input.fileId });
     }
     const id = newId();
     await this.db.insert(attachments).values({

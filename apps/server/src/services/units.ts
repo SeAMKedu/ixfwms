@@ -74,7 +74,7 @@ export class UnitService {
       ? await ex.select().from(units).where(eq(units.code, code)).get()
       : undefined;
     const found = row ?? (await ex.select().from(units).where(eq(units.id, ref)).get());
-    if (!found) throw notFound('Unit', ref);
+    if (!found) throw notFound('unit', ref);
     return found;
   }
 
@@ -91,10 +91,7 @@ export class UnitService {
           .where(eq(stockLots.partId, part.id))
           .limit(1)
           .get();
-        if (lot)
-          throw invalid(
-            `${part.name} has stock amounts; move or remove them before tracking it one by one`,
-          );
+        if (lot) throw invalid('parts.hasAmounts', { name: part.name });
         await tx
           .update(parts)
           .set({ tracking: 'individual', updatedAt: nowIso() })
@@ -169,9 +166,8 @@ export class UnitService {
   /** Writes an entry in the unit's log; problems and repairs change its status too. */
   async log(ref: string, input: UnitLogInput, actor: Actor | null): Promise<UnitDetail> {
     const who = requireScope(actor, 'inventory');
-    if (input.kind === 'firmware' && !input.value)
-      throw invalid('Give the firmware or software version now installed');
-    if (!input.text && !input.value) throw invalid('Write what was done or noticed');
+    if (input.kind === 'firmware' && !input.value) throw invalid('units.giveVersion');
+    if (!input.text && !input.value) throw invalid('units.writeSomething');
     const unit = await this.resolve(ref);
     await this.db.transaction(async (tx) => {
       await this.event(tx, unit.id, input.kind, {
@@ -210,8 +206,7 @@ export class UnitService {
     kind: UnitEventKind = 'moved',
     text: string | null = null,
   ): Promise<void> {
-    if (await this.openLoan(tx, unit.id))
-      throw invalid('This is lent out of the lab; return it first');
+    if (await this.openLoan(tx, unit.id)) throw invalid('units.lentReturnFirst');
     if (destId === unit.locationId && kind === 'moved') return;
     await tx
       .update(units)
@@ -226,7 +221,7 @@ export class UnitService {
     const who = requireScope(actor, 'inventory');
     await this.db.transaction(async (tx) => {
       const unit = await this.resolve(ref, tx);
-      if (await this.openLoan(tx, unit.id)) throw invalid('This is already lent out');
+      if (await this.openLoan(tx, unit.id)) throw invalid('units.alreadyLent');
       const responsible = input.responsible
         ? await tx
             .select()
@@ -234,12 +229,9 @@ export class UnitService {
             .where(eq(sql`lower(${users.name})`, input.responsible.toLowerCase()))
             .get()
         : { id: who.userId, name: who.name };
-      if (!responsible)
-        throw invalid(
-          `No user "${input.responsible}"; the person responsible needs an account (a teacher, say)`,
-        );
+      if (!responsible) throw invalid('units.noResponsible', { name: input.responsible ?? '' });
       if ('disabledAt' in responsible && responsible.disabledAt)
-        throw invalid(`${responsible.name}'s account is turned off`);
+        throw invalid('users.accountOff', { name: responsible.name });
       const away = await this.locations.away(tx);
       await this.moveWithin(tx, unit, away.id, who, null, 'lent', input.description);
       await tx.insert(loans).values({
@@ -261,7 +253,7 @@ export class UnitService {
     await this.db.transaction(async (tx) => {
       const unit = await this.resolve(ref, tx);
       const loan = await this.openLoan(tx, unit.id);
-      if (!loan) throw invalid("This isn't lent out");
+      if (!loan) throw invalid('units.notLent');
       await tx
         .update(loans)
         .set({ returnedAt: nowIso(), returnedBy: who.userId })
@@ -527,8 +519,8 @@ export class UnitService {
 
   /** Units can't be put in "Out of the lab" (lend them) or someone's carry list (pick them up). */
   checkDestination(dest: LocationRow): void {
-    if (dest.kind === 'away') throw invalid('Lend it out instead of moving it out of the lab');
-    if (dest.kind === 'in_transit') throw invalid('Pick it up to carry it');
+    if (dest.kind === 'away') throw invalid('units.lendInstead');
+    if (dest.kind === 'in_transit') throw invalid('stock.pickUpToCarry');
   }
 
   async openLoan(ex: Executor, unitId: string): Promise<LoanRow | undefined> {

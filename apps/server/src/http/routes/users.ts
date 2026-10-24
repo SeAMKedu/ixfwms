@@ -1,7 +1,7 @@
 import { SCOPES, USER_ROLES } from '@ixfwms/domain';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { AppError } from '../../lib/errors.js';
+import { fail } from '../../lib/errors.js';
 import { requireScope } from '../../services/context.js';
 import { parse, type AppDeps } from '../context.js';
 
@@ -86,7 +86,7 @@ export function registerUserRoutes(app: FastifyInstance, { services }: AppDeps):
   });
 
   app.post('/api/session/password', async (request, reply) => {
-    if (!request.actor) throw new AppError('unauthorized', 'Log in first');
+    if (!request.actor) throw fail('unauthorized', 'auth.logInFirst');
     const body = parse(
       z.object({ current: z.string().min(1).max(500), next: z.string().max(500) }),
       request.body,

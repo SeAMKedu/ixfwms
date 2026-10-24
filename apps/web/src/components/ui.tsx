@@ -333,12 +333,15 @@ export function Loading() {
 export function ErrorBox({ error }: { error: unknown }) {
   const { t } = useTranslation();
   if (!error) return null;
+  // Errors from the server carry a key, so they show in the user's language.
   const message =
-    error instanceof Error
-      ? error.message
-      : typeof error === 'string'
-        ? error
-        : JSON.stringify(error);
+    error instanceof ApiError && error.key
+      ? t(`apiErrors.${error.key}`, { ...error.params, defaultValue: error.message })
+      : error instanceof Error
+        ? error.message
+        : typeof error === 'string'
+          ? error
+          : JSON.stringify(error);
   return (
     <div
       role="alert"

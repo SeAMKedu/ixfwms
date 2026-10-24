@@ -2,7 +2,7 @@ import { createReadStream, existsSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { AppError } from '../../lib/errors.js';
+import { fail } from '../../lib/errors.js';
 import { requireScope } from '../../services/context.js';
 import { baseUrl, parse, type AppDeps } from '../context.js';
 
@@ -33,8 +33,7 @@ export function registerAdminRoutes(app: FastifyInstance, { config, services }: 
   }));
 
   app.get('/api/setup/root.crt', (request, reply) => {
-    if (!config.caCert || !existsSync(config.caCert))
-      throw new AppError('not_found', 'No local certificate authority is configured (IXF_CA_CERT)');
+    if (!config.caCert || !existsSync(config.caCert)) throw fail('not_found', 'admin.noCa');
     return reply
       .type('application/x-x509-ca-cert')
       .header('content-disposition', 'attachment; filename="ixfwms-root.crt"')
@@ -53,7 +52,7 @@ export function registerAdminRoutes(app: FastifyInstance, { config, services }: 
       request.params,
     );
     const found = (await services.backup.list()).find((b) => basename(b.file) === name);
-    if (!found) throw new AppError('not_found', `No backup ${name}`);
+    if (!found) throw fail('not_found', 'admin.noBackup', { name });
     return reply
       .type('application/vnd.sqlite3')
       .header('content-disposition', `attachment; filename="${name}"`)

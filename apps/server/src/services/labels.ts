@@ -86,7 +86,7 @@ export class LabelService {
   async blank(count: number, actor: Actor | null, baseUrl: string): Promise<LabelData[]> {
     const who = requireScope(actor, 'inventory');
     if (!Number.isInteger(count) || count < 1 || count > MAX_BLANK)
-      throw invalid(`Ask for 1 to ${MAX_BLANK} blank labels`);
+      throw invalid('labels.blankCount', { max: MAX_BLANK });
     const codes = await this.db.transaction((tx) => reserveCodes(tx, count, who.userId));
     return codes.map((code) => blankLabel(code, baseUrl));
   }
@@ -132,9 +132,7 @@ export class LabelService {
       for (const raw of codes) {
         const info = await lookupCode(tx, raw);
         if (info.assigned)
-          throw invalid(
-            `${info.code} is on a ${info.assigned}; change that ${info.assigned}'s code instead`,
-          );
+          throw invalid(`labels.changeInstead.${info.assigned}`, { code: info.code });
         await retireCode(tx, info.code, 'retired by hand');
       }
       await audit(tx, who, 'retire-codes', 'label', codes.join(','), { codes });
@@ -169,7 +167,7 @@ export class LabelService {
                 .from(units)
                 .where(eq(units.code, normalizeCode(ref)))
                 .get();
-      if (!row) throw invalid(`No ${kind === 'unit' ? 'unit' : 'part'} ${ref}`);
+      if (!row) throw invalid(kind === 'unit' ? 'labels.noUnit' : 'labels.noPart', { ref });
       const code = newCode ? await claimCode(tx, newCode) : await allocateCode(tx);
       if (kind === 'location')
         await tx.update(locations).set({ code }).where(eq(locations.id, row.id));
@@ -188,7 +186,7 @@ export class LabelService {
     await this.db.transaction(async (tx) => {
       const a = await this.locations.resolve(refA, tx);
       const b = await this.locations.resolve(refB, tx);
-      if (a.id === b.id) throw invalid('Pick two different places');
+      if (a.id === b.id) throw invalid('labels.twoPlaces');
       const temp = await allocateCode(tx);
       await tx.update(locations).set({ code: temp }).where(eq(locations.id, a.id));
       await tx.update(locations).set({ code: a.code }).where(eq(locations.id, b.id));

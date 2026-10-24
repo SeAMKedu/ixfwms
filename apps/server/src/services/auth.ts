@@ -37,7 +37,7 @@ import {
   units,
   users,
 } from '../db/schema.js';
-import { AppError, conflict, invalid, notFound } from '../lib/errors.js';
+import { conflict, fail, invalid, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
 import type { Actor } from './context.js';
 
@@ -97,9 +97,9 @@ export class AuthService {
 
   async setPassword(userName: string, password: string): Promise<void> {
     if (password.length < MIN_PASSWORD_LENGTH)
-      throw invalid(`Passwords need at least ${MIN_PASSWORD_LENGTH} characters`);
+      throw invalid('auth.passwordTooShort', { min: MIN_PASSWORD_LENGTH });
     const user = await this.db.select().from(users).where(eq(users.name, userName)).get();
-    if (!user) throw notFound('User', userName);
+    if (!user) throw notFound('user', userName);
     await this.db
       .update(users)
       .set({ passwordHash: await hashPassword(password) })
@@ -114,15 +114,15 @@ export class AuthService {
       (t) => now - t < FAILED_LOGIN_WINDOW_MS,
     );
     if (recent.length >= MAX_FAILED_LOGINS) {
-      throw new AppError('forbidden', 'Too many failed logins, try again in a few minutes');
+      throw fail('forbidden', 'auth.tooManyLogins');
     }
     const user = await this.db.select().from(users).where(eq(users.name, userName)).get();
     const ok = user?.passwordHash ? await checkPassword(password, user.passwordHash) : false;
     if (!user || !ok) {
       this.failedLogins.set(key, [...recent, now]);
-      throw new AppError('unauthorized', 'Wrong name or password');
+      throw fail('unauthorized', 'auth.wrongLogin');
     }
-    if (user.disabledAt) throw new AppError('forbidden', 'This account is turned off');
+    if (user.disabledAt) throw fail('forbidden', 'auth.accountOff');
     this.failedLogins.delete(key);
     const token = TOKEN_PREFIX + randomBytes(24).toString('base64url');
     const expiresAt = new Date(now + SESSION_DAYS * 86_400_000).toISOString();
@@ -152,7 +152,7 @@ export class AuthService {
     role: UserRole = 'member',
   ): Promise<{ id: string; name: string; role: UserRole }> {
     const existing = await this.db.select().from(users).where(eq(users.name, name)).get();
-    if (existing) throw conflict(`User "${name}" already exists`);
+    if (existing) throw conflict('users.exists', { name });
     const user = { id: newId(), name, role };
     await this.db.insert(users).values(user);
     return user;
@@ -168,11 +168,11 @@ export class AuthService {
     scopes: Scope[],
   ): Promise<{ token: string; id: string }> {
     const user = await this.db.select().from(users).where(eq(users.name, userName)).get();
-    if (!user) throw notFound('User', userName);
-    if (user.disabledAt) throw invalid(`${user.name}'s account is turned off`);
+    if (!user) throw notFound('user', userName);
+    if (user.disabledAt) throw invalid('users.accountOff', { name: user.name });
     const bad = scopes.filter((s) => !SCOPES.includes(s));
     if (bad.length || scopes.length === 0)
-      throw invalid(`Scopes must be some of: ${SCOPES.join(', ')}`);
+      throw invalid('users.badScopes', { scopes: SCOPES.join(', ') });
     const token = TOKEN_PREFIX + randomBytes(24).toString('base64url');
     const id = newId();
     await this.db
@@ -223,9 +223,10 @@ export class AuthService {
   }
 
   async setRole(userName: string, role: UserRole): Promise<void> {
-    if (!USER_ROLES.includes(role)) throw invalid(`Role must be one of ${USER_ROLES.join(', ')}`);
+    if (!USER_ROLES.includes(role))
+      throw invalid('users.badRole', { roles: USER_ROLES.join(', ') });
     const user = await this.db.select().from(users).where(eq(users.name, userName)).get();
-    if (!user) throw notFound('User', userName);
+    if (!user) throw notFound('user', userName);
     await this.db.update(users).set({ role }).where(eq(users.id, user.id));
   }
 
@@ -233,7 +234,7 @@ export class AuthService {
   async changeOwnPassword(userId: string, current: string, next: string): Promise<void> {
     const user = await this.db.select().from(users).where(eq(users.id, userId)).get();
     if (!user?.passwordHash || !(await checkPassword(current, user.passwordHash))) {
-      throw new AppError('forbidden', 'The current password is wrong');
+      throw fail('forbidden', 'auth.wrongPassword');
     }
     await this.setPassword(user.name, next);
   }
@@ -261,20 +262,16 @@ export class AuthService {
    */
   async deactivate(userName: string, actor: Actor): Promise<void> {
     const user = await this.byName(userName);
-    if (user.id === actor.userId) throw invalid("You can't turn off your own account");
+    if (user.id === actor.userId) throw invalid('users.notYourself');
     if (user.role === 'admin' && (await this.activeAdmins(user.id)) === 0)
-      throw invalid('This is the last admin; make someone else an admin first');
+      throw invalid('users.lastAdmin');
     const openLoans = await this.db.$count(
       loans,
       and(eq(loans.responsibleUserId, user.id), isNull(loans.returnedAt)),
     );
-    if (openLoans)
-      throw invalid(
-        `${user.name} is responsible for ${openLoans} loan(s) out of the lab; return them or lend them again under someone else first`,
-      );
+    if (openLoans) throw invalid('users.hasLoans', { name: user.name, count: openLoans });
     const carrying = await this.carryCount(user.id);
-    if (carrying)
-      throw invalid(`${user.name} is carrying ${carrying} thing(s); put them down first`);
+    if (carrying) throw invalid('users.isCarrying', { name: user.name, count: carrying });
     await this.db.update(users).set({ disabledAt: nowIso() }).where(eq(users.id, user.id));
     await this.db
       .update(apiTokens)
@@ -294,11 +291,11 @@ export class AuthService {
    */
   async deleteUser(userName: string, actor: Actor): Promise<void> {
     const user = await this.byName(userName);
-    if (user.id === actor.userId) throw invalid("You can't remove your own account");
+    if (user.id === actor.userId) throw invalid('users.cantRemoveSelf');
     if (user.role === 'admin' && (await this.activeAdmins(user.id)) === 0)
-      throw invalid('This is the last admin; make someone else an admin first');
+      throw invalid('users.lastAdmin');
     if ((await this.historyCount(user.id)) > 0 || (await this.carryCount(user.id)) > 0)
-      throw invalid(`${user.name} has history; turn the account off instead`);
+      throw invalid('users.hasHistory', { name: user.name });
     await this.db.transaction(async (tx) => {
       await tx.delete(apiTokens).where(eq(apiTokens.userId, user.id));
       await tx.delete(locations).where(eq(locations.ownerUserId, user.id));
@@ -308,7 +305,7 @@ export class AuthService {
 
   private async byName(userName: string) {
     const user = await this.db.select().from(users).where(eq(users.name, userName)).get();
-    if (!user) throw notFound('User', userName);
+    if (!user) throw notFound('user', userName);
     return user;
   }
 

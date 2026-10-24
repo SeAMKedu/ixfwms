@@ -60,7 +60,6 @@ export class SettingsService {
       )
       .all();
     const names = removed.filter((l) => used.some((u) => u.level === l.key)).map((l) => l.name);
-    if (names.length)
-      throw invalid(`Stock is at ${names.join(', ')}; set it to another level before removing it`);
+    if (names.length) throw invalid('levels.inUse', { levels: names.join(', ') });
   }
 }

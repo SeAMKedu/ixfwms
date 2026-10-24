@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import en from './en.json';
+import { errorMessageTree } from '@ixfwms/domain';
+import enFile from './en.json';
 import fi from './fi.json';
 
 type Tree = { [key: string]: string | Tree };
+
+/** English as the app loads it: en.json plus the server's error messages. */
+const en = { ...enFile, apiErrors: errorMessageTree() };
 
 function keys(tree: Tree, prefix = ''): string[] {
   return Object.entries(tree).flatMap(([k, v]) =>

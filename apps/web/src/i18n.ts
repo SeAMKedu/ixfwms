@@ -1,5 +1,6 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
+import { errorMessageTree } from '@ixfwms/domain';
 import en from './locales/en.json';
 import fi from './locales/fi.json';
 
@@ -33,7 +34,11 @@ export async function setLanguage(code: string): Promise<void> {
 }
 
 void i18n.use(initReactI18next).init({
-  resources: { en: { translation: en }, fi: { translation: fi } },
+  // English error messages come from the catalogue the server uses; fi.json translates them.
+  resources: {
+    en: { translation: { ...en, apiErrors: errorMessageTree() } },
+    fi: { translation: fi },
+  },
   lng: initialLanguage(),
   fallbackLng: 'en',
   interpolation: { escapeValue: false },

@@ -11,7 +11,7 @@ import {
 import { asc, eq, inArray } from 'drizzle-orm';
 import type { Db } from '../db/client.js';
 import { importMappings, locations, partIdentifiers, parts } from '../db/schema.js';
-import { AppError } from '../lib/errors.js';
+import { AppError, invalid } from '../lib/errors.js';
 import { nowIso } from '../lib/ids.js';
 import { audit, requireScope, type Actor } from './context.js';
 import type { LocationRow, LocationService } from './locations.js';
@@ -49,8 +49,7 @@ export class ImportService {
     dryRun: boolean,
   ): Promise<ImportResult[]> {
     const who = requireScope(actor, 'inventory');
-    if (rows.length > MAX_ROWS)
-      throw new AppError('invalid', `Import at most ${MAX_ROWS} rows at a time`);
+    if (rows.length > MAX_ROWS) throw invalid('import.tooManyRows', { max: MAX_ROWS });
     const plans = await this.plan(rows, options);
     if (dryRun) return plans.map(toResult);
 

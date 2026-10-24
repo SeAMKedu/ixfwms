@@ -1,3 +1,4 @@
+import type { ErrorKey, ErrorParams } from './errors.js';
 /*
  * Shapes the REST API returns. Shared by the server (which produces them)
  * and the web app (which consumes them), so both sides stay in sync.
@@ -322,6 +323,9 @@ export interface ApiError {
   error: string;
   message: string;
   details?: unknown;
+  /** Key of the message in the shared catalogue (ERROR_MESSAGES), for showing it translated. */
+  key?: ErrorKey;
+  params?: ErrorParams;
 }
 
 export interface LabelData {

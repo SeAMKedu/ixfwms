@@ -65,10 +65,9 @@ export async function reserveCodes(ex: Executor, count: number, userId: string):
  */
 export async function claimCode(ex: Executor, raw: string): Promise<string> {
   const info = await lookupCode(ex, raw);
-  if (!isValidCode(info.code)) throw invalid(`"${raw}" is not a valid code`);
-  if (info.assigned) throw invalid(`Code ${info.code} is already used by a ${info.assigned}`);
-  if (info.retired)
-    throw invalid(`Code ${info.code} was retired; throw that label away and use another`);
+  if (!isValidCode(info.code)) throw invalid('codes.notValid', { code: raw });
+  if (info.assigned) throw invalid(`codes.inUse.${info.assigned}`, { code: info.code });
+  if (info.retired) throw invalid('codes.retired', { code: info.code });
   return info.code;
 }
 

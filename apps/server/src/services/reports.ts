@@ -79,7 +79,7 @@ export class ReportService {
     const who = requireScope(actor, 'inventory');
     await this.db.transaction(async (tx) => {
       const report = await tx.select().from(reports).where(eq(reports.id, id)).get();
-      if (!report) throw notFound('Report', id);
+      if (!report) throw notFound('report', id);
       if (report.resolvedAt) return;
       await tx
         .update(reports)
@@ -113,7 +113,7 @@ export class ReportService {
 
   private async row(id: string): Promise<ReportRow> {
     const row = await this.db.select().from(reports).where(eq(reports.id, id)).get();
-    if (!row) throw notFound('Report', id);
+    if (!row) throw notFound('report', id);
     return row;
   }
 
