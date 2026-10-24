@@ -8,6 +8,8 @@ import {
   parts,
   stockLots,
   stockMovements,
+  unitEvents,
+  units,
   users,
 } from '../db/schema.js';
 import { invalid, notFound } from '../lib/errors.js';
@@ -27,7 +29,12 @@ const EDIT_ACTIONS = [
   'map-removed',
 ];
 
-/** "What changed lately": stock changes, moves and edits in one feed, with undo for moves. */
+/** Renaming, moving and deleting categories have no table of their own, so they come from the audit log. */
+const CATEGORY_ACTIONS = ['move', 'delete'];
+
+const NO_UNIT = { unit: null, value: null, text: null };
+
+/** "What changed lately": stock changes, moves, unit events and edits in one feed, with undo for moves. */
 export class HistoryService {
   constructor(
     private readonly db: Db,
@@ -55,10 +62,32 @@ export class HistoryService {
         .orderBy(desc(auditLog.at))
         .limit(limit * 2)
         .all()
-    ).filter((a) => EDIT_ACTIONS.includes(a.action));
+    )
+      // Units have their own log (unit_events), which says more than the audit rows.
+      .filter(
+        (a) =>
+          a.entityType !== 'unit' &&
+          (EDIT_ACTIONS.includes(a.action) ||
+            (a.entityType === 'category' && CATEGORY_ACTIONS.includes(a.action))),
+      );
+    const unitRows = await this.db
+      .select({
+        e: unitEvents,
+        code: units.code,
+        name: units.name,
+        partName: parts.name,
+      })
+      .from(unitEvents)
+      .innerJoin(units, eq(units.id, unitEvents.unitId))
+      .innerJoin(parts, eq(parts.id, units.partId))
+      .orderBy(desc(unitEvents.at))
+      .limit(limit)
+      .all();
 
     const userIds = new Set(
-      [...moves, ...placeMoves, ...edits].map((r) => r.userId).filter((u): u is string => !!u),
+      [...moves, ...placeMoves, ...edits, ...unitRows.map((r) => r.e)]
+        .map((r) => r.userId)
+        .filter((u): u is string => !!u),
     );
     const userNames = new Map(
       (userIds.size
@@ -75,6 +104,8 @@ export class HistoryService {
     for (const m of placeMoves)
       [m.locationId, m.fromParentId, m.toParentId].forEach((id) => id && locIds.add(id));
     for (const e of edits) if (e.entityType === 'location') locIds.add(e.entityId);
+    for (const { e } of unitRows)
+      [e.fromLocationId, e.toLocationId].forEach((id) => id && locIds.add(id));
     const locs = new Map(
       (locIds.size
         ? await this.db
@@ -120,6 +151,7 @@ export class HistoryService {
         from: place(m.fromLocationId),
         to: place(m.toLocationId),
         delta: m.delta,
+        ...NO_UNIT,
         undoable: m.reason === 'move' && !!m.lotId && latestMoveByLot.get(m.lotId) === m.id,
       })),
       ...placeMoves.map((m) => ({
@@ -133,16 +165,31 @@ export class HistoryService {
         from: place(m.fromParentId),
         to: place(m.toParentId),
         delta: null,
+        ...NO_UNIT,
         undoable: latestMoveByPlace.get(m.locationId) === m.id,
+      })),
+      ...unitRows.map(({ e, code, name, partName }) => ({
+        kind: 'unit' as const,
+        id: e.id,
+        at: e.at,
+        user: e.userId ? (userNames.get(e.userId) ?? null) : e.reporterName,
+        action: e.kind,
+        part: null,
+        place: null,
+        from: place(e.fromLocationId),
+        to: place(e.toLocationId),
+        delta: null,
+        unit: { code, name: name ?? partName },
+        value: e.value,
+        text: e.text,
+        undoable: false,
       })),
       ...edits.map((e) => {
         const data = e.data ?? {};
-        const fallbackName =
-          typeof data.name === 'string'
-            ? data.name
-            : typeof data.path === 'string'
-              ? data.path
-              : '';
+        const text = (key: string) => (typeof data[key] === 'string' ? data[key] : '');
+        const fallbackName = text('name') || text('path') || text('from');
+        const named = (name: string) => (name ? { code: '', name } : null);
+        const renamed = e.entityType === 'category' && e.action === 'move';
         return {
           kind: 'edit' as const,
           id: e.id,
@@ -153,15 +200,17 @@ export class HistoryService {
             e.entityType === 'part'
               ? (partRows.get(e.entityId) ?? { code: '', name: fallbackName })
               : null,
+          // Other things (categories, place types) are named by what the audit row recorded.
           place:
             e.entityType === 'location'
               ? (locs.get(e.entityId) ?? null)
-              : e.entityType === 'category'
-                ? { code: '', name: fallbackName }
-                : null,
-          from: null,
-          to: null,
+              : e.entityType === 'part'
+                ? null
+                : named(fallbackName),
+          from: renamed ? named(text('from')) : null,
+          to: renamed ? named(text('to')) : null,
           delta: null,
+          ...NO_UNIT,
           undoable: false,
         };
       }),

@@ -13,6 +13,7 @@ import {
   type PartSearchInput,
   type PartStatus,
   type UpdatePartInput,
+  type UnitStatus,
 } from '@ixfwms/domain';
 import { and, asc, desc, eq, exists, inArray, like, or, sql, type SQL } from 'drizzle-orm';
 import type { z } from 'zod';
@@ -40,6 +41,9 @@ import type { StockService } from './stock.js';
 import type { UnitService } from './units.js';
 
 export type PartRow = typeof parts.$inferSelect;
+
+/** Unit states that count as having the thing (for in stock and low stock). */
+const USABLE_UNIT: UnitStatus[] = ['ok', 'needs_attention'];
 
 /** Finds parts by id or code. Shared by services that only need lookups. */
 export class PartResolver {
@@ -434,15 +438,27 @@ export class PartService {
     if (input.location) {
       const loc = await this.locations.resolve(input.location);
       where.push(
-        exists(
-          this.db
-            .select({ one: sql`1` })
-            .from(stockLots)
-            .innerJoin(locations, eq(locations.id, stockLots.locationId))
-            .where(and(eq(stockLots.partId, parts.id), like(locations.path, `${loc.path}%`))),
-        ),
+        or(
+          exists(
+            this.db
+              .select({ one: sql`1` })
+              .from(stockLots)
+              .innerJoin(locations, eq(locations.id, stockLots.locationId))
+              .where(and(eq(stockLots.partId, parts.id), like(locations.path, `${loc.path}%`))),
+          ),
+          exists(
+            this.db
+              .select({ one: sql`1` })
+              .from(units)
+              .innerJoin(locations, eq(locations.id, units.locationId))
+              .where(and(eq(units.partId, parts.id), like(locations.path, `${loc.path}%`))),
+          ),
+        )!,
       );
     }
+    // Units that can be used now: not retired, broken or in repair, and not lent out.
+    const usableUnits = sql`(select count(*) from ${units} inner join ${locations} on ${locations.id} = ${units.locationId}
+      where ${units.partId} = ${parts.id} and ${inArray(units.status, USABLE_UNIT)} and ${locations.kind} <> 'away')`;
     const levels = await this.stock.levels();
     const keysWhere = (ok: (state: string) => boolean) => {
       const keys = levels.filter((l) => ok(l.state)).map((l) => l.key);
@@ -450,7 +466,7 @@ export class PartService {
     };
     if (input.lowStock) {
       const low = keysWhere((s) => s !== 'ok');
-      where.push(sql`((${parts.minStock} is not null and coalesce((select sum(${stockLots.quantity}) from ${stockLots} where ${stockLots.partId} = ${parts.id} and ${stockLots.mode} = 'count'), 0) < ${parts.minStock})
+      where.push(sql`((${parts.minStock} is not null and coalesce((select sum(${stockLots.quantity}) from ${stockLots} where ${stockLots.partId} = ${parts.id} and ${stockLots.mode} = 'count'), 0) + ${usableUnits} < ${parts.minStock})
         or exists (select 1 from ${stockLots} where ${stockLots.partId} = ${parts.id} and ${inArray(stockLots.level, low)}))`);
     }
     for (const filter of input.attributes ?? []) where.push(attributeCondition(filter));
@@ -472,7 +488,8 @@ export class PartService {
             ),
           ),
       );
-      where.push(input.inStock ? inStock : sql`not ${inStock}`);
+      const available = or(inStock, sql`${usableUnits} > 0`)!;
+      where.push(input.inStock ? available : sql`not ${available}`);
     }
 
     const condition = where.length ? and(...where) : undefined;

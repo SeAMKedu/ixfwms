@@ -64,3 +64,66 @@ describe('history and undo', () => {
     expect(await carry.everyone()).toEqual([expect.objectContaining({ user: 'admin', count: 1 })]);
   });
 });
+
+describe('units in the history', () => {
+  it('lists unit moves and log entries, with the unit as the subject', async () => {
+    const { locations, parts, units, history } = env.services;
+    const shelf = await locations.create({ name: 'Shelf 3', type: 'shelf' }, env.admin);
+    const bench = await locations.create({ name: 'Workbench', type: 'workstation' }, env.admin);
+    const drill = await parts.create(
+      { name: 'Impact drill', kind: 'tool', status: 'active' },
+      env.admin,
+    );
+    const [unit] = await units.add(
+      { part: drill.code, units: [{ name: 'Drill 2' }], home: shelf.code },
+      env.admin,
+    );
+    await units.move(unit!.code, bench.code, env.admin);
+    await units.log(
+      unit!.code,
+      { kind: 'firmware', value: '2.1.0', text: 'From the app' },
+      env.admin,
+    );
+
+    const feed = await history.recent(20);
+    expect(feed[0]).toMatchObject({
+      kind: 'unit',
+      action: 'firmware',
+      unit: { code: unit!.code, name: 'Drill 2' },
+      value: '2.1.0',
+      text: 'From the app',
+      user: 'admin',
+    });
+    expect(feed[1]).toMatchObject({
+      kind: 'unit',
+      action: 'moved',
+      from: { name: 'Shelf 3' },
+      to: { name: 'Workbench' },
+    });
+    // The audit rows for units stay out: the unit's own log says it better.
+    expect(feed.filter((e) => e.kind === 'edit' && !e.part && !e.place)).toEqual([]);
+  });
+});
+
+describe('category changes in the history', () => {
+  it('shows renames as from → to, and deletions by name', async () => {
+    const { categories, history } = env.services;
+    await categories.setFields('Pneumatcs', [], env.admin);
+    await categories.move('Pneumatcs', 'Pneumatics', env.admin);
+    await categories.remove('Pneumatics', null, env.admin);
+    const feed = await history.recent(5);
+    const deleted = feed.find((e) => e.action === 'delete');
+    const moved = feed.find((e) => e.action === 'move');
+    expect(deleted).toMatchObject({
+      kind: 'edit',
+      action: 'delete',
+      place: { name: 'Pneumatics' },
+    });
+    expect(moved).toMatchObject({
+      action: 'move',
+      place: { name: 'Pneumatcs' },
+      from: { name: 'Pneumatcs' },
+      to: { name: 'Pneumatics' },
+    });
+  });
+});

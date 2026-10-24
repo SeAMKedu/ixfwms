@@ -19,10 +19,26 @@ function Place({ place }: { place: { code: string; name: string } | null }) {
   );
 }
 
+/** A unit event's firmware version, problem or status, and its note. */
+function unitDetail(t: ReturnType<typeof useTranslation>['t'], e: HistoryEntry): string {
+  const value =
+    e.value && e.action === 'problem'
+      ? t(`reportKinds.${e.value}`, { defaultValue: e.value })
+      : e.value && e.action === 'status'
+        ? t(`unitStatus.${e.value}`, { defaultValue: e.value })
+        : e.value;
+  return [value, e.text].filter(Boolean).join(' · ');
+}
+
 function Entry({ e, canUndo }: { e: HistoryEntry; canUndo: boolean }) {
   const { t } = useTranslation();
   const undo = useUndo();
-  const subject = e.part ? (
+  const detail = e.kind === 'unit' ? unitDetail(t, e) : '';
+  const subject = e.unit ? (
+    <Link to={`/u/${e.unit.code}`} className="font-medium hover:underline">
+      {e.unit.name}
+    </Link>
+  ) : e.part ? (
     e.part.code ? (
       <Link to={`/p/${e.part.code}`} className="font-medium hover:underline">
         {e.part.name}
@@ -40,13 +56,16 @@ function Entry({ e, canUndo }: { e: HistoryEntry; canUndo: boolean }) {
       <div className="flex min-w-0 flex-col gap-0.5 text-sm">
         <span className="flex flex-wrap items-center gap-1.5">
           <span className="text-muted">
-            {t(`history.actions.${e.action}`, { defaultValue: e.action })}
+            {e.kind === 'unit'
+              ? t(`unitEvents.${e.action}`, { defaultValue: e.action })
+              : t(`history.actions.${e.action}`, { defaultValue: e.action })}
           </span>
           {subject}
           {e.delta != null && (
             <span className="tabular text-muted">{e.delta > 0 ? `+${e.delta}` : e.delta}</span>
           )}
         </span>
+        {detail && <span className="text-[13px] whitespace-pre-wrap">{detail}</span>}
         {(e.from || e.to) && (
           <span className="flex flex-wrap items-center gap-1.5 text-[13px] text-muted">
             <Place place={e.from} />

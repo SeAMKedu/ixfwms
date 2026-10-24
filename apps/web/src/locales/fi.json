@@ -665,7 +665,8 @@
       "attach": "Liitetty tiedosto",
       "fields": "Muutettu kenttiä",
       "map": "Uusi kartta",
-      "map-removed": "Kartta poistettu"
+      "map-removed": "Kartta poistettu",
+      "delete": "Poistettu"
     }
   },
   "backups": {

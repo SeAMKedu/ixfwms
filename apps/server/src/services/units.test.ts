@@ -158,6 +158,34 @@ describe('units of individually tracked items', () => {
 
 const auth = () => ({ authorization: `Bearer ${env.adminToken}` });
 
+describe('units in the item list filters', () => {
+  it('finds items by where their units are, and counts usable units as stock', async () => {
+    const { room, shelf, bench, drill, unit } = await lab();
+    const { parts, units, auth } = env.services;
+    const search = (f: object) =>
+      parts.search({ limit: 10, offset: 0, ...f }).then((r) => r.items.map((p) => p.code));
+
+    expect(await search({ location: room.code })).toEqual([drill.code]);
+    expect(await search({ location: shelf.code })).toEqual([drill.code]);
+    expect(await search({ location: bench.code })).toEqual([]);
+    expect(await search({ inStock: true })).toEqual([drill.code]);
+
+    // Two wanted, one there: low.
+    await parts.update(drill.code, { minStock: 2 }, env.admin);
+    expect(await search({ lowStock: true })).toEqual([drill.code]);
+    await units.add({ part: drill.code, units: [{}], home: shelf.code }, env.admin);
+    expect(await search({ lowStock: true })).toEqual([]);
+
+    // Lent out or broken, a unit isn't stock any more.
+    await auth.createUser('teacher', 'member');
+    await units.lend(unit.code, { responsible: 'teacher', description: 'Thesis' }, env.admin);
+    expect(await search({ lowStock: true })).toEqual([drill.code]);
+    const other = (await parts.get(drill.code)).units.find((u) => u.code !== unit.code)!;
+    await units.update(other.code, { status: 'broken' }, env.admin);
+    expect(await search({ inStock: false })).toEqual([drill.code]);
+  });
+});
+
 describe('problem reports', () => {
   it('lets anyone report a broken unit, and resolving it makes the unit OK again', async () => {
     const { unit } = await lab();

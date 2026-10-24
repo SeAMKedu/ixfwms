@@ -665,7 +665,8 @@
       "attach": "Attached a file to",
       "fields": "Changed fields of",
       "map": "New map for",
-      "map-removed": "Removed map of"
+      "map-removed": "Removed map of",
+      "delete": "Deleted"
     }
   },
   "backups": {
