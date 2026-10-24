@@ -1,15 +1,7 @@
 import { buildCodeUrl, normalizeCode, type CodeInfo, type LabelBatch } from '@ixfwms/domain';
-import { asc, eq, inArray, like } from 'drizzle-orm';
+import { asc, eq, inArray, isNotNull, like } from 'drizzle-orm';
 import type { Db } from '../db/client.js';
-import {
-  categories,
-  codeReservations,
-  locations,
-  parts,
-  stockLots,
-  units,
-  users,
-} from '../db/schema.js';
+import { categories, codes, locations, parts, stockLots, units, users } from '../db/schema.js';
 import { invalid } from '../lib/errors.js';
 import type { LabelData } from '../labels/render.js';
 import { allocateCode, claimCode, lookupCode, reserveCodes, retireCode } from './codes.js';
@@ -102,21 +94,14 @@ export class LabelService {
   /** Reserved-label batches, newest first, with the codes not stuck on anything yet. */
   async batches(): Promise<LabelBatch[]> {
     const rows = await this.db
-      .select({ r: codeReservations, user: users.name })
-      .from(codeReservations)
-      .leftJoin(users, eq(users.id, codeReservations.createdBy))
-      .orderBy(asc(codeReservations.createdAt))
+      .select({ r: codes, user: users.name })
+      .from(codes)
+      .leftJoin(users, eq(users.id, codes.createdBy))
+      .where(isNotNull(codes.reservedAt))
+      .orderBy(asc(codes.createdAt))
       .all();
-    const usedCodes = new Set(
-      [
-        ...(await this.db.select({ code: locations.code }).from(locations).all()),
-        ...(await this.db.select({ code: parts.code }).from(parts).all()),
-        ...(await this.db.select({ code: units.code }).from(units).all()),
-      ].map((r) => r.code),
-    );
     const byBatch = new Map<string, LabelBatch>();
-    // Codes retired while in use (changed codes) have no batch; they aren't blank labels.
-    for (const { r, user } of rows.filter((x) => x.r.batchId || !x.r.note)) {
+    for (const { r, user } of rows) {
       const key = r.batchId ?? 'none';
       const batch = byBatch.get(key) ?? {
         id: r.batchId,
@@ -127,7 +112,7 @@ export class LabelService {
         retired: 0,
       };
       if (r.retiredAt) batch.retired++;
-      else if (r.claimedAt || usedCodes.has(r.code)) batch.used++;
+      else if (r.claimedAt || r.ownerType) batch.used++;
       else batch.unused.push(r.code);
       byBatch.set(key, batch);
     }

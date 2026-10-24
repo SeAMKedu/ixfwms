@@ -7,7 +7,7 @@ import {
 } from '@ixfwms/domain';
 import { eq } from 'drizzle-orm';
 import type { Executor } from '../db/client.js';
-import { codeReservations, locations, parts, units } from '../db/schema.js';
+import { codes } from '../db/schema.js';
 import { invalid } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
 
@@ -28,53 +28,20 @@ export async function allocateCode(ex: Executor): Promise<string> {
 
 export async function lookupCode(ex: Executor, raw: string): Promise<CodeInfo> {
   const code = normalizeCode(raw);
-  const loc = await ex
-    .select({ id: locations.id })
-    .from(locations)
-    .where(eq(locations.code, code))
-    .get();
-  const part = loc
-    ? undefined
-    : await ex.select({ id: parts.id }).from(parts).where(eq(parts.code, code)).get();
-  const unit =
-    loc || part
-      ? undefined
-      : await ex.select({ id: units.id }).from(units).where(eq(units.code, code)).get();
-  const reservation = await ex
-    .select()
-    .from(codeReservations)
-    .where(eq(codeReservations.code, code))
-    .get();
-  const assigned = loc ? 'location' : part ? 'part' : unit ? 'unit' : null;
-  const retired =
-    reservation?.retiredAt && !assigned
-      ? { at: reservation.retiredAt, note: reservation.note }
-      : null;
-  const reserved =
-    reservation != null && reservation.claimedAt == null && !retired && assigned == null;
-  const forward =
-    retired && reservation?.forwardTo ? await forwardOf(ex, reservation.forwardTo) : null;
-  return {
-    code,
-    assigned,
-    reserved,
-    free: assigned == null && reservation == null,
-    retired,
-    forward,
-  };
+  const row = await ex.select().from(codes).where(eq(codes.code, code)).get();
+  const assigned = row?.ownerType ?? null;
+  const retired = row?.retiredAt && !assigned ? { at: row.retiredAt, note: row.note } : null;
+  const reserved = row?.reservedAt != null && row.claimedAt == null && !retired && !assigned;
+  const forward = retired && row?.forwardTo ? await forwardOf(ex, row.forwardTo) : null;
+  return { code, assigned, reserved, free: row == null, retired, forward };
 }
 
 /** Follows forwards from `code` to whatever holds a code now, or null where the trail ends. */
 async function forwardOf(ex: Executor, code: string): Promise<CodeInfo['forward']> {
   let current: string | null = code;
   for (let i = 0; current && i < MAX_FORWARDS; i++) {
-    const info = await lookupCode(ex, current);
-    if (info.assigned) return { kind: info.assigned, code: info.code };
-    const row = await ex
-      .select({ forwardTo: codeReservations.forwardTo })
-      .from(codeReservations)
-      .where(eq(codeReservations.code, current))
-      .get();
+    const row = await ex.select().from(codes).where(eq(codes.code, current)).get();
+    if (row?.ownerType) return { kind: row.ownerType, code: row.code };
     current = row?.forwardTo ?? null;
   }
   return null;
@@ -82,28 +49,26 @@ async function forwardOf(ex: Executor, code: string): Promise<CodeInfo['forward'
 
 /** Reserves codes for blank labels to stick on boxes before they are registered. */
 export async function reserveCodes(ex: Executor, count: number, userId: string): Promise<string[]> {
-  const codes: string[] = [];
+  const reserved: string[] = [];
   const batchId = newId();
   for (let i = 0; i < count; i++) {
     const code = await allocateCode(ex);
-    await ex.insert(codeReservations).values({ code, batchId, createdBy: userId });
-    codes.push(code);
+    await ex.insert(codes).values({ code, batchId, createdBy: userId, reservedAt: nowIso() });
+    reserved.push(code);
   }
-  return codes;
+  return reserved;
 }
 
-/** Takes a code someone chose (typically from a blank label): it must be valid and not in use. */
+/**
+ * Checks a code someone chose (typically from a blank label): it must be valid and not in use.
+ * Writing it to the place, item or unit claims it (a trigger does that).
+ */
 export async function claimCode(ex: Executor, raw: string): Promise<string> {
   const info = await lookupCode(ex, raw);
   if (!isValidCode(info.code)) throw invalid(`"${raw}" is not a valid code`);
   if (info.assigned) throw invalid(`Code ${info.code} is already used by a ${info.assigned}`);
   if (info.retired)
     throw invalid(`Code ${info.code} was retired; throw that label away and use another`);
-  if (info.reserved)
-    await ex
-      .update(codeReservations)
-      .set({ claimedAt: nowIso() })
-      .where(eq(codeReservations.code, info.code));
   return info.code;
 }
 
@@ -119,7 +84,7 @@ export async function retireCode(
 ): Promise<void> {
   const set = { retiredAt: nowIso(), note, forwardTo };
   await ex
-    .insert(codeReservations)
+    .insert(codes)
     .values({ code, ...set })
-    .onConflictDoUpdate({ target: codeReservations.code, set });
+    .onConflictDoUpdate({ target: codes.code, set: { ...set, ownerType: null } });
 }

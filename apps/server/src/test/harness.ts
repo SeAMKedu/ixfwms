@@ -2,12 +2,14 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { loadConfig, type Config } from '../config.js';
-import { openDatabase } from '../db/client.js';
+import { openDatabase, type Database } from '../db/client.js';
 import { buildApp } from '../http/app.js';
 import { createServices, prepareDatabase, type Actor, type Services } from '../services/index.js';
 
 export interface TestEnv {
   config: Config;
+  /** For tests that check what the database itself allows. */
+  database: Database;
   services: Services;
   admin: Actor;
   adminToken: string;
@@ -38,6 +40,7 @@ export async function createTestEnv(env: Record<string, string> = {}): Promise<T
   const app = await buildApp({ config, services, version: '0.0.0-test' });
   return {
     config,
+    database,
     services,
     admin: (await services.auth.verify(adminToken))!,
     adminToken,

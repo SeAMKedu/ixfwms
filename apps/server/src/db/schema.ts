@@ -406,13 +406,22 @@ export const auditLog = sqliteTable(
   (t) => [index('audit_log_entity_idx').on(t.entityType, t.entityId)],
 );
 
-/** Codes printed on blank labels ahead of time; claimed when a place is created with one. */
-export const codeReservations = sqliteTable('code_reservations', {
+/**
+ * Every code ever used: places, items, units, blank labels and retired codes share this one
+ * namespace. Triggers on locations, parts and units (migration 0013) claim a code when a row
+ * gets it and refuse one already in use or retired, so the rule holds whoever writes the row.
+ */
+export const codes = sqliteTable('codes', {
   code: text('code').primaryKey(),
+  /** What has the code now; null for an unused blank label or a retired code. Set by the triggers. */
+  ownerType: text('owner_type').$type<'location' | 'part' | 'unit'>(),
+  /** Set when the code was printed on a blank label ahead of time. */
+  reservedAt: text('reserved_at'),
   /** One "reserve blank labels" run; lets a lost printout be downloaded again. */
   batchId: text('batch_id'),
   createdBy: text('created_by').references(() => users.id),
   createdAt: createdAt(),
+  /** When the code first went onto a place, item or unit. */
   claimedAt: text('claimed_at'),
   /** Taken out of use (lost, misplaced, replaced): never handed out again, and scanning it says so. */
   retiredAt: text('retired_at'),
