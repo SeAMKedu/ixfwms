@@ -1,6 +1,13 @@
 # Changelog
 
 All notable changes to ixfwms.
+## 0.12.0 (2026-10-24)
+
+### Features
+- stock nobody has counted yet
+
+### Fixes
+- undo keeps origin, lot races merge, search pages by unit rows
 ## 0.11.1 (2026-10-24)
 
 ### Features
