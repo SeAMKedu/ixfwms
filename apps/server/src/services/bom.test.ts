@@ -82,5 +82,9 @@ describe('BOM check', () => {
 
     expect(await bom.tagProject([cup.code, ejector.code], 'Gripper v3', env.inventory)).toBe(2);
     expect((await parts.search({ tag: 'gripper v3', limit: 10, offset: 0 })).total).toBe(2);
+
+    // One unknown code and nothing gets the tag.
+    await expect(bom.tagProject([cup.code, 'ZZZZ'], 'Gripper v4', env.inventory)).rejects.toThrow();
+    expect((await parts.search({ tag: 'gripper v4', limit: 10, offset: 0 })).total).toBe(0);
   });
 });

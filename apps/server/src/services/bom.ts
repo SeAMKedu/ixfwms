@@ -51,10 +51,12 @@ export class BomService {
     return { lines: results, buildable: results.length === 0 ? 0 : buildable, missing, short };
   }
 
-  /** Tags every matched part with a project name, so the project's parts can be listed later. */
+  /** Tags every matched part with a project name, so the project's parts can be listed later. All or none. */
   async tagProject(codes: string[], tag: string, actor: Actor | null): Promise<number> {
-    requireScope(actor, 'inventory');
-    for (const code of codes) await this.parts.update(code, { addTags: [tag] }, actor);
+    const who = requireScope(actor, 'inventory');
+    await this.db.transaction(async (tx) => {
+      for (const code of codes) await this.parts.updateWithin(tx, code, { addTags: [tag] }, who);
+    });
     return codes.length;
   }
 

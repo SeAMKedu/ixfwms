@@ -147,70 +147,80 @@ export class PartService {
 
   async update(ref: string, input: UpdatePartInput, actor: Actor | null): Promise<PartDetail> {
     const who = requireScope(actor, 'inventory');
-    const id = await this.db.transaction(async (tx) => {
-      const part = await this.resolve(ref, tx);
-      const patch: Partial<PartRow> = { updatedAt: nowIso() };
-      if (input.name !== undefined) patch.name = input.name;
-      if (input.description !== undefined) patch.description = input.description ?? null;
-      if (input.manufacturer !== undefined) patch.manufacturer = input.manufacturer ?? null;
-      if (input.unitMassG !== undefined) patch.unitMassG = input.unitMassG ?? null;
-      if (input.minStock !== undefined) patch.minStock = input.minStock ?? null;
-      if (input.notes !== undefined) patch.notes = input.notes ?? null;
-      if (input.source !== undefined) patch.source = input.source ?? null;
-      if (input.kind !== undefined) patch.kind = input.kind;
-      if (input.aliases !== undefined) patch.aliases = cleanAliases(input.aliases);
-      if (input.tracking !== undefined && input.tracking !== part.tracking) {
-        await this.checkTrackingSwitch(tx, part, input.tracking);
-        patch.tracking = input.tracking;
-      }
-      if (input.category !== undefined) {
-        patch.categoryId = input.category ? await this.ensureCategory(tx, input.category) : null;
-      }
-      if (input.attributes !== undefined) {
-        const categoryId = patch.categoryId !== undefined ? patch.categoryId : part.categoryId;
-        const category = categoryId
-          ? ((await tx.select().from(categories).where(eq(categories.id, categoryId)).get())
-              ?.path ?? null)
-          : null;
-        patch.attributes = {
-          ...part.attributes,
-          ...(await this.normalizeAttributes(tx, category, input.attributes)),
-        };
-      }
-      await tx.update(parts).set(patch).where(eq(parts.id, part.id));
-      if (input.removeIdentifiers?.length) {
-        await tx
-          .delete(partIdentifiers)
-          .where(
-            and(
-              eq(partIdentifiers.partId, part.id),
-              inArray(partIdentifiers.value, input.removeIdentifiers),
-            ),
-          );
-      }
-      await this.addIdentifiers(tx, part.id, input.addIdentifiers ?? []);
-      await this.addTags(tx, part.id, input.addTags ?? []);
-      if (input.removeTags?.length) {
-        const ids = (
-          await tx.select().from(tags).where(inArray(tags.name, input.removeTags)).all()
-        ).map((t) => t.id);
-        if (ids.length)
-          await tx
-            .delete(partTags)
-            .where(and(eq(partTags.partId, part.id), inArray(partTags.tagId, ids)));
-      }
-      await audit(tx, who, 'update', 'part', part.id, { ...input });
-      return part.id;
-    });
+    const id = await this.db.transaction((tx) => this.updateWithin(tx, ref, input, who));
     return this.get(id);
+  }
+
+  /** The update itself, inside the caller's transaction (who already has the `inventory` scope). */
+  async updateWithin(
+    tx: Executor,
+    ref: string,
+    input: UpdatePartInput,
+    who: Actor,
+  ): Promise<string> {
+    const part = await this.resolve(ref, tx);
+    const patch: Partial<PartRow> = { updatedAt: nowIso() };
+    if (input.name !== undefined) patch.name = input.name;
+    if (input.description !== undefined) patch.description = input.description ?? null;
+    if (input.manufacturer !== undefined) patch.manufacturer = input.manufacturer ?? null;
+    if (input.unitMassG !== undefined) patch.unitMassG = input.unitMassG ?? null;
+    if (input.minStock !== undefined) patch.minStock = input.minStock ?? null;
+    if (input.notes !== undefined) patch.notes = input.notes ?? null;
+    if (input.source !== undefined) patch.source = input.source ?? null;
+    if (input.kind !== undefined) patch.kind = input.kind;
+    if (input.aliases !== undefined) patch.aliases = cleanAliases(input.aliases);
+    if (input.tracking !== undefined && input.tracking !== part.tracking) {
+      await this.checkTrackingSwitch(tx, part, input.tracking);
+      patch.tracking = input.tracking;
+    }
+    if (input.category !== undefined) {
+      patch.categoryId = input.category ? await this.ensureCategory(tx, input.category) : null;
+    }
+    if (input.attributes !== undefined) {
+      const categoryId = patch.categoryId !== undefined ? patch.categoryId : part.categoryId;
+      const category = categoryId
+        ? ((await tx.select().from(categories).where(eq(categories.id, categoryId)).get())?.path ??
+          null)
+        : null;
+      patch.attributes = {
+        ...part.attributes,
+        ...(await this.normalizeAttributes(tx, category, input.attributes)),
+      };
+    }
+    await tx.update(parts).set(patch).where(eq(parts.id, part.id));
+    if (input.removeIdentifiers?.length) {
+      await tx
+        .delete(partIdentifiers)
+        .where(
+          and(
+            eq(partIdentifiers.partId, part.id),
+            inArray(partIdentifiers.value, input.removeIdentifiers),
+          ),
+        );
+    }
+    await this.addIdentifiers(tx, part.id, input.addIdentifiers ?? []);
+    await this.addTags(tx, part.id, input.addTags ?? []);
+    if (input.removeTags?.length) {
+      const ids = (
+        await tx.select().from(tags).where(inArray(tags.name, input.removeTags)).all()
+      ).map((t) => t.id);
+      if (ids.length)
+        await tx
+          .delete(partTags)
+          .where(and(eq(partTags.partId, part.id), inArray(partTags.tagId, ids)));
+    }
+    await audit(tx, who, 'update', 'part', part.id, { ...input });
+    return part.id;
   }
 
   /** Confirming drafts and archiving are deliberate human decisions, so they need the `write` scope. */
   async setStatus(ref: string, status: PartStatus, actor: Actor | null): Promise<PartDetail> {
     const who = requireScope(actor, 'write');
     const part = await this.resolve(ref);
-    await this.db.update(parts).set({ status, updatedAt: nowIso() }).where(eq(parts.id, part.id));
-    await audit(this.db, who, 'status', 'part', part.id, { from: part.status, to: status });
+    await this.db.transaction(async (tx) => {
+      await tx.update(parts).set({ status, updatedAt: nowIso() }).where(eq(parts.id, part.id));
+      await audit(tx, who, 'status', 'part', part.id, { from: part.status, to: status });
+    });
     return this.get(part.id);
   }
 
