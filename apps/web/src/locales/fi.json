@@ -735,11 +735,8 @@
   "settings": {
     "title": "Asetukset",
     "types": "Paikkatyypit",
-    "typesIntro": "Paikkaa lisättäessä tarjottavat tyypit. Siirrettävät ovat kuljetettavia säilytysastioita (laatikot, pussit, lavat): ne eivät kuulu osoitteisiin, joten niiden siirtäminen ei koskaan tee osoitteesta tai tarrasta väärää. Muut (huoneet, kaapit, hyllyt) muodostavat osoitteet, kuten Robolab-A-C.",
     "typeName": "Tyypin nimi",
     "movable": "Siirrettävä",
-    "placeCount_one": "{{count}} paikka",
-    "placeCount_other": "{{count}} paikkaa",
     "moveUp": "Siirrä ylös",
     "moveDown": "Siirrä alas",
     "inUse": "Tämän tyyppisiä paikkoja on olemassa",
@@ -755,8 +752,6 @@
     "carrying": "Kuljettaminen",
     "mappings": "Tallennetut sarakemääritykset",
     "server": "Palvelin",
-    "days": "päivää",
-    "stayIntro": "Anna tyypille odotettu oloaika, niin sen paikat ovat tilapäisiä: paikka, johon kukaan ei ole koskenut niin moneen päivään (ei varastoa sisään tai ulos, ei siirtoa, kukaan ei painanut Tarvitaan yhä), merkitään oranssilla ja näytetään Saapuneissa. Jätä tyhjäksi pysyvillä paikoilla.",
     "forgottenHours": "Merkitse kuljetetut tavarat (tuntia)",
     "forgottenHint": "Näin kauan mukaan otetut ja laskematta jääneet tavarat näytetään Saapuneissa todennäköisesti unohtuneina.",
     "labelsIntro": "Tarrasivut alkavat tällä teipin leveydellä.",
@@ -767,7 +762,6 @@
     "version": "Versio",
     "fromRequest": "(ei asetettu: otetaan kustakin pyynnöstä)",
     "serverIntro": "Nämä asetetaan palvelimen ympäristössä (ympäristömuuttujat tai .env), ja muutos vaatii uudelleenkäynnistyksen. Näytetään tässä tiedoksi.",
-    "temporaryAfter": "Tilapäinen, merkitään",
     "guests": "Ilman tunnusta",
     "guestsIntro": "Kuka tahansa labran verkossa voi etsiä tavaroita ja ilmoittaa ongelmista. Valitse, mitä muuta ilman tunnusta (opiskelijat, vierailijat) saa tehdä. Kaikki näkyy historiassa annetulla nimellä.",
     "guestLevels": {
@@ -792,7 +786,15 @@
       "empty": "Loppu"
     },
     "addLevel": "Lisää taso",
-    "newLevel": "Uusi taso"
+    "newLevel": "Uusi taso",
+    "typesShortIntro": "Paikkaa lisättäessä tarjottavat tyypit. Muutokset tallentuvat heti.",
+    "colType": "Tyyppi",
+    "colStay": "Tilapäinen, pv",
+    "colPlaces": "Paikkoja",
+    "colActions": "Järjestys ja poisto",
+    "legendMovable": "Kuljetettavat säilytysastiat (laatikot, pussit, lavat). Ne eivät kuulu osoitteisiin, joten niiden siirtäminen ei tee osoitteesta tai tarrasta väärää. Muut (huoneet, kaapit, hyllyt) muodostavat osoitteet, kuten Robolab-A-C.",
+    "legendWorkstation": "Pöydät, joille tuodaan työkaluja ja osia. Kuka tahansa saa tuoda tavaroita niille (jos Ilman tunnusta sallii), ja Siivoa pöytä palauttaa ne.",
+    "legendStay": "Paikka, johon kukaan ei ole koskenut niin moneen päivään (ei varastoa sisään tai ulos, ei siirtoa, kukaan ei painanut Tarvitaan yhä), merkitään oranssilla ja näytetään Saapuneissa. Tyhjä pysyville paikoille."
   },
   "temporary": {
     "lastActivity": "viimeksi käytetty {{date}}",

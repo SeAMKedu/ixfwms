@@ -735,11 +735,8 @@
   "settings": {
     "title": "Settings",
     "types": "Place types",
-    "typesIntro": "The types offered when adding a place. Movable ones are containers that get carried around (boxes, bins, pallets): they aren't part of addresses, so moving them never makes an address or label wrong. The others (rooms, cabinets, shelves) make up addresses like Robolab-A-C.",
     "typeName": "Type name",
     "movable": "Movable",
-    "placeCount_one": "{{count}} place",
-    "placeCount_other": "{{count}} places",
     "moveUp": "Move up",
     "moveDown": "Move down",
     "inUse": "Places of this type exist",
@@ -755,8 +752,6 @@
     "carrying": "Carrying",
     "mappings": "Saved column mappings",
     "server": "Server",
-    "days": "days",
-    "stayIntro": "Give a type an expected stay to make its places temporary: a place nobody has touched for that many days (no stock in or out, not moved, nobody pressed Still needed) is flagged amber and listed in the Inbox. Leave it empty for places that stay.",
     "forgottenHours": "Flag carried things after (hours)",
     "forgottenHint": "Things picked up and not put down for this long are shown as probably forgotten in the Inbox.",
     "labelsIntro": "Labels pages start with this tape width.",
@@ -767,7 +762,6 @@
     "version": "Version",
     "fromRequest": "(not set: taken from each request)",
     "serverIntro": "These are set where the server runs (environment variables or .env), and need a restart to change. Shown here for reference.",
-    "temporaryAfter": "Temporary after",
     "guests": "Without an account",
     "guestsIntro": "Anyone on the lab network can look things up and report problems. Choose what else people without an account (students, visitors) may do. Everything they do is in the history, with the name they give.",
     "guestLevels": {
@@ -792,7 +786,15 @@
       "empty": "Empty"
     },
     "addLevel": "Add a level",
-    "newLevel": "New level"
+    "newLevel": "New level",
+    "typesShortIntro": "The types offered when adding a place. Changes save as you make them.",
+    "colType": "Type",
+    "colStay": "Temporary, days",
+    "colPlaces": "Places",
+    "colActions": "Order and remove",
+    "legendMovable": "Containers that get carried around (boxes, bins, pallets). They aren't part of addresses, so moving them never makes an address or label wrong. The others (rooms, cabinets, shelves) make up addresses like Robolab-A-C.",
+    "legendWorkstation": "Tables people bring tools and parts to. Anyone may bring things there (if allowed under Without an account), and Clear the bench sends them back.",
+    "legendStay": "A place nobody has touched for that many days (no stock in or out, not moved, nobody pressed Still needed) is flagged amber and listed in the Inbox. Empty for places that stay."
   },
   "temporary": {
     "lastActivity": "last activity {{date}}",
