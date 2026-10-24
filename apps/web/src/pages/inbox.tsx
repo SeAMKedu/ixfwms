@@ -279,7 +279,7 @@ export function InboxPage() {
   const { t } = useTranslation();
   const { can } = useSession();
   const info = useInfo();
-  const drafts = useParts({ status: 'draft', limit: 200 });
+  const drafts = useParts({ status: 'draft', byUnit: false, limit: 200 });
   const inbox = useLocation(info.data?.inboxCode ?? '', false);
   const unplaced = info.data ? inbox.data?.contents : undefined;
 

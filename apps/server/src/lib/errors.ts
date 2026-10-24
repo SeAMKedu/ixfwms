@@ -1,4 +1,5 @@
 import { errorMessage, type ErrorKey, type ErrorParams } from '@ixfwms/domain';
+import { brokenRule } from '../db/dialect.js';
 
 export type ErrorCode = 'not_found' | 'invalid' | 'conflict' | 'forbidden' | 'unauthorized';
 
@@ -44,3 +45,18 @@ export const notFound = (what: NotFoundKey, ref: string) =>
 export const invalid = (key: ErrorKey, params?: ErrorParams, details?: unknown) =>
   fail('invalid', key, params, details);
 export const conflict = (key: ErrorKey, params?: ErrorParams) => fail('conflict', key, params);
+
+/**
+ * A database rule the services check first, broken anyway (two requests at once, or a path
+ * that skipped the check), as the conflict it is rather than a server error. Null otherwise.
+ */
+export function ruleConflict(err: unknown): AppError | null {
+  switch (brokenRule(err)) {
+    case 'code':
+      return conflict('codes.taken');
+    case 'unique':
+      return conflict('server.sameTime');
+    default:
+      return null;
+  }
+}

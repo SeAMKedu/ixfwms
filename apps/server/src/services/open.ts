@@ -6,7 +6,7 @@ import {
   type UnitDetail,
 } from '@ixfwms/domain';
 import { eq } from 'drizzle-orm';
-import type { Db, Executor } from '../db/client.js';
+import { many, one, type Db, type Executor } from '../db/client.js';
 import { locations, parts, stockLots } from '../db/schema.js';
 import { fail, invalid } from '../lib/errors.js';
 import { requireScope, type Actor } from './context.js';
@@ -107,12 +107,13 @@ export class OpenActionService {
         await this.units.moveWithin(tx, unit, unit.homeLocationId, who, guest);
         result.returned.push({ kind: 'unit', name, to: briefs[i]!.home! });
       }
-      const lots = await tx
-        .select({ lot: stockLots, name: parts.name })
-        .from(stockLots)
-        .innerJoin(parts, eq(parts.id, stockLots.partId))
-        .where(eq(stockLots.locationId, place.id))
-        .all();
+      const lots = await many(
+        tx
+          .select({ lot: stockLots, name: parts.name })
+          .from(stockLots)
+          .innerJoin(parts, eq(parts.id, stockLots.partId))
+          .where(eq(stockLots.locationId, place.id)),
+      );
       for (const { lot, name } of lots) {
         const origin = lot.originLocationId;
         if (!origin || origin === place.id) {
@@ -126,11 +127,9 @@ export class OpenActionService {
           to: await this.locations.summarize(tx, await this.locations.resolve(origin, tx)),
         });
       }
-      for (const box of await tx
-        .select({ name: locations.name })
-        .from(locations)
-        .where(eq(locations.parentId, place.id))
-        .all())
+      for (const box of await many(
+        tx.select({ name: locations.name }).from(locations).where(eq(locations.parentId, place.id)),
+      ))
         result.left.push({ kind: 'place', name: box.name });
       return result;
     });
@@ -150,7 +149,7 @@ export class OpenActionService {
   }
 
   private async lotRow(lotId: string, ex: Executor = this.db) {
-    const lot = await ex.select().from(stockLots).where(eq(stockLots.id, lotId)).get();
+    const lot = await one(ex.select().from(stockLots).where(eq(stockLots.id, lotId)));
     if (!lot) throw invalid('stock.noLot', { id: lotId });
     return lot;
   }

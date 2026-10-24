@@ -6,7 +6,7 @@ import { pipeline } from 'node:stream/promises';
 import { Readable, Transform } from 'node:stream';
 import type { AttachInput, AttachmentView } from '@ixfwms/domain';
 import { and, asc, eq } from 'drizzle-orm';
-import type { Db, Executor } from '../db/client.js';
+import { many, one, type Db, type Executor } from '../db/client.js';
 import { attachments, files } from '../db/schema.js';
 import { invalid, notFound } from '../lib/errors.js';
 import { newId } from '../lib/ids.js';
@@ -51,7 +51,7 @@ export class FileService {
       throw err;
     }
     const sha256 = hash.digest('hex');
-    const existing = await this.db.select().from(files).where(eq(files.sha256, sha256)).get();
+    const existing = await one(this.db.select().from(files).where(eq(files.sha256, sha256)));
     if (existing) {
       await rm(tmp, { force: true });
       return existing;
@@ -68,11 +68,11 @@ export class FileService {
       createdBy: who.userId,
     };
     await this.db.insert(files).values(row);
-    return (await this.db.select().from(files).where(eq(files.id, row.id)).get())!;
+    return (await one(this.db.select().from(files).where(eq(files.id, row.id))))!;
   }
 
   async get(id: string): Promise<{ row: FileRow; path: string }> {
-    const row = await this.db.select().from(files).where(eq(files.id, id)).get();
+    const row = await one(this.db.select().from(files).where(eq(files.id, id)));
     if (!row) throw notFound('file', id);
     const path = this.pathFor(row.sha256);
     await stat(path).catch(() => {
@@ -88,7 +88,7 @@ export class FileService {
         ? (await this.parts.resolve(input.ref)).id
         : (await this.locations.resolve(input.ref)).id;
     if (input.fileId) {
-      const file = await this.db.select().from(files).where(eq(files.id, input.fileId)).get();
+      const file = await one(this.db.select().from(files).where(eq(files.id, input.fileId)));
       if (!file) throw invalid('files.noUpload', { id: input.fileId });
     }
     const id = newId();
@@ -116,19 +116,20 @@ export class FileService {
     ex: Executor = this.db,
     onlyId?: string,
   ): Promise<AttachmentView[]> {
-    const rows = await ex
-      .select({ a: attachments, f: files })
-      .from(attachments)
-      .leftJoin(files, eq(files.id, attachments.fileId))
-      .where(
-        and(
-          eq(attachments.ownerType, ownerType),
-          eq(attachments.ownerId, ownerId),
-          onlyId ? eq(attachments.id, onlyId) : undefined,
-        ),
-      )
-      .orderBy(asc(attachments.createdAt))
-      .all();
+    const rows = await many(
+      ex
+        .select({ a: attachments, f: files })
+        .from(attachments)
+        .leftJoin(files, eq(files.id, attachments.fileId))
+        .where(
+          and(
+            eq(attachments.ownerType, ownerType),
+            eq(attachments.ownerId, ownerId),
+            onlyId ? eq(attachments.id, onlyId) : undefined,
+          ),
+        )
+        .orderBy(asc(attachments.createdAt)),
+    );
     return rows.map(({ a, f }) => ({
       id: a.id,
       kind: a.kind,

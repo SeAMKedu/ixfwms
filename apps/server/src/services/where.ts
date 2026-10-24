@@ -28,28 +28,31 @@ export class WhereService {
   ) {}
 
   async ask(query: string, limit = 5): Promise<WhereIsAnswer[]> {
-    const { items } = await this.parts.search({ q: query, limit, offset: 0 });
+    const { rows, items } = await this.parts.search({ q: query, limit, offset: 0 });
     const levels = await this.stock.levels();
-    return items.flatMap((item) => answersFor(item, levels));
+    const byId = new Map(items.map((i) => [i.id, i]));
+    return rows.map((row) => answerFor(byId.get(row.partId)!, row.unitId, levels));
   }
 }
 
-function answersFor(item: PartSummary, levels: StockLevelDef[]): WhereIsAnswer[] {
+/** One answer per search result: a unit, or a bulk item with where its stock is. */
+function answerFor(
+  item: PartSummary,
+  unitId: string | null,
+  levels: StockLevelDef[],
+): WhereIsAnswer {
   const ref = { code: item.code, name: item.name, kind: item.kind };
-  if (item.tracking === 'individual') {
-    if (!item.units.length)
-      return [{ item: ref, unit: null, text: `${item.name}: none registered.` }];
-    return item.units
-      .filter((u) => u.status !== 'retired')
-      .map((u) => ({ item: ref, unit: u.code, text: unitSentence(u) }));
-  }
-  if (!item.stock.length) return [{ item: ref, unit: null, text: `${item.name}: none in stock.` }];
+  const unit = unitId && item.units.find((u) => u.id === unitId);
+  if (unit) return { item: ref, unit: unit.code, text: unitSentence(unit) };
+  if (item.tracking === 'individual')
+    return { item: ref, unit: null, text: `${item.name}: none registered.` };
+  if (!item.stock.length) return { item: ref, unit: null, text: `${item.name}: none in stock.` };
   // Level-tracked stock shows the level's key; say its name instead.
   const amount = (display: string) =>
     levels.find((l) => l.key === display)?.name.toLowerCase() ?? display;
   const shown = item.stock.slice(0, 3).map((s) => `${amount(s.display)} at ${place(s.place)}`);
   const more = item.stock.length > 3 ? `, and ${item.stock.length - 3} more places` : '';
-  return [{ item: ref, unit: null, text: `${item.name}: ${shown.join(', ')}${more}.` }];
+  return { item: ref, unit: null, text: `${item.name}: ${shown.join(', ')}${more}.` };
 }
 
 function unitSentence(u: UnitBrief): string {

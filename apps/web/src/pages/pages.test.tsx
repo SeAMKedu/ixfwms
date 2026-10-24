@@ -43,6 +43,10 @@ describe('search page', () => {
     renderAt('/', [{ path: '/', element: <SearchPage /> }], {
       '/api/parts': {
         total: 2,
+        rows: [
+          { partId: 'K7Q2', unitId: null },
+          { partId: 'P2X1', unitId: null },
+        ],
         items: [
           part({
             code: 'K7Q2',
@@ -76,7 +80,7 @@ describe('search page', () => {
     expect(screen.getAllByText('draft').length).toBeGreaterThan(0);
   });
 
-  it('lists individually tracked items by their units, linking straight to each', async () => {
+  it('lists the units the server returns, linking straight to each, and pages by them', async () => {
     const place = (code: string, name: string) => ({
       id: code,
       code,
@@ -99,8 +103,13 @@ describe('search page', () => {
       lastSeenAt: '2026-10-23T08:00:00.000Z',
     });
     renderAt('/?q=D2D2', [{ path: '/', element: <SearchPage /> }], {
+      // The server picked the units the query names; the page shows its rows, no others.
       '/api/parts': {
-        total: 1,
+        total: 3,
+        rows: [
+          { partId: 'M1L1', unitId: 'D2D2' },
+          { partId: 'M1L1', unitId: 'D4D4' },
+        ],
         items: [
           part({
             code: 'M1L1',
@@ -112,6 +121,7 @@ describe('search page', () => {
               unit('D1D1', 'Impact drill D1D1', 'S1S1'),
               unit('D2D2', 'Impact drill D2D2', 'S2S2'),
               unit('D3D3', 'Impact drill D3D3', 'S3S3', 'retired'),
+              unit('D4D4', 'Impact drill D4D4', 'S4S4'),
             ],
           }),
         ],
@@ -121,8 +131,12 @@ describe('search page', () => {
     });
     const links = await screen.findAllByRole('link', { name: 'Impact drill D2D2' });
     expect(links[0]!.getAttribute('href')).toBe('/u/D2D2');
+    expect(screen.getAllByRole('link', { name: 'Impact drill D4D4' }).length).toBeGreaterThan(0);
     expect(screen.queryByText('Impact drill D1D1')).toBeNull();
     expect(screen.queryByText('Order no.')).toBeNull();
+    // The heading and Load more count rows, not parts.
+    expect(screen.getByText('3 items')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Load more' })).toBeTruthy();
   });
 });
 

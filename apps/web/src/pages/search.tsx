@@ -67,7 +67,7 @@ export function SearchPage() {
     for (const a of next) p.append('attr', a);
     update(p);
   };
-  const rows = resultRows(parts.data?.items ?? [], q);
+  const rows = resultRows(parts.data);
   const count = rows.length;
   /** j/k (or ↓ from the search box) move through results; Enter opens the selected one. */
   const select = (i: number) => {
@@ -131,7 +131,7 @@ export function SearchPage() {
       <ErrorBox error={parts.error} />
       {parts.isPending ? (
         <Loading />
-      ) : parts.data && parts.data.items.length === 0 ? (
+      ) : parts.data && parts.data.rows.length === 0 ? (
         <Empty>
           {q || status || category || tag || kind || inStock || lowStock
             ? t('parts.empty')
@@ -141,7 +141,7 @@ export function SearchPage() {
         parts.data && (
           <>
             <SearchResults rows={rows} selected={selected} />
-            {parts.data.total > parts.data.items.length && (
+            {parts.data.total > parts.data.rows.length && (
               <Button
                 onClick={() => setLimit((l) => l + PAGE)}
                 busy={parts.isFetching}

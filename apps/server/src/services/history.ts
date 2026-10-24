@@ -1,6 +1,6 @@
 import type { HistoryEntry } from '@ixfwms/domain';
 import { desc, eq, inArray } from 'drizzle-orm';
-import type { Db } from '../db/client.js';
+import { many, one, type Db } from '../db/client.js';
 import {
   auditLog,
   locationMoves,
@@ -43,25 +43,20 @@ export class HistoryService {
   ) {}
 
   async recent(limit = 100): Promise<HistoryEntry[]> {
-    const moves = await this.db
-      .select()
-      .from(stockMovements)
-      .orderBy(desc(stockMovements.at))
-      .limit(limit)
-      .all();
-    const placeMoves = await this.db
-      .select()
-      .from(locationMoves)
-      .orderBy(desc(locationMoves.at))
-      .limit(limit)
-      .all();
+    const moves = await many(
+      this.db.select().from(stockMovements).orderBy(desc(stockMovements.at)).limit(limit),
+    );
+    const placeMoves = await many(
+      this.db.select().from(locationMoves).orderBy(desc(locationMoves.at)).limit(limit),
+    );
     const edits = (
-      await this.db
-        .select()
-        .from(auditLog)
-        .orderBy(desc(auditLog.at))
-        .limit(limit * 2)
-        .all()
+      await many(
+        this.db
+          .select()
+          .from(auditLog)
+          .orderBy(desc(auditLog.at))
+          .limit(limit * 2),
+      )
     )
       // Units have their own log (unit_events), which says more than the audit rows.
       .filter(
@@ -70,19 +65,20 @@ export class HistoryService {
           (EDIT_ACTIONS.includes(a.action) ||
             (a.entityType === 'category' && CATEGORY_ACTIONS.includes(a.action))),
       );
-    const unitRows = await this.db
-      .select({
-        e: unitEvents,
-        code: units.code,
-        name: units.name,
-        partName: parts.name,
-      })
-      .from(unitEvents)
-      .innerJoin(units, eq(units.id, unitEvents.unitId))
-      .innerJoin(parts, eq(parts.id, units.partId))
-      .orderBy(desc(unitEvents.at))
-      .limit(limit)
-      .all();
+    const unitRows = await many(
+      this.db
+        .select({
+          e: unitEvents,
+          code: units.code,
+          name: units.name,
+          partName: parts.name,
+        })
+        .from(unitEvents)
+        .innerJoin(units, eq(units.id, unitEvents.unitId))
+        .innerJoin(parts, eq(parts.id, units.partId))
+        .orderBy(desc(unitEvents.at))
+        .limit(limit),
+    );
 
     const userIds = new Set(
       [...moves, ...placeMoves, ...edits, ...unitRows.map((r) => r.e)]
@@ -91,11 +87,12 @@ export class HistoryService {
     );
     const userNames = new Map(
       (userIds.size
-        ? await this.db
-            .select()
-            .from(users)
-            .where(inArray(users.id, [...userIds]))
-            .all()
+        ? await many(
+            this.db
+              .select()
+              .from(users)
+              .where(inArray(users.id, [...userIds])),
+          )
         : []
       ).map((u) => [u.id, u.name]),
     );
@@ -108,11 +105,12 @@ export class HistoryService {
       [e.fromLocationId, e.toLocationId].forEach((id) => id && locIds.add(id));
     const locs = new Map(
       (locIds.size
-        ? await this.db
-            .select()
-            .from(locations)
-            .where(inArray(locations.id, [...locIds]))
-            .all()
+        ? await many(
+            this.db
+              .select()
+              .from(locations)
+              .where(inArray(locations.id, [...locIds])),
+          )
         : []
       ).map((l) => [l.id, { code: l.code, name: l.name }]),
     );
@@ -122,11 +120,12 @@ export class HistoryService {
     ]);
     const partRows = new Map(
       (partIds.size
-        ? await this.db
-            .select()
-            .from(parts)
-            .where(inArray(parts.id, [...partIds]))
-            .all()
+        ? await many(
+            this.db
+              .select()
+              .from(parts)
+              .where(inArray(parts.id, [...partIds])),
+          )
         : []
       ).map((p) => [p.id, { code: p.code, name: p.name }]),
     );
@@ -223,7 +222,7 @@ export class HistoryService {
     const who = requireScope(actor, 'inventory');
     await this.db.transaction(async (tx) => {
       if (kind === 'location') {
-        const move = await tx.select().from(locationMoves).where(eq(locationMoves.id, id)).get();
+        const move = await one(tx.select().from(locationMoves).where(eq(locationMoves.id, id)));
         if (!move) throw notFound('move', id);
         const loc = await this.locations.resolve(move.locationId, tx);
         if (loc.parentId !== move.toParentId)
@@ -231,15 +230,20 @@ export class HistoryService {
         await this.locations.moveWithin(tx, loc, move.fromParentId, who);
         return;
       }
-      const move = await tx.select().from(stockMovements).where(eq(stockMovements.id, id)).get();
+      const move = await one(tx.select().from(stockMovements).where(eq(stockMovements.id, id)));
       if (!move) throw notFound('move', id);
       if (move.reason !== 'move' || !move.lotId || !move.fromLocationId)
         throw invalid('history.onlyMoves');
-      const lot = await tx.select().from(stockLots).where(eq(stockLots.id, move.lotId)).get();
+      const lot = await one(tx.select().from(stockLots).where(eq(stockLots.id, move.lotId)));
       if (!lot || lot.locationId !== move.toLocationId) throw invalid('history.changedSince');
       if (move.delta != null && (lot.quantity ?? 0) < move.delta)
         throw invalid('history.takenSince');
-      await this.stock.moveWithin(tx, lot.id, move.fromLocationId, move.delta, who);
+      // Back where it came from, belonging where it did then. Moves recorded before the origin
+      // was saved (no originBefore) leave it to the move rules.
+      const after = move.after ?? {};
+      const origin =
+        'originBefore' in after ? ((after.originBefore as string | null) ?? null) : undefined;
+      await this.stock.moveWithin(tx, lot.id, move.fromLocationId, move.delta, who, null, origin);
     });
   }
 }

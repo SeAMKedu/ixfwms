@@ -2,7 +2,7 @@ import multipart from '@fastify/multipart';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import { ZodError } from 'zod';
 import { errorMessage } from '@ixfwms/domain';
-import { AppError, fail } from '../lib/errors.js';
+import { AppError, fail, ruleConflict } from '../lib/errors.js';
 import { registerMcp } from '../mcp/http.js';
 import type { AppDeps } from './context.js';
 import { registerAdminRoutes } from './routes/admin.js';
@@ -43,7 +43,8 @@ export async function buildApp(
     request.actor = actor;
   });
 
-  app.setErrorHandler((error, request, reply) => {
+  app.setErrorHandler((raw, request, reply) => {
+    const error = ruleConflict(raw) ?? raw;
     if (error instanceof AppError) {
       return reply.status(error.status).send({
         error: error.code,

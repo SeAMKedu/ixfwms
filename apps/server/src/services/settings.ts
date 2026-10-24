@@ -1,6 +1,6 @@
 import { LabSettings } from '@ixfwms/domain';
 import { and, eq, inArray } from 'drizzle-orm';
-import type { Db } from '../db/client.js';
+import { many, type Db } from '../db/client.js';
 import { settings, stockLots } from '../db/schema.js';
 import { invalid } from '../lib/errors.js';
 import { nowIso } from '../lib/ids.js';
@@ -11,7 +11,7 @@ export class SettingsService {
   constructor(private readonly db: Db) {}
 
   async get(): Promise<LabSettings> {
-    const rows = await this.db.select().from(settings).all();
+    const rows = await many(this.db.select().from(settings));
     const stored = Object.fromEntries(rows.map((r) => [r.key, r.value]));
     // A value that no longer fits (say, after an upgrade) falls back to its default.
     const out = LabSettings.parse({});
@@ -46,19 +46,20 @@ export class SettingsService {
     const keep = new Set(next.map((l) => l.key));
     const removed = (await this.get()).stockLevels.filter((l) => !keep.has(l.key));
     if (!removed.length) return;
-    const used = await this.db
-      .select({ level: stockLots.level })
-      .from(stockLots)
-      .where(
-        and(
-          eq(stockLots.mode, 'level'),
-          inArray(
-            stockLots.level,
-            removed.map((l) => l.key),
+    const used = await many(
+      this.db
+        .select({ level: stockLots.level })
+        .from(stockLots)
+        .where(
+          and(
+            eq(stockLots.mode, 'level'),
+            inArray(
+              stockLots.level,
+              removed.map((l) => l.key),
+            ),
           ),
         ),
-      )
-      .all();
+    );
     const names = removed.filter((l) => used.some((u) => u.level === l.key)).map((l) => l.name);
     if (names.length) throw invalid('levels.inUse', { levels: names.join(', ') });
   }

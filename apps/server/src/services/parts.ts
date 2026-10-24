@@ -1,8 +1,8 @@
 import {
   CreatePartInput,
+  fold,
   formatAmount,
   toColourValue,
-  type AttributeFilter,
   isValidCode,
   normalizeCode,
   normalizeIdentifier,
@@ -10,15 +10,13 @@ import {
   type PartDetail,
   type PartSummary,
   type SimilarPart,
-  type PartSearchInput,
+  type PartSearchResult,
   type PartStatus,
   type UpdatePartInput,
-  type UnitStatus,
 } from '@ixfwms/domain';
-import { and, asc, desc, eq, exists, inArray, like, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, or, sql } from 'drizzle-orm';
 import type { z } from 'zod';
-import type { Db, Executor } from '../db/client.js';
-import { jsonValue } from '../db/dialect.js';
+import { many, one, type Db, type Executor } from '../db/client.js';
 import {
   attachments,
   categories,
@@ -31,20 +29,19 @@ import {
   tags,
   units,
 } from '../db/schema.js';
-import { AppError, invalid, notFound } from '../lib/errors.js';
+import { AppError, invalid, notFound, ruleConflict } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
 import type { CategoryService } from './categories.js';
 import { allocateCode, retireCode } from './codes.js';
 import { audit, requireScope, type Actor } from './context.js';
 import type { FileService } from './files.js';
 import type { LocationService } from './locations.js';
+import { PartSearch, type SearchInput } from './part-search.js';
+import { contains, partSearchText } from './search-text.js';
 import type { StockService } from './stock.js';
 import type { UnitService } from './units.js';
 
 export type PartRow = typeof parts.$inferSelect;
-
-/** Unit states that count as having the thing (for in stock and low stock). */
-const USABLE_UNIT: UnitStatus[] = ['ok', 'needs_attention'];
 
 /** Finds parts by id or code. Shared by services that only need lookups. */
 export class PartResolver {
@@ -53,9 +50,9 @@ export class PartResolver {
   async resolve(ref: string, ex: Executor = this.db): Promise<PartRow> {
     const code = normalizeCode(ref);
     const row = isValidCode(code)
-      ? await ex.select().from(parts).where(eq(parts.code, code)).get()
+      ? await one(ex.select().from(parts).where(eq(parts.code, code)))
       : undefined;
-    const found = row ?? (await ex.select().from(parts).where(eq(parts.id, ref)).get());
+    const found = row ?? (await one(ex.select().from(parts).where(eq(parts.id, ref))));
     if (!found) throw notFound('part', ref);
     return found;
   }
@@ -72,7 +69,11 @@ export class PartService {
     private readonly files: FileService,
     private readonly units: UnitService,
     private readonly categories: CategoryService,
-  ) {}
+  ) {
+    this.searcher = new PartSearch(db, locations, stock, categories);
+  }
+
+  private readonly searcher: PartSearch;
 
   resolve(ref: string, ex: Executor = this.db): Promise<PartRow> {
     return this.resolver.resolve(ref, ex);
@@ -93,6 +94,12 @@ export class PartService {
         kind: input.kind,
         tracking: input.tracking,
         aliases: cleanAliases(input.aliases),
+        searchText: partSearchText({
+          name: input.name,
+          description: input.description ?? null,
+          manufacturer: input.manufacturer ?? null,
+          aliases: cleanAliases(input.aliases),
+        }),
         unitMassG: input.unitMassG ?? null,
         minStock: input.minStock ?? null,
         attributes: await this.normalizeAttributes(tx, input.category ?? null, input.attributes),
@@ -139,7 +146,8 @@ export class PartService {
     for (const [index, input] of inputs.entries()) {
       try {
         results.push({ ok: true, value: await this.create(input, actor) });
-      } catch (err) {
+      } catch (thrown) {
+        const err = ruleConflict(thrown) ?? thrown;
         if (!(err instanceof AppError)) throw err;
         results.push({ ok: false, error: err.message, index });
       }
@@ -181,7 +189,7 @@ export class PartService {
     if (input.attributes !== undefined) {
       const categoryId = patch.categoryId !== undefined ? patch.categoryId : part.categoryId;
       const category = categoryId
-        ? ((await tx.select().from(categories).where(eq(categories.id, categoryId)).get())?.path ??
+        ? ((await one(tx.select().from(categories).where(eq(categories.id, categoryId))))?.path ??
           null)
         : null;
       patch.attributes = {
@@ -189,6 +197,7 @@ export class PartService {
         ...(await this.normalizeAttributes(tx, category, input.attributes)),
       };
     }
+    patch.searchText = partSearchText({ ...part, ...patch });
     await tx.update(parts).set(patch).where(eq(parts.id, part.id));
     if (input.removeIdentifiers?.length) {
       await tx
@@ -204,7 +213,7 @@ export class PartService {
     await this.addTags(tx, part.id, input.addTags ?? []);
     if (input.removeTags?.length) {
       const ids = (
-        await tx.select().from(tags).where(inArray(tags.name, input.removeTags)).all()
+        await many(tx.select().from(tags).where(inArray(tags.name, input.removeTags)))
       ).map((t) => t.id);
       if (ids.length)
         await tx
@@ -237,11 +246,9 @@ export class PartService {
       const target = await this.resolve(targetRef, tx);
       if (source.id === target.id) throw invalid('parts.mergeSelf');
 
-      const sourceUnits = await tx
-        .select({ id: units.id })
-        .from(units)
-        .where(eq(units.partId, source.id))
-        .all();
+      const sourceUnits = await many(
+        tx.select({ id: units.id }).from(units).where(eq(units.partId, source.id)),
+      );
       if (sourceUnits.length) {
         if (target.tracking !== 'individual')
           await this.checkTrackingSwitch(tx, target, 'individual');
@@ -249,22 +256,21 @@ export class PartService {
         await tx.update(parts).set({ tracking: 'individual' }).where(eq(parts.id, target.id));
       }
       await this.stock.moveLotsToPart(tx, source.id, target.id);
-      const idents = await tx
-        .select()
-        .from(partIdentifiers)
-        .where(eq(partIdentifiers.partId, source.id))
-        .all();
+      const idents = await many(
+        tx.select().from(partIdentifiers).where(eq(partIdentifiers.partId, source.id)),
+      );
       await this.addIdentifiers(
         tx,
         target.id,
         idents.map((i) => ({ kind: i.kind, value: i.value, source: i.source })),
       );
-      const tagNames = await tx
-        .select({ name: tags.name })
-        .from(partTags)
-        .innerJoin(tags, eq(tags.id, partTags.tagId))
-        .where(eq(partTags.partId, source.id))
-        .all();
+      const tagNames = await many(
+        tx
+          .select({ name: tags.name })
+          .from(partTags)
+          .innerJoin(tags, eq(tags.id, partTags.tagId))
+          .where(eq(partTags.partId, source.id)),
+      );
       await this.addTags(
         tx,
         target.id,
@@ -293,6 +299,7 @@ export class PartService {
       if (source.notes)
         fill.notes = target.notes ? `${target.notes}\n${source.notes}` : source.notes;
       fill.attributes = { ...source.attributes, ...target.attributes };
+      fill.searchText = partSearchText({ ...target, ...fill });
       await tx.update(parts).set(fill).where(eq(parts.id, target.id));
       await tx.delete(parts).where(eq(parts.id, source.id));
       await retireCode(
@@ -314,13 +321,14 @@ export class PartService {
   async get(ref: string): Promise<PartDetail> {
     const part = await this.resolve(ref);
     const [summary] = await this.summaries([part]);
-    const history = await this.db
-      .select()
-      .from(stockMovements)
-      .where(eq(stockMovements.partId, part.id))
-      .orderBy(desc(stockMovements.at))
-      .limit(20)
-      .all();
+    const history = await many(
+      this.db
+        .select()
+        .from(stockMovements)
+        .where(eq(stockMovements.partId, part.id))
+        .orderBy(desc(stockMovements.at))
+        .limit(20),
+    );
     return {
       ...summary!,
       description: part.description,
@@ -345,157 +353,15 @@ export class PartService {
     };
   }
 
-  async search(input: PartSearchInput): Promise<{ items: PartSummary[]; total: number }> {
-    const where: SQL[] = [];
-    if (input.q) {
-      const q = `%${input.q.toLowerCase()}%`;
-      const norm = normalizeIdentifier(input.q);
-      const code = normalizeCode(input.q);
-      const conditions: SQL[] = [
-        like(sql`lower(${parts.name})`, q),
-        like(sql`lower(coalesce(${parts.description}, ''))`, q),
-        like(sql`lower(coalesce(${parts.manufacturer}, ''))`, q),
-        like(sql`lower(${parts.aliases})`, q),
-        eq(parts.code, code),
-        // A unit's own name, serial number or code finds its item.
-        exists(
-          this.db
-            .select({ one: sql`1` })
-            .from(units)
-            .where(
-              and(
-                eq(units.partId, parts.id),
-                or(
-                  like(sql`lower(coalesce(${units.name}, ''))`, q),
-                  like(sql`lower(coalesce(${units.serialNo}, ''))`, q),
-                  eq(units.code, code),
-                ),
-              ),
-            ),
-        ),
-      ];
-      if (norm.length >= 2) {
-        conditions.push(
-          exists(
-            this.db
-              .select({ one: sql`1` })
-              .from(partIdentifiers)
-              .where(
-                and(
-                  eq(partIdentifiers.partId, parts.id),
-                  like(partIdentifiers.valueNormalised, `%${norm}%`),
-                ),
-              ),
-          ),
-        );
-      }
-      where.push(or(...conditions)!);
-    }
-    if (input.status) where.push(eq(parts.status, input.status));
-    if (input.kind) where.push(eq(parts.kind, input.kind));
-    if (input.category) {
-      const cat = input.category.replace(/\s*\/\s*/g, '/').toLowerCase();
-      where.push(
-        exists(
-          this.db
-            .select({ one: sql`1` })
-            .from(categories)
-            .where(
-              and(
-                eq(categories.id, parts.categoryId),
-                or(
-                  eq(sql`lower(${categories.path})`, cat),
-                  like(sql`lower(${categories.path})`, `${cat}/%`),
-                ),
-              ),
-            ),
-        ),
-      );
-    }
-    if (input.tag) {
-      where.push(
-        exists(
-          this.db
-            .select({ one: sql`1` })
-            .from(partTags)
-            .innerJoin(tags, eq(tags.id, partTags.tagId))
-            .where(
-              and(
-                eq(partTags.partId, parts.id),
-                eq(sql`lower(${tags.name})`, input.tag.toLowerCase()),
-              ),
-            ),
-        ),
-      );
-    }
-    if (input.location) {
-      const loc = await this.locations.resolve(input.location);
-      where.push(
-        or(
-          exists(
-            this.db
-              .select({ one: sql`1` })
-              .from(stockLots)
-              .innerJoin(locations, eq(locations.id, stockLots.locationId))
-              .where(and(eq(stockLots.partId, parts.id), like(locations.path, `${loc.path}%`))),
-          ),
-          exists(
-            this.db
-              .select({ one: sql`1` })
-              .from(units)
-              .innerJoin(locations, eq(locations.id, units.locationId))
-              .where(and(eq(units.partId, parts.id), like(locations.path, `${loc.path}%`))),
-          ),
-        )!,
-      );
-    }
-    // Units that can be used now: not retired, broken or in repair, and not lent out.
-    const usableUnits = sql`(select count(*) from ${units} inner join ${locations} on ${locations.id} = ${units.locationId}
-      where ${units.partId} = ${parts.id} and ${inArray(units.status, USABLE_UNIT)} and ${locations.kind} <> 'away')`;
-    const levels = await this.stock.levels();
-    const keysWhere = (ok: (state: string) => boolean) => {
-      const keys = levels.filter((l) => ok(l.state)).map((l) => l.key);
-      return keys.length ? keys : ['\u0000'];
-    };
-    if (input.lowStock) {
-      const low = keysWhere((s) => s !== 'ok');
-      where.push(sql`((${parts.minStock} is not null and coalesce((select sum(${stockLots.quantity}) from ${stockLots} where ${stockLots.partId} = ${parts.id} and ${stockLots.mode} = 'count'), 0) + ${usableUnits} < ${parts.minStock})
-        or exists (select 1 from ${stockLots} where ${stockLots.partId} = ${parts.id} and ${inArray(stockLots.level, low)}))`);
-    }
-    for (const filter of input.attributes ?? []) where.push(attributeCondition(filter));
-    if (input.inStock !== undefined) {
-      const inStock = exists(
-        this.db
-          .select({ one: sql`1` })
-          .from(stockLots)
-          .where(
-            and(
-              eq(stockLots.partId, parts.id),
-              or(
-                sql`${stockLots.quantity} > 0`,
-                inArray(
-                  stockLots.level,
-                  keysWhere((s) => s !== 'empty'),
-                ),
-              ),
-            ),
-          ),
-      );
-      const available = or(inStock, sql`${usableUnits} > 0`)!;
-      where.push(input.inStock ? available : sql`not ${available}`);
-    }
-
-    const condition = where.length ? and(...where) : undefined;
-    const rows = await this.db
-      .select()
-      .from(parts)
-      .where(condition)
-      .orderBy(asc(sql`lower(${parts.name})`))
-      .limit(input.limit)
-      .offset(input.offset)
-      .all();
-    const total = await this.db.$count(parts, condition);
-    return { items: await this.summaries(rows), total };
+  /** A page of search results; see PartSearch for what a row is. */
+  async search(input: SearchInput): Promise<PartSearchResult> {
+    const { rows, total } = await this.searcher.rows(input);
+    const ids = [...new Set(rows.map((r) => r.partId))];
+    const found = ids.length
+      ? await many(this.db.select().from(parts).where(inArray(parts.id, ids)))
+      : [];
+    const byId = new Map(found.map((p) => [p.id, p]));
+    return { rows, items: await this.summaries(ids.map((id) => byId.get(id)!)), total };
   }
 
   /**
@@ -506,39 +372,33 @@ export class PartService {
     const scored = new Map<string, { score: number; reason: string }>();
     const norms = identifiers.map(normalizeIdentifier).filter((n) => n.length >= 3);
     if (norms.length) {
-      const hits = await this.db
-        .select({ partId: partIdentifiers.partId, value: partIdentifiers.value })
-        .from(partIdentifiers)
-        .where(inArray(partIdentifiers.valueNormalised, norms))
-        .all();
+      const hits = await many(
+        this.db
+          .select({ partId: partIdentifiers.partId, value: partIdentifiers.value })
+          .from(partIdentifiers)
+          .where(inArray(partIdentifiers.valueNormalised, norms)),
+      );
       for (const h of hits)
         scored.set(h.partId, { score: 1, reason: `same identifier ${h.value}` });
     }
     const tokens = [
       ...new Set(
-        (name ?? '')
-          .toLowerCase()
+        fold(name ?? '')
           .split(/[^\p{L}\p{N}.,×/]+/u)
           .filter((t) => t.length >= 2),
       ),
     ].slice(0, 8);
     if (tokens.length) {
-      const candidates = await this.db
-        .select({ id: parts.id, name: parts.name, aliases: parts.aliases })
-        .from(parts)
-        .where(
-          or(
-            ...tokens.flatMap((t) => [
-              like(sql`lower(${parts.name})`, `%${t}%`),
-              like(sql`lower(${parts.aliases})`, `%${t}%`),
-            ]),
-          ),
-        )
-        .limit(300)
-        .all();
+      const candidates = await many(
+        this.db
+          .select({ id: parts.id, name: parts.name, aliases: parts.aliases })
+          .from(parts)
+          .where(or(...tokens.map((t) => contains(parts.searchText, t))))
+          .limit(300),
+      );
       for (const c of candidates) {
-        const lower = [c.name, ...c.aliases].join(' ').toLowerCase();
-        const matched = tokens.filter((t) => lower.includes(t)).length;
+        const text = fold([c.name, ...c.aliases].join(' '));
+        const matched = tokens.filter((t) => text.includes(t)).length;
         const score = Math.round((matched / tokens.length) * 100) / 100;
         if (score >= 0.5 && score > (scored.get(c.id)?.score ?? 0)) {
           scored.set(c.id, { score, reason: `${matched} of ${tokens.length} words match` });
@@ -547,16 +407,17 @@ export class PartService {
     }
     const top = [...scored.entries()].sort((a, b) => b[1].score - a[1].score).slice(0, 10);
     if (!top.length) return [];
-    const rows = await this.db
-      .select()
-      .from(parts)
-      .where(
-        inArray(
-          parts.id,
-          top.map(([id]) => id),
+    const rows = await many(
+      this.db
+        .select()
+        .from(parts)
+        .where(
+          inArray(
+            parts.id,
+            top.map(([id]) => id),
+          ),
         ),
-      )
-      .all();
+    );
     const summaries = new Map((await this.summaries(rows)).map((s) => [s.id, s]));
     return top.map(([id, s]) => ({ ...summaries.get(id)!, ...s }));
   }
@@ -568,26 +429,26 @@ export class PartService {
       ...new Set(rows.map((r) => r.categoryId).filter((c): c is string => c != null)),
     ];
     const cats = catIds.length
-      ? await ex.select().from(categories).where(inArray(categories.id, catIds)).all()
+      ? await many(ex.select().from(categories).where(inArray(categories.id, catIds)))
       : [];
     const catPath = new Map(cats.map((c) => [c.id, c.path]));
-    const idents = await ex
-      .select()
-      .from(partIdentifiers)
-      .where(inArray(partIdentifiers.partId, ids))
-      .all();
-    const tagRows = await ex
-      .select({ partId: partTags.partId, name: tags.name })
-      .from(partTags)
-      .innerJoin(tags, eq(tags.id, partTags.tagId))
-      .where(inArray(partTags.partId, ids))
-      .all();
-    const lots = await ex
-      .select({ lot: stockLots, loc: locations })
-      .from(stockLots)
-      .innerJoin(locations, eq(locations.id, stockLots.locationId))
-      .where(inArray(stockLots.partId, ids))
-      .all();
+    const idents = await many(
+      ex.select().from(partIdentifiers).where(inArray(partIdentifiers.partId, ids)),
+    );
+    const tagRows = await many(
+      ex
+        .select({ partId: partTags.partId, name: tags.name })
+        .from(partTags)
+        .innerJoin(tags, eq(tags.id, partTags.tagId))
+        .where(inArray(partTags.partId, ids)),
+    );
+    const lots = await many(
+      ex
+        .select({ lot: stockLots, loc: locations })
+        .from(stockLots)
+        .innerJoin(locations, eq(locations.id, stockLots.locationId))
+        .where(inArray(stockLots.partId, ids)),
+    );
     const places = new Map(
       (
         await this.locations.summaries(ex, [
@@ -632,20 +493,18 @@ export class PartService {
     to: PartRow['tracking'],
   ): Promise<void> {
     if (to === 'individual') {
-      const lot = await ex
-        .select({ id: stockLots.id })
-        .from(stockLots)
-        .where(eq(stockLots.partId, part.id))
-        .limit(1)
-        .get();
+      const lot = await one(
+        ex
+          .select({ id: stockLots.id })
+          .from(stockLots)
+          .where(eq(stockLots.partId, part.id))
+          .limit(1),
+      );
       if (lot) throw invalid('parts.hasAmounts', { name: part.name });
     } else {
-      const unit = await ex
-        .select({ id: units.id })
-        .from(units)
-        .where(eq(units.partId, part.id))
-        .limit(1)
-        .get();
+      const unit = await one(
+        ex.select({ id: units.id }).from(units).where(eq(units.partId, part.id)).limit(1),
+      );
       if (unit) throw invalid('parts.hasUnits', { name: part.name });
     }
   }
@@ -666,13 +525,14 @@ export class PartService {
   }
 
   async listTags(): Promise<{ name: string; parts: number }[]> {
-    const rows = await this.db
-      .select({ name: tags.name, parts: sql<number>`count(${partTags.partId})` })
-      .from(tags)
-      .leftJoin(partTags, eq(partTags.tagId, tags.id))
-      .groupBy(tags.id)
-      .orderBy(asc(tags.name))
-      .all();
+    const rows = await many(
+      this.db
+        .select({ name: tags.name, parts: sql<number>`count(${partTags.partId})` })
+        .from(tags)
+        .leftJoin(partTags, eq(partTags.tagId, tags.id))
+        .groupBy(tags.id)
+        .orderBy(asc(tags.name)),
+    );
     return rows.map((r) => ({ name: r.name, parts: Number(r.parts) }));
   }
 
@@ -698,36 +558,13 @@ export class PartService {
 
   private async addTags(ex: Executor, partId: string, names: string[]): Promise<void> {
     for (const name of names) {
-      let tag = await ex
-        .select()
-        .from(tags)
-        .where(eq(sql`lower(${tags.name})`, name.toLowerCase()))
-        .get();
+      let tag = (await many(ex.select().from(tags))).find((t) => fold(t.name) === fold(name));
       if (!tag) {
         tag = { id: newId(), name, color: null };
         await ex.insert(tags).values(tag);
       }
       await ex.insert(partTags).values({ partId, tagId: tag.id }).onConflictDoNothing();
     }
-  }
-}
-
-/** SQL for one category-field filter on parts.attributes (keys are validated, so the JSON path is safe). */
-function attributeCondition(filter: AttributeFilter): SQL {
-  const value = jsonValue(parts.attributes, [filter.key]);
-  // Colour values are { name, hex }: text filters compare the name.
-  const text = sql`lower(cast(coalesce(${jsonValue(parts.attributes, [filter.key, 'name'])}, ${value}) as text))`;
-  switch (filter.op) {
-    case 'gte':
-      return sql`cast(${value} as real) >= ${Number(filter.value)}`;
-    case 'lte':
-      return sql`cast(${value} as real) <= ${Number(filter.value)}`;
-    case 'contains':
-      return like(text, `%${String(filter.value).toLowerCase()}%`);
-    case 'eq':
-      return typeof filter.value === 'number'
-        ? sql`cast(${value} as real) = ${filter.value}`
-        : eq(text, String(filter.value).toLowerCase());
   }
 }
 

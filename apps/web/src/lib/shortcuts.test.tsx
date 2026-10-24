@@ -75,7 +75,14 @@ describe('keyboard shortcuts', () => {
         { path: '/p/:code', element: <p>part page</p> },
       ],
       {
-        '/api/parts': { total: 2, items: [part('K7Q2', 'Cup'), part('A3F9', 'Fitting')] },
+        '/api/parts': {
+          total: 2,
+          rows: [
+            { partId: 'K7Q2', unitId: null },
+            { partId: 'A3F9', unitId: null },
+          ],
+          items: [part('K7Q2', 'Cup'), part('A3F9', 'Fitting')],
+        },
         '/api/categories': [],
         '/api/tags': [],
       },

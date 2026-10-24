@@ -1,3 +1,5 @@
+import { fold } from './names.js';
+
 export const STOCK_MODES = ['count', 'measure', 'level'] as const;
 export type StockMode = (typeof STOCK_MODES)[number];
 
@@ -35,8 +37,8 @@ export function levelState(
 
 /** Finds a level by key or name, case-insensitively ("Low", "low", "Puolillaan"). */
 export function findLevel(text: string, levels: StockLevelDef[]): StockLevelDef | undefined {
-  const t = text.trim().toLowerCase();
-  return levels.find((l) => l.key.toLowerCase() === t || l.name.toLowerCase() === t);
+  const t = fold(text.trim());
+  return levels.find((l) => fold(l.key) === t || fold(l.name) === t);
 }
 
 /** "Half full" → "half_full": keys for new levels. */

@@ -18,6 +18,7 @@ import { MapService } from './maps.js';
 import { OpenActionService } from './open.js';
 import { PartResolver, PartService } from './parts.js';
 import { ReportService } from './reports.js';
+import { fillSearchText } from './search-text.js';
 import { SettingsService } from './settings.js';
 import { StockService } from './stock.js';
 import { UnitService } from './units.js';
@@ -103,5 +104,6 @@ export async function prepareDatabase(
     await runMigrations(database);
     log(`Applied ${pending} database migration(s)`);
   }
+  await fillSearchText(database.db);
   await services.locations.ensureDefaults();
 }

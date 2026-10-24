@@ -17,7 +17,7 @@ import {
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { AppError } from '../lib/errors.js';
+import { AppError, ruleConflict } from '../lib/errors.js';
 import type { Actor, Services } from '../services/index.js';
 
 const MCP_INSTRUCTIONS = `ixfwms is the robotics lab's inventory: parts, tools and devices we own, how much, and where they are. ("Parts" in tool names means all items.)
@@ -47,7 +47,8 @@ function tool<A>(fn: Handler<A>) {
   return async (args: A): Promise<CallToolResult> => {
     try {
       return ok(await fn(args));
-    } catch (err) {
+    } catch (thrown) {
+      const err = ruleConflict(thrown) ?? thrown;
       if (err instanceof AppError)
         return { isError: true, content: [{ type: 'text', text: err.message }] };
       if (err instanceof z.ZodError) {
@@ -91,7 +92,7 @@ export function createMcpServer(
     {
       title: 'Search parts',
       description:
-        'Search the inventory by text (name, description, manufacturer, order number, code) and filters.',
+        'Search the inventory by text (name, description, manufacturer, order number, code) and filters. Each result is one thing to open: a bulk item, or one unit of a tool or device (only the units the text names, if it names any). `limit`, `offset` and `total` count results; `items` are their parts.',
       inputSchema: {
         q: z
           .string()
@@ -119,7 +120,17 @@ export function createMcpServer(
     },
     tool(async (a) => {
       const r = await parts.search({ ...a, limit: a.limit ?? 50, offset: a.offset ?? 0 });
-      return { total: r.total, items: r.items.map((p) => ({ ...p, url: partUrl(p.code) })) };
+      const byId = new Map(r.items.map((p) => [p.id, p]));
+      const results = r.rows.map((row) => {
+        const p = byId.get(row.partId)!;
+        const unit = p.units.find((u) => u.id === row.unitId)?.code ?? null;
+        return { part: p.code, unit, url: unit ? `${baseUrl}/u/${unit}` : partUrl(p.code) };
+      });
+      return {
+        total: r.total,
+        results,
+        items: r.items.map((p) => ({ ...p, url: partUrl(p.code) })),
+      };
     }),
   );
 

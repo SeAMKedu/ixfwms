@@ -14,9 +14,8 @@ import {
   type UserInfo,
   type UserRole,
 } from '@ixfwms/domain';
-import { and, eq, gt, isNull, ne, or, sql, type SQL } from 'drizzle-orm';
-import type { SQLiteColumn } from 'drizzle-orm/sqlite-core';
-import type { Db } from '../db/client.js';
+import { and, eq, gt, isNull, ne, or, sql, type AnyColumn, type SQL } from 'drizzle-orm';
+import { many, one, type Db } from '../db/client.js';
 import {
   apiTokens,
   attachments,
@@ -98,7 +97,7 @@ export class AuthService {
   async setPassword(userName: string, password: string): Promise<void> {
     if (password.length < MIN_PASSWORD_LENGTH)
       throw invalid('auth.passwordTooShort', { min: MIN_PASSWORD_LENGTH });
-    const user = await this.db.select().from(users).where(eq(users.name, userName)).get();
+    const user = await one(this.db.select().from(users).where(eq(users.name, userName)));
     if (!user) throw notFound('user', userName);
     await this.db
       .update(users)
@@ -116,7 +115,7 @@ export class AuthService {
     if (recent.length >= MAX_FAILED_LOGINS) {
       throw fail('forbidden', 'auth.tooManyLogins');
     }
-    const user = await this.db.select().from(users).where(eq(users.name, userName)).get();
+    const user = await one(this.db.select().from(users).where(eq(users.name, userName)));
     const ok = user?.passwordHash ? await checkPassword(password, user.passwordHash) : false;
     if (!user || !ok) {
       this.failedLogins.set(key, [...recent, now]);
@@ -151,7 +150,7 @@ export class AuthService {
     name: string,
     role: UserRole = 'member',
   ): Promise<{ id: string; name: string; role: UserRole }> {
-    const existing = await this.db.select().from(users).where(eq(users.name, name)).get();
+    const existing = await one(this.db.select().from(users).where(eq(users.name, name)));
     if (existing) throw conflict('users.exists', { name });
     const user = { id: newId(), name, role };
     await this.db.insert(users).values(user);
@@ -159,7 +158,7 @@ export class AuthService {
   }
 
   async listUsers() {
-    return this.db.select().from(users).all();
+    return many(this.db.select().from(users));
   }
 
   async createToken(
@@ -167,7 +166,7 @@ export class AuthService {
     tokenName: string,
     scopes: Scope[],
   ): Promise<{ token: string; id: string }> {
-    const user = await this.db.select().from(users).where(eq(users.name, userName)).get();
+    const user = await one(this.db.select().from(users).where(eq(users.name, userName)));
     if (!user) throw notFound('user', userName);
     if (user.disabledAt) throw invalid('users.accountOff', { name: user.name });
     const bad = scopes.filter((s) => !SCOPES.includes(s));
@@ -183,22 +182,24 @@ export class AuthService {
 
   /** Users with their active tokens, for the admin page. Token hashes never leave the server. */
   async listUsersWithTokens(): Promise<UserInfo[]> {
-    const all = await this.db.select().from(users).orderBy(users.name).all();
-    const tokens = await this.db
-      .select()
-      .from(apiTokens)
-      .where(
-        and(
-          isNull(apiTokens.revokedAt),
-          or(isNull(apiTokens.expiresAt), gt(apiTokens.expiresAt, nowIso())),
+    const all = await many(this.db.select().from(users).orderBy(users.name));
+    const tokens = await many(
+      this.db
+        .select()
+        .from(apiTokens)
+        .where(
+          and(
+            isNull(apiTokens.revokedAt),
+            or(isNull(apiTokens.expiresAt), gt(apiTokens.expiresAt, nowIso())),
+          ),
         ),
-      )
-      .all();
-    const lastUsed = await this.db
-      .select({ userId: apiTokens.userId, at: sql<string | null>`max(${apiTokens.lastUsedAt})` })
-      .from(apiTokens)
-      .groupBy(apiTokens.userId)
-      .all();
+    );
+    const lastUsed = await many(
+      this.db
+        .select({ userId: apiTokens.userId, at: sql<string | null>`max(${apiTokens.lastUsedAt})` })
+        .from(apiTokens)
+        .groupBy(apiTokens.userId),
+    );
     return all.map((u) => ({
       id: u.id,
       name: u.name,
@@ -225,14 +226,14 @@ export class AuthService {
   async setRole(userName: string, role: UserRole): Promise<void> {
     if (!USER_ROLES.includes(role))
       throw invalid('users.badRole', { roles: USER_ROLES.join(', ') });
-    const user = await this.db.select().from(users).where(eq(users.name, userName)).get();
+    const user = await one(this.db.select().from(users).where(eq(users.name, userName)));
     if (!user) throw notFound('user', userName);
     await this.db.update(users).set({ role }).where(eq(users.id, user.id));
   }
 
   /** Lets a logged-in person change their own password (they must know the current one). */
   async changeOwnPassword(userId: string, current: string, next: string): Promise<void> {
-    const user = await this.db.select().from(users).where(eq(users.id, userId)).get();
+    const user = await one(this.db.select().from(users).where(eq(users.id, userId)));
     if (!user?.passwordHash || !(await checkPassword(current, user.passwordHash))) {
       throw fail('forbidden', 'auth.wrongPassword');
     }
@@ -304,7 +305,7 @@ export class AuthService {
   }
 
   private async byName(userName: string) {
-    const user = await this.db.select().from(users).where(eq(users.name, userName)).get();
+    const user = await one(this.db.select().from(users).where(eq(users.name, userName)));
     if (!user) throw notFound('user', userName);
     return user;
   }
@@ -319,7 +320,7 @@ export class AuthService {
 
   /** How many records name this user: the history that would lose its "who". */
   private async historyCount(userId: string): Promise<number> {
-    const columns: [Parameters<Db['$count']>[0], SQLiteColumn][] = [
+    const columns: [Parameters<Db['$count']>[0], AnyColumn][] = [
       [auditLog, auditLog.userId],
       [stockMovements, stockMovements.userId],
       [locationMoves, locationMoves.userId],
@@ -344,11 +345,12 @@ export class AuthService {
 
   /** Things in the user's carry list (boxes, stock, units). */
   private async carryCount(userId: string): Promise<number> {
-    const carry = await this.db
-      .select({ id: locations.id })
-      .from(locations)
-      .where(and(eq(locations.ownerUserId, userId), eq(locations.kind, 'in_transit')))
-      .get();
+    const carry = await one(
+      this.db
+        .select({ id: locations.id })
+        .from(locations)
+        .where(and(eq(locations.ownerUserId, userId), eq(locations.kind, 'in_transit'))),
+    );
     if (!carry) return 0;
     const inside = (where: SQL | undefined, table: Parameters<Db['$count']>[0]) =>
       this.db.$count(table, where);
@@ -362,19 +364,20 @@ export class AuthService {
   /** Returns the actor for a bearer token, or null when it is unknown or revoked. */
   async verify(token: string): Promise<Actor | null> {
     if (!token.startsWith(TOKEN_PREFIX)) return null;
-    const row = await this.db
-      .select({ token: apiTokens, user: users })
-      .from(apiTokens)
-      .innerJoin(users, eq(users.id, apiTokens.userId))
-      .where(
-        and(
-          eq(apiTokens.tokenHash, hashToken(token)),
-          isNull(apiTokens.revokedAt),
-          isNull(users.disabledAt),
-          or(isNull(apiTokens.expiresAt), gt(apiTokens.expiresAt, nowIso())),
+    const row = await one(
+      this.db
+        .select({ token: apiTokens, user: users })
+        .from(apiTokens)
+        .innerJoin(users, eq(users.id, apiTokens.userId))
+        .where(
+          and(
+            eq(apiTokens.tokenHash, hashToken(token)),
+            isNull(apiTokens.revokedAt),
+            isNull(users.disabledAt),
+            or(isNull(apiTokens.expiresAt), gt(apiTokens.expiresAt, nowIso())),
+          ),
         ),
-      )
-      .get();
+    );
     if (!row) return null;
     const last = row.token.lastUsedAt ? Date.parse(row.token.lastUsedAt) : 0;
     if (Date.now() - last > LAST_USED_RESOLUTION_MS) {

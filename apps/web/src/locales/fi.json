@@ -987,7 +987,8 @@
       "invalid": "Virheellinen syöte"
     },
     "server": {
-      "internal": "Palvelimella meni jotain pieleen"
+      "internal": "Palvelimella meni jotain pieleen",
+      "sameTime": "Joku muu muutti tätä samalla hetkellä; yritä uudelleen"
     },
     "notFound": {
       "move": "Siirtoa ei löytynyt: {{ref}}",
@@ -1091,7 +1092,8 @@
         "part": "Koodi {{code}} on jo osan käytössä",
         "unit": "Koodi {{code}} on jo yksilön käytössä"
       },
-      "retired": "Koodi {{code}} on poistettu käytöstä; heitä tarra pois ja käytä toista"
+      "retired": "Koodi {{code}} on poistettu käytöstä; heitä tarra pois ja käytä toista",
+      "taken": "Koodi on jo käytössä tai poistettu käytöstä; valitse toinen"
     },
     "labels": {
       "blankCount": "Pyydä 1–{{max}} tyhjää tarraa",

@@ -18,7 +18,7 @@ import {
   type UpdateLocationInput,
 } from '@ixfwms/domain';
 import { and, asc, eq, inArray, isNull, like, sql } from 'drizzle-orm';
-import type { Db, Executor } from '../db/client.js';
+import { many, one, type Db, type Executor } from '../db/client.js';
 import { locationMoves, locations, locationTypes } from '../db/schema.js';
 import { invalid, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
@@ -37,7 +37,7 @@ export class LocationService {
 
   /** Seeds location types, the Inbox and "Out of the lab". Safe to run on every start. */
   async ensureDefaults(): Promise<void> {
-    const existing = await this.db.select().from(locationTypes).all();
+    const existing = await many(this.db.select().from(locationTypes));
     const keys = new Set(existing.map((t) => t.key));
     let sort = existing.length;
     const defaults = [
@@ -65,7 +65,7 @@ export class LocationService {
         });
       }
     }
-    const inbox = await this.db.select().from(locations).where(eq(locations.kind, 'inbox')).get();
+    const inbox = await one(this.db.select().from(locations).where(eq(locations.kind, 'inbox')));
     if (!inbox) {
       await this.insert(this.db, {
         name: INBOX_NAME,
@@ -75,7 +75,7 @@ export class LocationService {
         description: 'Things we own but have not put away yet: new orders and AI drafts.',
       });
     }
-    const away = await this.db.select().from(locations).where(eq(locations.kind, 'away')).get();
+    const away = await one(this.db.select().from(locations).where(eq(locations.kind, 'away')));
     if (!away) {
       await this.insert(this.db, {
         name: AWAY_NAME,
@@ -89,13 +89,13 @@ export class LocationService {
 
   /** The built-in place where lent units are while they're out of the lab. */
   async away(ex: Executor = this.db): Promise<LocationRow> {
-    const away = await ex.select().from(locations).where(eq(locations.kind, 'away')).get();
+    const away = await one(ex.select().from(locations).where(eq(locations.kind, 'away')));
     if (!away) throw new Error('"Out of the lab" missing; run ensureDefaults() first');
     return away;
   }
 
   async inbox(ex: Executor = this.db): Promise<LocationRow> {
-    const inbox = await ex.select().from(locations).where(eq(locations.kind, 'inbox')).get();
+    const inbox = await one(ex.select().from(locations).where(eq(locations.kind, 'inbox')));
     if (!inbox) throw new Error('Inbox missing; run ensureDefaults() first');
     return inbox;
   }
@@ -104,9 +104,9 @@ export class LocationService {
   async resolve(ref: string, ex: Executor = this.db): Promise<LocationRow> {
     const code = normalizeCode(ref);
     const row = isValidCode(code)
-      ? await ex.select().from(locations).where(eq(locations.code, code)).get()
+      ? await one(ex.select().from(locations).where(eq(locations.code, code)))
       : undefined;
-    const found = row ?? (await ex.select().from(locations).where(eq(locations.id, ref)).get());
+    const found = row ?? (await one(ex.select().from(locations).where(eq(locations.id, ref))));
     if (!found) throw notFound('location', ref);
     return found;
   }
@@ -189,23 +189,25 @@ export class LocationService {
       if (original.kind !== 'normal') throw invalid('places.cantCopy', { name: original.name });
       const parentId =
         parent === undefined ? original.parentId : parent && (await this.resolve(parent, tx)).id;
-      const inside = await tx
-        .select()
-        .from(locations)
-        .where(like(locations.path, `${original.path}%`))
-        .all();
+      const inside = await many(
+        tx
+          .select()
+          .from(locations)
+          .where(like(locations.path, `${original.path}%`)),
+      );
       const types = new Map(
-        (await tx.select().from(locationTypes).all()).map((t) => [t.id, t.key]),
+        (await many(tx.select().from(locationTypes))).map((t) => [t.id, t.key]),
       );
       const copies: LocationSummary[] = [];
       let previous = original.name;
       let shortRoot = original.shortName;
       for (let n = 0; n < count; n++) {
-        const siblingRows = await tx
-          .select()
-          .from(locations)
-          .where(parentId ? eq(locations.parentId, parentId) : isNull(locations.parentId))
-          .all();
+        const siblingRows = await many(
+          tx
+            .select()
+            .from(locations)
+            .where(parentId ? eq(locations.parentId, parentId) : isNull(locations.parentId)),
+        );
         const taken = siblingRows.map((s) => s.name);
         const copyName = name && n === 0 ? name : nextFreeName(previous, taken);
         previous = copyName;
@@ -274,11 +276,12 @@ export class LocationService {
 
   /** The per-user "Being carried by <name>" location used while moving things around. */
   async inTransitFor(actor: Actor, ex: Executor = this.db): Promise<LocationRow> {
-    const existing = await ex
-      .select()
-      .from(locations)
-      .where(and(eq(locations.kind, 'in_transit'), eq(locations.ownerUserId, actor.userId)))
-      .get();
+    const existing = await one(
+      ex
+        .select()
+        .from(locations)
+        .where(and(eq(locations.kind, 'in_transit'), eq(locations.ownerUserId, actor.userId))),
+    );
     if (existing) return existing;
     return this.insert(ex, {
       name: `Carried by ${actor.name}`,
@@ -296,7 +299,7 @@ export class LocationService {
     if (ids.length === 0) return [];
     const rows = await this.summaries(
       ex,
-      await ex.select().from(locations).where(inArray(locations.id, ids)).all(),
+      await many(ex.select().from(locations).where(inArray(locations.id, ids))),
     );
     const byId = new Map(rows.map((r) => [r.id, r]));
     return ids.map((id) => byId.get(id)).filter((r): r is LocationSummary => r != null);
@@ -304,24 +307,26 @@ export class LocationService {
 
   async children(parentRef: string | null, ex: Executor = this.db): Promise<LocationSummary[]> {
     const parentId = parentRef ? (await this.resolve(parentRef, ex)).id : null;
-    const rows = await ex
-      .select()
-      .from(locations)
-      .where(parentId ? eq(locations.parentId, parentId) : isNull(locations.parentId))
-      .orderBy(asc(locations.name))
-      .all();
+    const rows = await many(
+      ex
+        .select()
+        .from(locations)
+        .where(parentId ? eq(locations.parentId, parentId) : isNull(locations.parentId))
+        .orderBy(asc(locations.name)),
+    );
     return this.summaries(ex, rows);
   }
 
   /** Location tree below `rootRef` (or everything), limited to `depth` levels. */
   async tree(rootRef: string | null, depth = 10): Promise<LocationNode[]> {
     const root = rootRef ? await this.resolve(rootRef) : null;
-    const rows = await this.db
-      .select()
-      .from(locations)
-      .where(root ? like(locations.path, `${root.path}%`) : undefined)
-      .orderBy(asc(locations.name))
-      .all();
+    const rows = await many(
+      this.db
+        .select()
+        .from(locations)
+        .where(root ? like(locations.path, `${root.path}%`) : undefined)
+        .orderBy(asc(locations.name)),
+    );
     const summaries = await this.summaries(this.db, rows);
     const nodes = new Map(summaries.map((s) => [s.id, { ...s, children: [] as LocationNode[] }]));
     const top: LocationNode[] = [];
@@ -339,7 +344,7 @@ export class LocationService {
 
   /** Every place with its path of names, so a client can search "cab a › shelf 3" without more requests. */
   async allWithPaths(): Promise<PlaceOption[]> {
-    const rows = await this.db.select().from(locations).all();
+    const rows = await many(this.db.select().from(locations));
     const summaries = await this.summaries(this.db, rows);
     const byId = new Map(rows.map((r) => [r.id, r]));
     return rows
@@ -360,7 +365,7 @@ export class LocationService {
   }
 
   async summaries(ex: Executor, rows: LocationRow[]): Promise<LocationSummary[]> {
-    const types = new Map((await ex.select().from(locationTypes).all()).map((t) => [t.id, t]));
+    const types = new Map((await many(ex.select().from(locationTypes))).map((t) => [t.id, t]));
     // Addresses need every place on the way down.
     const known = new Map(rows.map((r) => [r.id, r]));
     const missing = [
@@ -368,7 +373,7 @@ export class LocationService {
     ];
     for (let i = 0; i < missing.length; i += 500) {
       const batch = missing.slice(i, i + 500);
-      for (const r of await ex.select().from(locations).where(inArray(locations.id, batch)).all())
+      for (const r of await many(ex.select().from(locations).where(inArray(locations.id, batch))))
         known.set(r.id, r);
     }
     const now = Date.now();
@@ -416,11 +421,9 @@ export class LocationService {
   async touch(ex: Executor, ids: (string | null | undefined)[]): Promise<void> {
     const wanted = [...new Set(ids.filter((id): id is string => !!id))];
     if (!wanted.length) return;
-    const rows = await ex
-      .select({ path: locations.path })
-      .from(locations)
-      .where(inArray(locations.id, wanted))
-      .all();
+    const rows = await many(
+      ex.select({ path: locations.path }).from(locations).where(inArray(locations.id, wanted)),
+    );
     const all = [...new Set(rows.flatMap((r) => r.path.split('/').filter(Boolean)))];
     if (all.length)
       await ex
@@ -440,7 +443,7 @@ export class LocationService {
 
   /** Temporary places left untouched longer than expected, longest overdue first. */
   async overdue(): Promise<OverduePlace[]> {
-    const rows = await this.db.select().from(locations).where(eq(locations.kind, 'normal')).all();
+    const rows = await many(this.db.select().from(locations).where(eq(locations.kind, 'normal')));
     const summaries = await this.summaries(this.db, rows);
     const late = summaries
       .map((s, i) => ({ s, row: rows[i]! }))
@@ -458,11 +461,12 @@ export class LocationService {
 
   /** Fixed places next to `loc` whose short name is the same, so their addresses are too. */
   async clashes(loc: LocationRow): Promise<LocationSummary[]> {
-    const siblings = await this.db
-      .select()
-      .from(locations)
-      .where(loc.parentId ? eq(locations.parentId, loc.parentId) : isNull(locations.parentId))
-      .all();
+    const siblings = await many(
+      this.db
+        .select()
+        .from(locations)
+        .where(loc.parentId ? eq(locations.parentId, loc.parentId) : isNull(locations.parentId)),
+    );
     const all = await this.summaries(this.db, siblings);
     const own = all.find((s) => s.id === loc.id);
     if (!own || own.movable) return [];
@@ -472,12 +476,13 @@ export class LocationService {
   // --- place types ---------------------------------------------------------------------------
 
   async types(): Promise<LocationTypeInfo[]> {
-    const rows = await this.db.select().from(locationTypes).orderBy(asc(locationTypes.sort)).all();
-    const counts = await this.db
-      .select({ typeId: locations.typeId, n: sql<number>`count(*)` })
-      .from(locations)
-      .groupBy(locations.typeId)
-      .all();
+    const rows = await many(this.db.select().from(locationTypes).orderBy(asc(locationTypes.sort)));
+    const counts = await many(
+      this.db
+        .select({ typeId: locations.typeId, n: sql<number>`count(*)` })
+        .from(locations)
+        .groupBy(locations.typeId),
+    );
     const byType = new Map(counts.map((c) => [c.typeId, Number(c.n)]));
     return rows
       .filter((t) => !BUILT_IN_LOCATION_TYPES.some((b) => b === t.key))
@@ -495,7 +500,7 @@ export class LocationService {
   async createType(input: LocationTypeInput, actor: Actor | null): Promise<LocationTypeInfo> {
     const who = requireScope(actor, 'write');
     const { name, movable, stayDays, workstation, sort } = LocationTypeInput.parse(input);
-    const existing = await this.db.select().from(locationTypes).all();
+    const existing = await many(this.db.select().from(locationTypes));
     const base = typeKey(name);
     let key = base;
     for (let n = 2; existing.some((t) => t.key === key); n++) key = `${base}_${n}`;
@@ -536,19 +541,20 @@ export class LocationService {
   async deleteType(key: string, actor: Actor | null): Promise<void> {
     const who = requireScope(actor, 'write');
     const type = await this.editableType(key);
-    const used = await this.db
-      .select({ id: locations.id })
-      .from(locations)
-      .where(eq(locations.typeId, type.id))
-      .limit(1)
-      .all();
+    const used = await many(
+      this.db
+        .select({ id: locations.id })
+        .from(locations)
+        .where(eq(locations.typeId, type.id))
+        .limit(1),
+    );
     if (used.length) throw invalid('places.typeInUse', { type: type.name });
     await this.db.delete(locationTypes).where(eq(locationTypes.id, type.id));
     await audit(this.db, who, 'delete', 'location-type', key);
   }
 
   private async editableType(key: string) {
-    const type = await this.db.select().from(locationTypes).where(eq(locationTypes.key, key)).get();
+    const type = await one(this.db.select().from(locationTypes).where(eq(locationTypes.key, key)));
     if (!type || BUILT_IN_LOCATION_TYPES.some((b) => b === key)) throw notFound('placeType', key);
     return type;
   }
@@ -561,11 +567,12 @@ export class LocationService {
     selfId: string | null,
   ): Promise<void> {
     if (!shortName) return;
-    const siblings = await ex
-      .select()
-      .from(locations)
-      .where(parentId ? eq(locations.parentId, parentId) : isNull(locations.parentId))
-      .all();
+    const siblings = await many(
+      ex
+        .select()
+        .from(locations)
+        .where(parentId ? eq(locations.parentId, parentId) : isNull(locations.parentId)),
+    );
     const taken = (await this.summaries(ex, siblings)).find(
       (s) => s.id !== selfId && !s.movable && s.short.toLowerCase() === shortName.toLowerCase(),
     );
@@ -573,9 +580,9 @@ export class LocationService {
   }
 
   private async typeByKey(ex: Executor, key: string) {
-    const type = await ex.select().from(locationTypes).where(eq(locationTypes.key, key)).get();
+    const type = await one(ex.select().from(locationTypes).where(eq(locationTypes.key, key)));
     if (!type) {
-      const known = (await ex.select({ key: locationTypes.key }).from(locationTypes).all()).map(
+      const known = (await many(ex.select({ key: locationTypes.key }).from(locationTypes))).map(
         (t) => t.key,
       );
       throw invalid('places.unknownType', { key, known: known.join(', ') });

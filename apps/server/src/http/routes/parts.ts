@@ -28,6 +28,7 @@ const AttrQuery = z.union([z.string(), z.array(z.string())]).transform((v, ctx) 
 const SearchQuery = PartSearchInput.omit({ attributes: true }).extend({
   inStock: QueryBool.optional(),
   lowStock: QueryBool.optional(),
+  byUnit: QueryBool.default(true),
   attr: AttrQuery.optional(),
   limit: z.coerce.number().int().min(1).max(200).default(50),
   offset: z.coerce.number().int().min(0).default(0),

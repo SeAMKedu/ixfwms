@@ -23,3 +23,18 @@ export async function openDatabase(url: string): Promise<Database> {
   const db = drizzle(client, { schema });
   return { db, client, close: () => client.close() };
 }
+
+/*
+ * Every Drizzle driver resolves an awaited select to its rows; only the SQLite ones add
+ * `.get()` and `.all()`. Services read through these instead, so they don't depend on them.
+ */
+
+/** The first row of a query, or undefined. */
+export async function one<T>(query: PromiseLike<T[]>): Promise<T | undefined> {
+  return (await query)[0];
+}
+
+/** All rows of a query. */
+export async function many<T>(query: PromiseLike<T[]>): Promise<T[]> {
+  return query;
+}

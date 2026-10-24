@@ -289,6 +289,17 @@ export interface SearchResult<T> {
   total: number;
 }
 
+/** One search result, something to open: a bulk item (no unit), or one unit of a tool or device. */
+export interface PartSearchRow {
+  partId: string;
+  unitId: string | null;
+}
+
+/** A page of search results. `items` are the parts its rows belong to; `total` counts rows. */
+export interface PartSearchResult extends SearchResult<PartSummary> {
+  rows: PartSearchRow[];
+}
+
 export interface SessionUser {
   name: string;
   role: UserRole;

@@ -1,6 +1,6 @@
 import { formatAmount, type CarriedItem, type CarrySummary, type CarryState } from '@ixfwms/domain';
 import { asc, eq } from 'drizzle-orm';
-import type { Db } from '../db/client.js';
+import { many, type Db } from '../db/client.js';
 import { locations, parts, stockLots, units, users } from '../db/schema.js';
 import { invalid } from '../lib/errors.js';
 import { requireScope, type Actor } from './context.js';
@@ -23,25 +23,28 @@ export class CarryService {
   async state(actor: Actor | null): Promise<CarryState> {
     const who = requireScope(actor, 'inventory');
     const carry = await this.locations.inTransitFor(who);
-    const lots = await this.db
-      .select({ lot: stockLots, code: parts.code, name: parts.name })
-      .from(stockLots)
-      .innerJoin(parts, eq(parts.id, stockLots.partId))
-      .where(eq(stockLots.locationId, carry.id))
-      .orderBy(asc(stockLots.updatedAt))
-      .all();
-    const boxes = await this.db
-      .select()
-      .from(locations)
-      .where(eq(locations.parentId, carry.id))
-      .orderBy(asc(locations.updatedAt))
-      .all();
-    const unitRows = await this.db
-      .select()
-      .from(units)
-      .where(eq(units.locationId, carry.id))
-      .orderBy(asc(units.updatedAt))
-      .all();
+    const lots = await many(
+      this.db
+        .select({ lot: stockLots, code: parts.code, name: parts.name })
+        .from(stockLots)
+        .innerJoin(parts, eq(parts.id, stockLots.partId))
+        .where(eq(stockLots.locationId, carry.id))
+        .orderBy(asc(stockLots.updatedAt)),
+    );
+    const boxes = await many(
+      this.db
+        .select()
+        .from(locations)
+        .where(eq(locations.parentId, carry.id))
+        .orderBy(asc(locations.updatedAt)),
+    );
+    const unitRows = await many(
+      this.db
+        .select()
+        .from(units)
+        .where(eq(units.locationId, carry.id))
+        .orderBy(asc(units.updatedAt)),
+    );
     const unitBriefs = await this.units.briefs(unitRows);
     const items: CarriedItem[] = [
       ...unitBriefs.map((u, i) => ({
@@ -72,29 +75,30 @@ export class CarryService {
 
   /** Everyone's non-empty carry lists, oldest first: things that may have been forgotten "in transit". */
   async everyone(): Promise<CarrySummary[]> {
-    const carries = await this.db
-      .select({ loc: locations, user: users.name })
-      .from(locations)
-      .innerJoin(users, eq(users.id, locations.ownerUserId))
-      .where(eq(locations.kind, 'in_transit'))
-      .all();
+    const carries = await many(
+      this.db
+        .select({ loc: locations, user: users.name })
+        .from(locations)
+        .innerJoin(users, eq(users.id, locations.ownerUserId))
+        .where(eq(locations.kind, 'in_transit')),
+    );
     const out: CarrySummary[] = [];
     for (const { loc, user } of carries) {
-      const lots = await this.db
-        .select({ at: stockLots.updatedAt })
-        .from(stockLots)
-        .where(eq(stockLots.locationId, loc.id))
-        .all();
-      const boxes = await this.db
-        .select({ at: locations.updatedAt })
-        .from(locations)
-        .where(eq(locations.parentId, loc.id))
-        .all();
-      const carried = await this.db
-        .select({ at: units.updatedAt })
-        .from(units)
-        .where(eq(units.locationId, loc.id))
-        .all();
+      const lots = await many(
+        this.db
+          .select({ at: stockLots.updatedAt })
+          .from(stockLots)
+          .where(eq(stockLots.locationId, loc.id)),
+      );
+      const boxes = await many(
+        this.db
+          .select({ at: locations.updatedAt })
+          .from(locations)
+          .where(eq(locations.parentId, loc.id)),
+      );
+      const carried = await many(
+        this.db.select({ at: units.updatedAt }).from(units).where(eq(units.locationId, loc.id)),
+      );
       const times = [...lots, ...boxes, ...carried].map((r) => r.at).sort();
       if (times.length === 0) continue;
       out.push({

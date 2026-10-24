@@ -4,9 +4,10 @@ import {
   type AttributeField,
   type CategoryFields,
   type CategoryInfo,
+  fold,
 } from '@ixfwms/domain';
-import { asc, eq, sql } from 'drizzle-orm';
-import type { Db, Executor } from '../db/client.js';
+import { asc, eq, or, sql } from 'drizzle-orm';
+import { many, one, type Db, type Executor } from '../db/client.js';
 import { categories, parts } from '../db/schema.js';
 import { conflict, invalid, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
@@ -22,12 +23,12 @@ function splitPath(path: string): string[] {
     .filter(Boolean);
 }
 
-/** Paths are stored as typed and matched without regard to case. */
-const samePath = (path: string) => eq(sql`lower(${categories.path})`, path.toLowerCase());
-
 /** Rows strictly below `path`: "A/B" matches "A/B/C", not "A/B" or "A/BC". No LIKE, so % and _ in names are safe. */
 const below = (path: string) =>
   sql`substr(${categories.path}, 1, ${path.length + 1}) = ${`${path}/`}`;
+
+/** The category at `path` (as stored) and everything below it. */
+export const withinCategory = (path: string) => or(eq(categories.path, path), below(path))!;
 
 /**
  * Part categories: a tree stored as paths ("Pneumatics/Vacuum/Suction cups"), each with the
@@ -43,7 +44,7 @@ export class CategoryService {
     let current = '';
     for (const name of splitPath(path)) {
       current = current ? `${current}/${name}` : name;
-      const existing = await ex.select().from(categories).where(samePath(current)).get();
+      const existing = await this.lookup(current, ex);
       if (existing) {
         parentId = existing.id;
         current = existing.path;
@@ -59,13 +60,14 @@ export class CategoryService {
 
   /** Every category with its parts: `parts` counts everything below it too, `ownParts` only its own. */
   async list(): Promise<CategoryInfo[]> {
-    const rows = await this.db.select().from(categories).orderBy(asc(categories.path)).all();
-    const counts = await this.db
-      .select({ path: categories.path, n: sql<number>`count(*)` })
-      .from(parts)
-      .innerJoin(categories, eq(categories.id, parts.categoryId))
-      .groupBy(categories.id)
-      .all();
+    const rows = await many(this.db.select().from(categories).orderBy(asc(categories.path)));
+    const counts = await many(
+      this.db
+        .select({ path: categories.path, n: sql<number>`count(*)` })
+        .from(parts)
+        .innerJoin(categories, eq(categories.id, parts.categoryId))
+        .groupBy(categories.id),
+    );
     return rows.map((r) => {
       let own = 0;
       let all = 0;
@@ -86,7 +88,7 @@ export class CategoryService {
     let canonical = names.join('/');
     for (const name of names) {
       current = current ? `${current}/${name}` : name;
-      const row = await ex.select().from(categories).where(samePath(current)).get();
+      const row = await this.lookup(current, ex);
       chain.push(row?.attributeTemplate ?? null);
       if (row && current.length === canonical.length) {
         own = row.attributeTemplate ?? [];
@@ -143,16 +145,16 @@ export class CategoryService {
     if (!name) throw invalid('categories.giveName');
     return this.db.transaction(async (tx) => {
       const row = await this.find(tx, from);
-      const wanted = target.join('/').toLowerCase();
-      const old = row.path.toLowerCase();
+      const wanted = fold(target.join('/'));
+      const old = fold(row.path);
       if (wanted.startsWith(`${old}/`)) throw invalid('categories.insideItself');
-      if (wanted !== old && (await tx.select().from(categories).where(samePath(wanted)).get()))
+      if (wanted !== old && (await this.lookup(wanted, tx)))
         throw conflict('categories.exists', { path: target.join('/') });
 
       const parentId =
         target.length > 1 ? await this.ensure(tx, target.slice(0, -1).join('/')) : null;
       const parent = parentId
-        ? await tx.select().from(categories).where(eq(categories.id, parentId)).get()
+        ? await one(tx.select().from(categories).where(eq(categories.id, parentId)))
         : undefined;
       const path = parent ? `${parent.path}/${name}` : name;
       if (path === row.path) return path;
@@ -175,13 +177,13 @@ export class CategoryService {
     const who = requireScope(actor, 'write');
     return this.db.transaction(async (tx) => {
       const row = await this.find(tx, path);
-      if (await tx.select().from(categories).where(below(row.path)).get())
+      if (await one(tx.select().from(categories).where(below(row.path))))
         throw invalid('categories.hasChildren', { path: row.path });
       const count = await tx.$count(parts, eq(parts.categoryId, row.id));
       let targetId: string | null = null;
       if (count > 0) {
         if (!moveTo?.trim()) throw invalid('categories.whereParts', { path: row.path, count });
-        if (splitPath(moveTo).join('/').toLowerCase() === row.path.toLowerCase())
+        if (fold(splitPath(moveTo).join('/')) === fold(row.path))
           throw invalid('categories.pickAnother');
         targetId = await this.ensure(tx, moveTo);
         await tx
@@ -199,12 +201,17 @@ export class CategoryService {
     });
   }
 
+  /**
+   * The category at `path`, matched without regard to case ("pneumatics / vacuum"). Compared
+   * folded in JavaScript, since SQL lower() in SQLite folds only A–Z; there are few categories.
+   */
+  async lookup(path: string, ex: Executor = this.db): Promise<CategoryRow | undefined> {
+    const wanted = fold(splitPath(path).join('/'));
+    return (await many(ex.select().from(categories))).find((c) => fold(c.path) === wanted);
+  }
+
   private async find(ex: Executor, path: string): Promise<CategoryRow> {
-    const row = await ex
-      .select()
-      .from(categories)
-      .where(samePath(splitPath(path).join('/')))
-      .get();
+    const row = await this.lookup(path, ex);
     if (!row) throw notFound('category', path);
     return row;
   }

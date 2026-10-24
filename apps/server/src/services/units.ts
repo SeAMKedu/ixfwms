@@ -1,4 +1,5 @@
 import {
+  fold,
   normalizeCode,
   isValidCode,
   type AddUnitsInput,
@@ -10,7 +11,6 @@ import {
   type UnitBrief,
   type UnitDetail,
   type UnitEventKind,
-  type UnitEventView,
   type UnitLogInput,
   type UnitStatus,
   type UpdateUnitInput,
@@ -30,7 +30,7 @@ import {
   or,
   sql,
 } from 'drizzle-orm';
-import type { Db, Executor } from '../db/client.js';
+import { many, one, type Db, type Executor } from '../db/client.js';
 import {
   categories,
   loans,
@@ -48,6 +48,8 @@ import { allocateCode, claimCode } from './codes.js';
 import { audit, requireScope, type Actor } from './context.js';
 import type { LocationRow, LocationService } from './locations.js';
 import type { PartResolver } from './parts.js';
+import { unitSearchText } from './search-text.js';
+import { eventView, ipKey } from './unit-views.js';
 
 export type UnitRow = typeof units.$inferSelect;
 type LoanRow = typeof loans.$inferSelect;
@@ -71,9 +73,9 @@ export class UnitService {
   async resolve(ref: string, ex: Executor = this.db): Promise<UnitRow> {
     const code = normalizeCode(ref);
     const row = isValidCode(code)
-      ? await ex.select().from(units).where(eq(units.code, code)).get()
+      ? await one(ex.select().from(units).where(eq(units.code, code)))
       : undefined;
-    const found = row ?? (await ex.select().from(units).where(eq(units.id, ref)).get());
+    const found = row ?? (await one(ex.select().from(units).where(eq(units.id, ref))));
     if (!found) throw notFound('unit', ref);
     return found;
   }
@@ -85,12 +87,13 @@ export class UnitService {
     const ids = await this.db.transaction(async (tx) => {
       const part = await this.parts.resolve(partRef, tx);
       if (part.tracking !== 'individual') {
-        const lot = await tx
-          .select({ id: stockLots.id })
-          .from(stockLots)
-          .where(eq(stockLots.partId, part.id))
-          .limit(1)
-          .get();
+        const lot = await one(
+          tx
+            .select({ id: stockLots.id })
+            .from(stockLots)
+            .where(eq(stockLots.partId, part.id))
+            .limit(1),
+        );
         if (lot) throw invalid('parts.hasAmounts', { name: part.name });
         await tx
           .update(parts)
@@ -111,6 +114,10 @@ export class UnitService {
           partId: part.id,
           name: entry.name ?? null,
           serialNo: entry.serialNo ?? null,
+          searchText: unitSearchText({
+            name: entry.name ?? null,
+            serialNo: entry.serialNo ?? null,
+          }),
           ipAddress: entry.ipAddress ?? null,
           hostname: entry.hostname ?? null,
           macAddress: entry.macAddress ?? null,
@@ -128,7 +135,7 @@ export class UnitService {
     });
     // Ids are time-ordered, so this is the order they were given in.
     return this.briefs(
-      await this.db.select().from(units).where(inArray(units.id, ids)).orderBy(asc(units.id)).all(),
+      await many(this.db.select().from(units).where(inArray(units.id, ids)).orderBy(asc(units.id))),
     );
   }
 
@@ -148,6 +155,8 @@ export class UnitService {
       ] as const) {
         if (input[key] !== undefined) patch[key] = input[key] ?? null;
       }
+      if (patch.name !== undefined || patch.serialNo !== undefined)
+        patch.searchText = unitSearchText({ ...unit, ...patch });
       if (input.home !== undefined)
         patch.homeLocationId = input.home
           ? (await this.locations.resolve(input.home, tx)).id
@@ -223,11 +232,9 @@ export class UnitService {
       const unit = await this.resolve(ref, tx);
       if (await this.openLoan(tx, unit.id)) throw invalid('units.alreadyLent');
       const responsible = input.responsible
-        ? await tx
-            .select()
-            .from(users)
-            .where(eq(sql`lower(${users.name})`, input.responsible.toLowerCase()))
-            .get()
+        ? (await many(tx.select().from(users))).find(
+            (u) => fold(u.name) === fold(input.responsible!),
+          )
         : { id: who.userId, name: who.name };
       if (!responsible) throw invalid('units.noResponsible', { name: input.responsible ?? '' });
       if ('disabledAt' in responsible && responsible.disabledAt)
@@ -272,26 +279,28 @@ export class UnitService {
   async detail(ref: string, actor: Actor | null): Promise<UnitDetail> {
     const unit = await this.resolve(ref);
     const [brief] = await this.briefs([unit]);
-    const part = await this.db
-      .select({
-        id: parts.id,
-        code: parts.code,
-        name: parts.name,
-        kind: parts.kind,
-        category: categories.path,
-      })
-      .from(parts)
-      .leftJoin(categories, eq(categories.id, parts.categoryId))
-      .where(eq(parts.id, unit.partId))
-      .get();
-    const events = await this.db
-      .select({ e: unitEvents, user: users.name })
-      .from(unitEvents)
-      .leftJoin(users, eq(users.id, unitEvents.userId))
-      .where(eq(unitEvents.unitId, unit.id))
-      .orderBy(desc(unitEvents.at))
-      .limit(100)
-      .all();
+    const part = await one(
+      this.db
+        .select({
+          id: parts.id,
+          code: parts.code,
+          name: parts.name,
+          kind: parts.kind,
+          category: categories.path,
+        })
+        .from(parts)
+        .leftJoin(categories, eq(categories.id, parts.categoryId))
+        .where(eq(parts.id, unit.partId)),
+    );
+    const events = await many(
+      this.db
+        .select({ e: unitEvents, user: users.name })
+        .from(unitEvents)
+        .leftJoin(users, eq(users.id, unitEvents.userId))
+        .where(eq(unitEvents.unitId, unit.id))
+        .orderBy(desc(unitEvents.at))
+        .limit(100),
+    );
     const placeIds = [
       ...new Set(
         events
@@ -301,25 +310,23 @@ export class UnitService {
     ];
     const places = await this.placeSummaries(placeIds);
     const firmware = events.find(({ e }) => e.kind === 'firmware' && e.value);
-    const loanRows = await this.db
-      .select()
-      .from(loans)
-      .where(eq(loans.unitId, unit.id))
-      .orderBy(desc(loans.outAt))
-      .all();
-    const openReports = await this.db
-      .select({ r: reports, user: users.name })
-      .from(reports)
-      .leftJoin(users, eq(users.id, reports.userId))
-      .where(
-        and(
-          eq(reports.ownerType, 'unit'),
-          eq(reports.ownerId, unit.id),
-          isNull(reports.resolvedAt),
-        ),
-      )
-      .orderBy(desc(reports.createdAt))
-      .all();
+    const loanRows = await many(
+      this.db.select().from(loans).where(eq(loans.unitId, unit.id)).orderBy(desc(loans.outAt)),
+    );
+    const openReports = await many(
+      this.db
+        .select({ r: reports, user: users.name })
+        .from(reports)
+        .leftJoin(users, eq(users.id, reports.userId))
+        .where(
+          and(
+            eq(reports.ownerType, 'unit'),
+            eq(reports.ownerId, unit.id),
+            isNull(reports.resolvedAt),
+          ),
+        )
+        .orderBy(desc(reports.createdAt)),
+    );
     const hidden = actor == null;
     const location = await this.locations.resolve(unit.locationId);
     const home = unit.homeLocationId ? await this.locations.resolve(unit.homeLocationId) : null;
@@ -362,12 +369,9 @@ export class UnitService {
   ): Promise<Map<string, UnitBrief[]>> {
     const out = new Map<string, UnitBrief[]>();
     if (!partIds.length) return out;
-    const rows = await ex
-      .select()
-      .from(units)
-      .where(inArray(units.partId, partIds))
-      .orderBy(asc(units.id))
-      .all();
+    const rows = await many(
+      ex.select().from(units).where(inArray(units.partId, partIds)).orderBy(asc(units.id)),
+    );
     const briefs = await this.briefs(rows, ex);
     rows.forEach((r, i) => out.set(r.partId, [...(out.get(r.partId) ?? []), briefs[i]!]));
     return out;
@@ -378,14 +382,15 @@ export class UnitService {
     loc: LocationRow,
     recursive: boolean,
   ): Promise<(UnitBrief & { part: { code: string; name: string }; in: LocationSummary | null })[]> {
-    const rows = await this.db
-      .select({ u: units, partCode: parts.code, partName: parts.name })
-      .from(units)
-      .innerJoin(parts, eq(parts.id, units.partId))
-      .innerJoin(locations, eq(locations.id, units.locationId))
-      .where(recursive ? like(locations.path, `${loc.path}%`) : eq(units.locationId, loc.id))
-      .orderBy(asc(parts.name))
-      .all();
+    const rows = await many(
+      this.db
+        .select({ u: units, partCode: parts.code, partName: parts.name })
+        .from(units)
+        .innerJoin(parts, eq(parts.id, units.partId))
+        .innerJoin(locations, eq(locations.id, units.locationId))
+        .where(recursive ? like(locations.path, `${loc.path}%`) : eq(units.locationId, loc.id))
+        .orderBy(asc(parts.name)),
+    );
     const briefs = await this.briefs(rows.map((r) => r.u));
     return rows.map((r, i) => ({
       ...briefs[i]!,
@@ -395,30 +400,32 @@ export class UnitService {
   }
 
   async loanList(open: boolean): Promise<LoanView[]> {
-    const rows = await this.db
-      .select()
-      .from(loans)
-      .where(open ? isNull(loans.returnedAt) : undefined)
-      .orderBy(asc(loans.dueAt), asc(loans.outAt))
-      .limit(open ? 1000 : 200)
-      .all();
+    const rows = await many(
+      this.db
+        .select()
+        .from(loans)
+        .where(open ? isNull(loans.returnedAt) : undefined)
+        .orderBy(asc(loans.dueAt), asc(loans.outAt))
+        .limit(open ? 1000 : 200),
+    );
     return this.loanViews(rows);
   }
 
   /** Units that are broken, reported, in repair, or due for a check. */
   async attention(): Promise<UnitAttention[]> {
-    const rows = await this.db
-      .select({ u: units, code: parts.code, name: parts.name })
-      .from(units)
-      .innerJoin(parts, eq(parts.id, units.partId))
-      .where(
-        and(
-          ne(units.status, 'retired'),
-          or(inArray(units.status, ATTENTION), lte(units.nextCheckAt, today())),
-        ),
-      )
-      .orderBy(asc(units.nextCheckAt))
-      .all();
+    const rows = await many(
+      this.db
+        .select({ u: units, code: parts.code, name: parts.name })
+        .from(units)
+        .innerJoin(parts, eq(parts.id, units.partId))
+        .where(
+          and(
+            ne(units.status, 'retired'),
+            or(inArray(units.status, ATTENTION), lte(units.nextCheckAt, today())),
+          ),
+        )
+        .orderBy(asc(units.nextCheckAt)),
+    );
     const briefs = await this.briefs(rows.map((r) => r.u));
     return rows.map((r, i) => ({
       unit: briefs[i]!,
@@ -431,18 +438,19 @@ export class UnitService {
   /** The lab's network list, made from the units' network details. Logged-in users only. */
   async network(actor: Actor | null): Promise<NetworkEntry[]> {
     requireScope(actor, 'read');
-    const rows = await this.db
-      .select({ u: units, code: parts.code, name: parts.name })
-      .from(units)
-      .innerJoin(parts, eq(parts.id, units.partId))
-      .where(
-        or(
-          sql`coalesce(${units.ipAddress}, '') <> ''`,
-          sql`coalesce(${units.hostname}, '') <> ''`,
-          sql`coalesce(${units.macAddress}, '') <> ''`,
+    const rows = await many(
+      this.db
+        .select({ u: units, code: parts.code, name: parts.name })
+        .from(units)
+        .innerJoin(parts, eq(parts.id, units.partId))
+        .where(
+          or(
+            sql`coalesce(${units.ipAddress}, '') <> ''`,
+            sql`coalesce(${units.hostname}, '') <> ''`,
+            sql`coalesce(${units.macAddress}, '') <> ''`,
+          ),
         ),
-      )
-      .all();
+    );
     const briefs = await this.briefs(rows.map((r) => r.u));
     return rows
       .map((r, i) => ({
@@ -460,41 +468,44 @@ export class UnitService {
     if (!rows.length) return [];
     const partNames = new Map(
       (
-        await ex
-          .select({ id: parts.id, name: parts.name })
-          .from(parts)
-          .where(inArray(parts.id, [...new Set(rows.map((r) => r.partId))]))
-          .all()
+        await many(
+          ex
+            .select({ id: parts.id, name: parts.name })
+            .from(parts)
+            .where(inArray(parts.id, [...new Set(rows.map((r) => r.partId))])),
+        )
       ).map((p) => [p.id, p.name]),
     );
-    const placeRows = await ex
-      .select()
-      .from(locations)
-      .where(
-        inArray(locations.id, [
-          ...new Set(
-            rows.flatMap((r) => [r.locationId, r.homeLocationId]).filter((x): x is string => !!x),
-          ),
-        ]),
-      )
-      .all();
+    const placeRows = await many(
+      ex
+        .select()
+        .from(locations)
+        .where(
+          inArray(locations.id, [
+            ...new Set(
+              rows.flatMap((r) => [r.locationId, r.homeLocationId]).filter((x): x is string => !!x),
+            ),
+          ]),
+        ),
+    );
     const rowById = new Map(placeRows.map((p) => [p.id, p]));
     const summaryById = new Map(
       (await this.locations.summaries(ex, placeRows)).map((s) => [s.id, s]),
     );
-    const loanRows = await ex
-      .select()
-      .from(loans)
-      .where(
-        and(
-          inArray(
-            loans.unitId,
-            rows.map((r) => r.id),
+    const loanRows = await many(
+      ex
+        .select()
+        .from(loans)
+        .where(
+          and(
+            inArray(
+              loans.unitId,
+              rows.map((r) => r.id),
+            ),
+            isNull(loans.returnedAt),
           ),
-          isNull(loans.returnedAt),
         ),
-      )
-      .all();
+    );
     const loanViews = new Map(
       (await this.loanViews(loanRows, ex)).map((v, i) => [loanRows[i]!.unitId, v]),
     );
@@ -524,11 +535,12 @@ export class UnitService {
   }
 
   async openLoan(ex: Executor, unitId: string): Promise<LoanRow | undefined> {
-    return ex
-      .select()
-      .from(loans)
-      .where(and(eq(loans.unitId, unitId), isNull(loans.returnedAt)))
-      .get();
+    return one(
+      ex
+        .select()
+        .from(loans)
+        .where(and(eq(loans.unitId, unitId), isNull(loans.returnedAt))),
+    );
   }
 
   async event(
@@ -559,16 +571,17 @@ export class UnitService {
 
   /** Units directly at a place (not inside things there), retired ones left out. */
   async directlyAt(locId: string, ex: Executor = this.db): Promise<UnitRow[]> {
-    return ex
-      .select()
-      .from(units)
-      .where(and(eq(units.locationId, locId), notInArray(units.status, ['retired'])))
-      .all();
+    return many(
+      ex
+        .select()
+        .from(units)
+        .where(and(eq(units.locationId, locId), notInArray(units.status, ['retired']))),
+    );
   }
 
   private async placeSummaries(ids: string[]): Promise<Map<string, LocationSummary>> {
     if (!ids.length) return new Map();
-    const rows = await this.db.select().from(locations).where(inArray(locations.id, ids)).all();
+    const rows = await many(this.db.select().from(locations).where(inArray(locations.id, ids)));
     return new Map((await this.locations.summaries(this.db, rows)).map((s) => [s.id, s]));
   }
 
@@ -580,17 +593,18 @@ export class UnitService {
       ),
     ];
     const names = new Map(
-      (await ex.select().from(users).where(inArray(users.id, userIds)).all()).map((u) => [
+      (await many(ex.select().from(users).where(inArray(users.id, userIds)))).map((u) => [
         u.id,
         u.name,
       ]),
     );
-    const unitRows = await ex
-      .select({ id: units.id, code: units.code, name: units.name, part: parts.name })
-      .from(units)
-      .innerJoin(parts, eq(parts.id, units.partId))
-      .where(inArray(units.id, [...new Set(rows.map((r) => r.unitId))]))
-      .all();
+    const unitRows = await many(
+      ex
+        .select({ id: units.id, code: units.code, name: units.name, part: parts.name })
+        .from(units)
+        .innerJoin(parts, eq(parts.id, units.partId))
+        .where(inArray(units.id, [...new Set(rows.map((r) => r.unitId))])),
+    );
     const unitById = new Map(unitRows.map((u) => [u.id, u]));
     return rows.map((r) => {
       const u = unitById.get(r.unitId);
@@ -610,34 +624,4 @@ export class UnitService {
       };
     });
   }
-}
-
-function eventView(
-  e: typeof unitEvents.$inferSelect,
-  user: string | null,
-  places: Map<string, LocationSummary>,
-): UnitEventView {
-  return {
-    id: e.id,
-    kind: e.kind,
-    text: e.text,
-    value: e.value,
-    from: e.fromLocationId ? (places.get(e.fromLocationId) ?? null) : null,
-    to: e.toLocationId ? (places.get(e.toLocationId) ?? null) : null,
-    by: user ?? e.reporterName,
-    guest: !user,
-    at: e.at,
-  };
-}
-
-/** Sorts IPv4 addresses numerically ("10.0.0.9" before "10.0.0.10"); others after them, as text. */
-function ipKey(ip: string | null): string {
-  if (!ip) return '~';
-  const m = /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/.exec(ip.trim());
-  return m
-    ? m
-        .slice(1)
-        .map((n) => n.padStart(3, '0'))
-        .join('.')
-    : `~${ip}`;
 }

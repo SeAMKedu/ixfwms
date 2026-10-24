@@ -1,4 +1,4 @@
-import type { Db } from '../db/client.js';
+import { many, type Db } from '../db/client.js';
 import * as schema from '../db/schema.js';
 
 const EXPORTED = {
@@ -31,7 +31,7 @@ export class ExportService {
       exportedAt: new Date().toISOString(),
     };
     for (const [name, table] of Object.entries(EXPORTED)) {
-      out[name] = await this.db.select().from(table).all();
+      out[name] = await many(this.db.select().from(table));
     }
     return out;
   }

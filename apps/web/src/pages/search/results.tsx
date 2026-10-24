@@ -1,4 +1,4 @@
-import type { PartSummary, UnitBrief } from '@ixfwms/domain';
+import type { PartSearchResult, PartSummary, UnitBrief } from '@ixfwms/domain';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { AmountPill, Pill, PlaceTag, StatusPill } from '../../components/ui';
@@ -24,26 +24,19 @@ export type Row =
   | { kind: 'unit'; part: PartSummary; unit: UnitBrief; href: string };
 
 /**
- * Individually tracked items are listed by their units, so one click lands on the thing itself
- * and where it is. When the query names particular units (own name, serial, code), only those.
+ * The server's results as links: individually tracked items come as their units, so one click
+ * lands on the thing itself and where it is. Which rows, and how many, the server decides.
  */
-export function resultRows(items: PartSummary[], q: string): Row[] {
-  const needle = q.trim().toLowerCase();
-  return items.flatMap((part): Row[] => {
-    const live = part.units.filter((u) => u.status !== 'retired');
-    if (part.tracking !== 'individual' || live.length === 0)
-      return [{ kind: 'part', part, href: `/p/${part.code}` }];
-    const named = needle
-      ? live.filter((u) =>
-          [u.name, u.serialNo, u.code].some((v) => v?.toLowerCase().includes(needle)),
-        )
-      : [];
-    return (named.length ? named : live).map((unit) => ({
-      kind: 'unit',
-      part,
-      unit,
-      href: `/u/${unit.code}`,
-    }));
+export function resultRows(result: PartSearchResult | undefined): Row[] {
+  if (!result) return [];
+  const parts = new Map(result.items.map((p) => [p.id, p]));
+  return result.rows.flatMap((row): Row[] => {
+    const part = parts.get(row.partId);
+    if (!part) return [];
+    const unit = row.unitId ? part.units.find((u) => u.id === row.unitId) : undefined;
+    return unit
+      ? [{ kind: 'unit', part, unit, href: `/u/${unit.code}` }]
+      : [{ kind: 'part', part, href: `/p/${part.code}` }];
   });
 }
 

@@ -10,7 +10,7 @@ import {
   type BomStatus,
 } from '@ixfwms/domain';
 import { eq, inArray } from 'drizzle-orm';
-import type { Db } from '../db/client.js';
+import { many, one, type Db } from '../db/client.js';
 import { partIdentifiers, parts } from '../db/schema.js';
 import { invalid } from '../lib/errors.js';
 import { requireScope, type Actor } from './context.js';
@@ -76,7 +76,7 @@ export class BomService {
     if (input.ref) {
       const code = normalizeCode(input.ref);
       part = isValidCode(code)
-        ? await this.db.select().from(parts).where(eq(parts.code, code)).get()
+        ? await one(this.db.select().from(parts).where(eq(parts.code, code)))
         : undefined;
       part ??= byIdent.get(normalizeIdentifier(input.ref));
       if (part) match = 'exact';
@@ -157,12 +157,13 @@ export class BomService {
     ];
     const map = new Map<string, PartRow>();
     if (keys.length === 0) return map;
-    const hits = await this.db
-      .select({ key: partIdentifiers.valueNormalised, part: parts })
-      .from(partIdentifiers)
-      .innerJoin(parts, eq(parts.id, partIdentifiers.partId))
-      .where(inArray(partIdentifiers.valueNormalised, keys))
-      .all();
+    const hits = await many(
+      this.db
+        .select({ key: partIdentifiers.valueNormalised, part: parts })
+        .from(partIdentifiers)
+        .innerJoin(parts, eq(parts.id, partIdentifiers.partId))
+        .where(inArray(partIdentifiers.valueNormalised, keys)),
+    );
     for (const h of hits) if (!map.has(h.key)) map.set(h.key, h.part);
     return map;
   }

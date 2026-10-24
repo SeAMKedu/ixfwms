@@ -48,9 +48,8 @@ import type {
   PartDetail,
   PartKind,
   PartStatus,
-  PartSummary,
   PlaceOption,
-  SearchResult,
+  PartSearchResult,
   ServerInfo,
   StockLevel,
   UpdateLocationInput,
@@ -68,6 +67,8 @@ export interface PartFilters {
   location?: string;
   inStock?: boolean;
   lowStock?: boolean;
+  /** false: one result per part instead of one per unit of a tool or device. */
+  byUnit?: boolean;
   /** Category field filters as text, e.g. "thread:M4", "lengthMm>=10". */
   attr?: string[];
   limit?: number;
@@ -80,8 +81,7 @@ export const useInfo = () =>
 export const useParts = (filters: PartFilters) =>
   useQuery({
     queryKey: ['parts', filters],
-    queryFn: ({ signal }) =>
-      api<SearchResult<PartSummary>>(`/api/parts${qs({ ...filters })}`, { signal }),
+    queryFn: ({ signal }) => api<PartSearchResult>(`/api/parts${qs({ ...filters })}`, { signal }),
     placeholderData: keepPreviousData,
   });
 

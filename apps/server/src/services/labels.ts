@@ -1,6 +1,6 @@
 import { buildCodeUrl, normalizeCode, type CodeInfo, type LabelBatch } from '@ixfwms/domain';
 import { asc, eq, inArray, isNotNull, like } from 'drizzle-orm';
-import type { Db } from '../db/client.js';
+import { many, one, type Db } from '../db/client.js';
 import { categories, codes, locations, parts, stockLots, units, users } from '../db/schema.js';
 import { invalid } from '../lib/errors.js';
 import type { LabelData } from '../labels/render.js';
@@ -43,40 +43,43 @@ export class LabelService {
   ): Promise<LabelData[]> {
     const root = await this.locations.resolve(ref);
     const rows = opts.recursive
-      ? await this.db
-          .select()
-          .from(locations)
-          .where(like(locations.path, `${root.path}%`))
-          .orderBy(locations.path)
-          .all()
+      ? await many(
+          this.db
+            .select()
+            .from(locations)
+            .where(like(locations.path, `${root.path}%`))
+            .orderBy(locations.path),
+        )
       : [root];
     const out: LabelData[] = [];
     if (opts.include !== 'parts')
       for (const row of rows) out.push(await this.locationLabel(row, baseUrl));
     if (opts.include !== 'locations') {
-      const lots = await this.db
-        .select({ code: parts.code })
-        .from(stockLots)
-        .innerJoin(parts, eq(parts.id, stockLots.partId))
-        .where(
-          inArray(
-            stockLots.locationId,
-            rows.map((r) => r.id),
+      const lots = await many(
+        this.db
+          .select({ code: parts.code })
+          .from(stockLots)
+          .innerJoin(parts, eq(parts.id, stockLots.partId))
+          .where(
+            inArray(
+              stockLots.locationId,
+              rows.map((r) => r.id),
+            ),
           ),
-        )
-        .all();
+      );
       for (const code of [...new Set(lots.map((l) => l.code))])
         out.push(await this.partLabel(code, baseUrl));
-      const unitRows = await this.db
-        .select({ code: units.code })
-        .from(units)
-        .where(
-          inArray(
-            units.locationId,
-            rows.map((r) => r.id),
+      const unitRows = await many(
+        this.db
+          .select({ code: units.code })
+          .from(units)
+          .where(
+            inArray(
+              units.locationId,
+              rows.map((r) => r.id),
+            ),
           ),
-        )
-        .all();
+      );
       for (const { code } of unitRows) out.push(await this.unitLabel(code, baseUrl));
     }
     return out;
@@ -93,13 +96,14 @@ export class LabelService {
 
   /** Reserved-label batches, newest first, with the codes not stuck on anything yet. */
   async batches(): Promise<LabelBatch[]> {
-    const rows = await this.db
-      .select({ r: codes, user: users.name })
-      .from(codes)
-      .leftJoin(users, eq(users.id, codes.createdBy))
-      .where(isNotNull(codes.reservedAt))
-      .orderBy(asc(codes.createdAt))
-      .all();
+    const rows = await many(
+      this.db
+        .select({ r: codes, user: users.name })
+        .from(codes)
+        .leftJoin(users, eq(users.id, codes.createdBy))
+        .where(isNotNull(codes.reservedAt))
+        .orderBy(asc(codes.createdAt)),
+    );
     const byBatch = new Map<string, LabelBatch>();
     for (const { r, user } of rows) {
       const key = r.batchId ?? 'none';
@@ -157,16 +161,18 @@ export class LabelService {
         kind === 'location'
           ? await this.locations.resolve(ref, tx)
           : kind === 'part'
-            ? await tx
-                .select()
-                .from(parts)
-                .where(eq(parts.code, normalizeCode(ref)))
-                .get()
-            : await tx
-                .select({ id: units.id, code: units.code, name: units.name })
-                .from(units)
-                .where(eq(units.code, normalizeCode(ref)))
-                .get();
+            ? await one(
+                tx
+                  .select()
+                  .from(parts)
+                  .where(eq(parts.code, normalizeCode(ref))),
+              )
+            : await one(
+                tx
+                  .select({ id: units.id, code: units.code, name: units.name })
+                  .from(units)
+                  .where(eq(units.code, normalizeCode(ref))),
+              );
       if (!row) throw invalid(kind === 'unit' ? 'labels.noUnit' : 'labels.noPart', { ref });
       const code = newCode ? await claimCode(tx, newCode) : await allocateCode(tx);
       if (kind === 'location')
@@ -220,17 +226,18 @@ export class LabelService {
    * number below. The address goes in `address`, so P-touch templates can print it too.
    */
   private async unitLabel(code: string, baseUrl: string): Promise<LabelData> {
-    const row = await this.db
-      .select({
-        name: units.name,
-        serial: units.serialNo,
-        part: parts.name,
-        homeId: units.homeLocationId,
-      })
-      .from(units)
-      .innerJoin(parts, eq(parts.id, units.partId))
-      .where(eq(units.code, code))
-      .get();
+    const row = await one(
+      this.db
+        .select({
+          name: units.name,
+          serial: units.serialNo,
+          part: parts.name,
+          homeId: units.homeLocationId,
+        })
+        .from(units)
+        .innerJoin(parts, eq(parts.id, units.partId))
+        .where(eq(units.code, code)),
+    );
     const home = row?.homeId
       ? await this.locations.summarize(this.db, await this.locations.resolve(row.homeId))
       : null;
@@ -250,12 +257,13 @@ export class LabelService {
   }
 
   private async partLabel(code: string, baseUrl: string): Promise<LabelData> {
-    const row = await this.db
-      .select({ code: parts.code, name: parts.name, category: categories.path })
-      .from(parts)
-      .leftJoin(categories, eq(categories.id, parts.categoryId))
-      .where(eq(parts.code, code))
-      .get();
+    const row = await one(
+      this.db
+        .select({ code: parts.code, name: parts.name, category: categories.path })
+        .from(parts)
+        .leftJoin(categories, eq(categories.id, parts.categoryId))
+        .where(eq(parts.code, code)),
+    );
     return {
       code,
       kind: 'part',

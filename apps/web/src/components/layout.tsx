@@ -34,7 +34,7 @@ interface NavItem {
 
 function useNavItems(): NavItem[] {
   const { t } = useTranslation();
-  const drafts = useParts({ status: 'draft', limit: 1 }).data?.total ?? 0;
+  const drafts = useParts({ status: 'draft', byUnit: false, limit: 1 }).data?.total ?? 0;
   const reports = useReports().data?.length ?? 0;
   return [
     { to: '/', label: t('nav.parts'), icon: Search },

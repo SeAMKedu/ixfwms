@@ -49,11 +49,15 @@ export function registerPageRoutes(app: FastifyInstance, { services }: AppDeps):
     let results = '';
     if (q) {
       const found = await parts.search({ q, limit: 50, offset: 0 });
-      results = `<h2>${found.total} result(s)</h2><ul>${found.items
-        .map(
-          (p) =>
-            `<li><span><a href="/p/${esc(p.code)}">${esc(p.name)}</a><br><small>${esc(p.manufacturer ?? '')} ${esc(p.identifiers[0]?.value ?? '')}</small></span><small>${esc(p.stock.map((s) => `${s.display} @ ${s.locationCode}`).join(', '))}</small></li>`,
-        )
+      const byId = new Map(found.items.map((p) => [p.id, p]));
+      results = `<h2>${found.total} result(s)</h2><ul>${found.rows
+        .map((row) => {
+          const p = byId.get(row.partId)!;
+          const u = row.unitId ? p.units.find((x) => x.id === row.unitId) : undefined;
+          if (u)
+            return `<li><span><a href="/u/${esc(u.code)}">${esc(u.name)}</a><br><small>${esc(p.manufacturer ?? '')} ${esc(u.serialNo ?? '')}</small></span><small>${esc(u.location.name)}</small></li>`;
+          return `<li><span><a href="/p/${esc(p.code)}">${esc(p.name)}</a><br><small>${esc(p.manufacturer ?? '')} ${esc(p.identifiers[0]?.value ?? '')}</small></span><small>${esc(p.stock.map((s) => `${s.display} @ ${s.locationCode}`).join(', '))}</small></li>`;
+        })
         .join('')}</ul>`;
     }
     const top = await locations.children(null);

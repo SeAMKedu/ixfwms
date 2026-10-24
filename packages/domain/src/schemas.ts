@@ -208,6 +208,8 @@ export const PartSearchInput = z.object({
     .max(10)
     .optional()
     .describe('Filters on category fields, e.g. thread = M4, lengthMm >= 10'),
+  /** One result per unit of a tool or device (the search page), or one per part (Inbox, counts). */
+  byUnit: z.boolean().default(true),
   limit: z.number().int().min(1).max(200).default(50),
   offset: z.number().int().min(0).default(0),
 });

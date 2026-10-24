@@ -7,6 +7,7 @@
 export const ERROR_MESSAGES = {
   'input.invalid': 'Invalid input',
   'server.internal': 'Something went wrong on the server',
+  'server.sameTime': 'Someone else changed this at the same moment; try again',
 
   'notFound.move': 'Move not found: {{ref}}',
   'notFound.part': 'Part not found: {{ref}}',
@@ -92,6 +93,7 @@ export const ERROR_MESSAGES = {
   'codes.inUse.part': 'Code {{code}} is already used by a part',
   'codes.inUse.unit': 'Code {{code}} is already used by a unit',
   'codes.retired': 'Code {{code}} was retired; throw that label away and use another',
+  'codes.taken': 'That code is already in use or retired; pick another',
   'labels.blankCount': 'Ask for 1 to {{max}} blank labels',
   'labels.changeInstead.location': "{{code}} is on a location; change that location's code instead",
   'labels.changeInstead.part': "{{code}} is on a part; change that part's code instead",

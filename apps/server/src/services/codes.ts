@@ -6,7 +6,7 @@ import {
   type CodeInfo,
 } from '@ixfwms/domain';
 import { eq } from 'drizzle-orm';
-import type { Executor } from '../db/client.js';
+import { one, type Executor } from '../db/client.js';
 import { codes } from '../db/schema.js';
 import { invalid } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
@@ -28,7 +28,7 @@ export async function allocateCode(ex: Executor): Promise<string> {
 
 export async function lookupCode(ex: Executor, raw: string): Promise<CodeInfo> {
   const code = normalizeCode(raw);
-  const row = await ex.select().from(codes).where(eq(codes.code, code)).get();
+  const row = await one(ex.select().from(codes).where(eq(codes.code, code)));
   const assigned = row?.ownerType ?? null;
   const retired = row?.retiredAt && !assigned ? { at: row.retiredAt, note: row.note } : null;
   const reserved = row?.reservedAt != null && row.claimedAt == null && !retired && !assigned;
@@ -40,7 +40,9 @@ export async function lookupCode(ex: Executor, raw: string): Promise<CodeInfo> {
 async function forwardOf(ex: Executor, code: string): Promise<CodeInfo['forward']> {
   let current: string | null = code;
   for (let i = 0; current && i < MAX_FORWARDS; i++) {
-    const row = await ex.select().from(codes).where(eq(codes.code, current)).get();
+    const row: typeof codes.$inferSelect | undefined = await one(
+      ex.select().from(codes).where(eq(codes.code, current)),
+    );
     if (row?.ownerType) return { kind: row.ownerType, code: row.code };
     current = row?.forwardTo ?? null;
   }

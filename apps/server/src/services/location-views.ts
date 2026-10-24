@@ -1,6 +1,6 @@
 import { formatAmount, type LocationDetail } from '@ixfwms/domain';
 import { eq, inArray, like, sql } from 'drizzle-orm';
-import type { Db } from '../db/client.js';
+import { many, one, type Db } from '../db/client.js';
 import { locations, parts, stockLots } from '../db/schema.js';
 import type { FileService } from './files.js';
 import type { LocationService } from './locations.js';
@@ -24,33 +24,35 @@ export class LocationViews {
     const counts = new Map<string, number>();
     for (const child of children) {
       const childRow = await this.locations.resolve(child.id);
-      const n = await this.db
-        .select({ n: sql<number>`count(distinct ${stockLots.partId})` })
-        .from(stockLots)
-        .innerJoin(locations, eq(locations.id, stockLots.locationId))
-        .where(like(locations.path, `${childRow.path}%`))
-        .get();
+      const n = await one(
+        this.db
+          .select({ n: sql<number>`count(distinct ${stockLots.partId})` })
+          .from(stockLots)
+          .innerJoin(locations, eq(locations.id, stockLots.locationId))
+          .where(like(locations.path, `${childRow.path}%`)),
+      );
       counts.set(child.id, Number(n?.n ?? 0));
     }
 
-    const lots = await this.db
-      .select({ lot: stockLots, locId: locations.id })
-      .from(stockLots)
-      .innerJoin(locations, eq(locations.id, stockLots.locationId))
-      .where(
-        opts.recursive ? like(locations.path, `${loc.path}%`) : eq(stockLots.locationId, loc.id),
-      )
-      .all();
+    const lots = await many(
+      this.db
+        .select({ lot: stockLots, locId: locations.id })
+        .from(stockLots)
+        .innerJoin(locations, eq(locations.id, stockLots.locationId))
+        .where(
+          opts.recursive ? like(locations.path, `${loc.path}%`) : eq(stockLots.locationId, loc.id),
+        ),
+    );
     const partIds = [...new Set(lots.map((l) => l.lot.partId))];
     const partRows = partIds.length
-      ? await this.db.select().from(parts).where(inArray(parts.id, partIds)).all()
+      ? await many(this.db.select().from(parts).where(inArray(parts.id, partIds)))
       : [];
     const partById = new Map(partRows.map((p) => [p.id, p]));
     const subLocIds = [...new Set(lots.map((l) => l.locId).filter((id) => id !== loc.id))];
     const subLocs = subLocIds.length
       ? await this.locations.summaries(
           this.db,
-          await this.db.select().from(locations).where(inArray(locations.id, subLocIds)).all(),
+          await many(this.db.select().from(locations).where(inArray(locations.id, subLocIds))),
         )
       : [];
     const subById = new Map(subLocs.map((s) => [s.id, s]));

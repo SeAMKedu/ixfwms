@@ -1,4 +1,13 @@
 /**
+ * Text as compared without regard to case: search, category paths, tag and level names.
+ * Folded here rather than with SQL lower(), which in SQLite folds only A–Z ("SÄHKÖ" stays
+ * "sÄhkÖ"); NFC first, so a typed "ä" and a pasted "a + ¨" are the same letter.
+ */
+export function fold(text: string): string {
+  return text.normalize('NFC').toLowerCase();
+}
+
+/**
  * The name after this one, for numbering copies: "Cabinet A" → "Cabinet B", "Shelf 9" → "Shelf 10",
  * "Box 07" → "Box 08", anything else "Drawer" → "Drawer 2".
  */

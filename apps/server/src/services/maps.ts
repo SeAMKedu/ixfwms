@@ -11,7 +11,7 @@ import {
   type MapLink,
 } from '@ixfwms/domain';
 import { and, eq, inArray, like } from 'drizzle-orm';
-import type { Db, Executor } from '../db/client.js';
+import { many, one, type Db, type Executor } from '../db/client.js';
 import { locations, mapDrawings, mapLinks, mapUsages } from '../db/schema.js';
 import { invalid, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
@@ -65,8 +65,8 @@ export class MapService {
   // --- library ---------------------------------------------------------------------------------
 
   async drawings(): Promise<MapDrawingInfo[]> {
-    const rows = await this.db.select().from(mapDrawings).all();
-    const usages = await this.db.select().from(mapUsages).all();
+    const rows = await many(this.db.select().from(mapDrawings));
+    const usages = await many(this.db.select().from(mapUsages));
     const out: MapDrawingInfo[] = [];
     for (const d of rows) {
       const uses: MapDrawingInfo['usages'] = [];
@@ -305,11 +305,12 @@ export class MapService {
    * the matching copies. `pairs` maps original location ids to copy ids.
    */
   async copyMapsFor(tx: Executor, pairs: Map<string, string>): Promise<void> {
-    const originals = await tx
-      .select()
-      .from(mapUsages)
-      .where(inArray(mapUsages.locationId, [...pairs.keys()]))
-      .all();
+    const originals = await many(
+      tx
+        .select()
+        .from(mapUsages)
+        .where(inArray(mapUsages.locationId, [...pairs.keys()])),
+    );
     for (const usage of originals) {
       const original = await this.locations.resolve(usage.locationId, tx);
       const { targets } = await this.resolveLinks(
@@ -343,16 +344,17 @@ export class MapService {
   async layers(ref: string): Promise<MapLayer[]> {
     const loc = await this.locations.resolve(ref);
     const path = await this.locations.pathOf(loc);
-    const usages = await this.db
-      .select()
-      .from(mapUsages)
-      .where(
-        inArray(
-          mapUsages.locationId,
-          path.map((p) => p.id),
+    const usages = await many(
+      this.db
+        .select()
+        .from(mapUsages)
+        .where(
+          inArray(
+            mapUsages.locationId,
+            path.map((p) => p.id),
+          ),
         ),
-      )
-      .all();
+    );
     // Shapes standing for an overdue temporary place, or for something that holds one.
     const late = new Set(
       (await this.locations.overdue()).flatMap((o) => o.path.map((p) => p.code)),
@@ -445,19 +447,20 @@ export class MapService {
   }
 
   private async usage(locationId: string, kind: MapKind): Promise<UsageRow | undefined> {
-    return this.db
-      .select()
-      .from(mapUsages)
-      .where(and(eq(mapUsages.locationId, locationId), eq(mapUsages.kind, kind)))
-      .get();
+    return one(
+      this.db
+        .select()
+        .from(mapUsages)
+        .where(and(eq(mapUsages.locationId, locationId), eq(mapUsages.kind, kind))),
+    );
   }
 
   private async usagesOf(drawingId: string): Promise<UsageRow[]> {
-    return this.db.select().from(mapUsages).where(eq(mapUsages.drawingId, drawingId)).all();
+    return many(this.db.select().from(mapUsages).where(eq(mapUsages.drawingId, drawingId)));
   }
 
   private async drawing(id: string, ex: Executor = this.db): Promise<DrawingRow> {
-    const row = await ex.select().from(mapDrawings).where(eq(mapDrawings.id, id)).get();
+    const row = await one(ex.select().from(mapDrawings).where(eq(mapDrawings.id, id)));
     if (!row) throw notFound('mapDrawing', id);
     return row;
   }
@@ -521,14 +524,15 @@ export class MapService {
   ): Promise<{ check: MapCheck; targets: { elementKey: string; targetId: string }[] }> {
     const keys = await this.elementKeys(drawing);
     const present = new Set(keys);
-    const inside = await ex
-      .select()
-      .from(locations)
-      .where(like(locations.path, `${loc.path}%`))
-      .all();
+    const inside = await many(
+      ex
+        .select()
+        .from(locations)
+        .where(like(locations.path, `${loc.path}%`)),
+    );
     const byId = new Map(inside.map((l) => [l.id, l]));
     const byCode = new Map(inside.filter((l) => l.id !== loc.id).map((l) => [l.code, l]));
-    const explicit = await ex.select().from(mapLinks).where(eq(mapLinks.usageId, usage.id)).all();
+    const explicit = await many(ex.select().from(mapLinks).where(eq(mapLinks.usageId, usage.id)));
 
     const links: MapLink[] = [];
     const broken: MapLink[] = [];
@@ -560,11 +564,9 @@ export class MapService {
     }
     const byName = (x: { name: string }, y: { name: string }) =>
       x.name.localeCompare(y.name, undefined, { numeric: true });
-    const usedBy = await ex
-      .select()
-      .from(mapUsages)
-      .where(eq(mapUsages.drawingId, drawing.id))
-      .all();
+    const usedBy = await many(
+      ex.select().from(mapUsages).where(eq(mapUsages.drawingId, drawing.id)),
+    );
     const check: MapCheck = {
       drawing: { id: drawing.id, name: drawing.name, kind: drawing.kind, usedBy: usedBy.length },
       links: links.sort(byName),
@@ -580,11 +582,12 @@ export class MapService {
 
   /** Every place below `root`, with its path of names and of positions among its siblings. */
   private async subtree(root: LocationRow) {
-    const rows = await this.db
-      .select()
-      .from(locations)
-      .where(like(locations.path, `${root.path}%`))
-      .all();
+    const rows = await many(
+      this.db
+        .select()
+        .from(locations)
+        .where(like(locations.path, `${root.path}%`)),
+    );
     const children = new Map<string, LocationRow[]>();
     for (const r of rows) {
       if (r.id === root.id || !r.parentId) continue;

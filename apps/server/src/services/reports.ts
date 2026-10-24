@@ -1,6 +1,6 @@
 import { ReportInput, type ReportView } from '@ixfwms/domain';
 import { and, desc, eq, inArray, isNull, isNotNull } from 'drizzle-orm';
-import type { Db } from '../db/client.js';
+import { many, one, type Db } from '../db/client.js';
 import { locations, parts, reports, units, users } from '../db/schema.js';
 import { notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
@@ -64,13 +64,14 @@ export class ReportService {
   }
 
   async list(open: boolean): Promise<ReportView[]> {
-    const rows = await this.db
-      .select()
-      .from(reports)
-      .where(open ? isNull(reports.resolvedAt) : isNotNull(reports.resolvedAt))
-      .orderBy(desc(reports.createdAt))
-      .limit(open ? 1000 : 200)
-      .all();
+    const rows = await many(
+      this.db
+        .select()
+        .from(reports)
+        .where(open ? isNull(reports.resolvedAt) : isNotNull(reports.resolvedAt))
+        .orderBy(desc(reports.createdAt))
+        .limit(open ? 1000 : 200),
+    );
     return this.views(rows);
   }
 
@@ -78,7 +79,7 @@ export class ReportService {
   async resolve(id: string, resolution: string | null, actor: Actor | null): Promise<ReportView> {
     const who = requireScope(actor, 'inventory');
     await this.db.transaction(async (tx) => {
-      const report = await tx.select().from(reports).where(eq(reports.id, id)).get();
+      const report = await one(tx.select().from(reports).where(eq(reports.id, id)));
       if (!report) throw notFound('report', id);
       if (report.resolvedAt) return;
       await tx
@@ -86,17 +87,18 @@ export class ReportService {
         .set({ resolvedAt: nowIso(), resolvedBy: who.userId, resolution })
         .where(eq(reports.id, id));
       if (report.ownerType === 'unit') {
-        const others = await tx
-          .select({ id: reports.id })
-          .from(reports)
-          .where(
-            and(
-              eq(reports.ownerType, 'unit'),
-              eq(reports.ownerId, report.ownerId),
-              isNull(reports.resolvedAt),
+        const others = await many(
+          tx
+            .select({ id: reports.id })
+            .from(reports)
+            .where(
+              and(
+                eq(reports.ownerType, 'unit'),
+                eq(reports.ownerId, report.ownerId),
+                isNull(reports.resolvedAt),
+              ),
             ),
-          )
-          .all();
+        );
         const unit = await this.units.resolve(report.ownerId, tx);
         if (!others.length && ['needs_attention', 'broken'].includes(unit.status)) {
           await tx
@@ -112,7 +114,7 @@ export class ReportService {
   }
 
   private async row(id: string): Promise<ReportRow> {
-    const row = await this.db.select().from(reports).where(eq(reports.id, id)).get();
+    const row = await one(this.db.select().from(reports).where(eq(reports.id, id)));
     if (!row) throw notFound('report', id);
     return row;
   }
@@ -124,32 +126,34 @@ export class ReportService {
     const targets = new Map<string, { code: string; name: string }>();
     const unitIds = ids('unit');
     if (unitIds.length) {
-      const unitRows = await this.db.select().from(units).where(inArray(units.id, unitIds)).all();
+      const unitRows = await many(this.db.select().from(units).where(inArray(units.id, unitIds)));
       for (const b of await this.units.briefs(unitRows))
         targets.set(b.id, { code: b.code, name: b.name });
     }
     const partIds = ids('part');
     if (partIds.length)
-      for (const p of await this.db
-        .select({ id: parts.id, code: parts.code, name: parts.name })
-        .from(parts)
-        .where(inArray(parts.id, partIds))
-        .all())
+      for (const p of await many(
+        this.db
+          .select({ id: parts.id, code: parts.code, name: parts.name })
+          .from(parts)
+          .where(inArray(parts.id, partIds)),
+      ))
         targets.set(p.id, { code: p.code, name: p.name });
     const placeIds = ids('location');
     if (placeIds.length)
-      for (const l of await this.db
-        .select({ id: locations.id, code: locations.code, name: locations.name })
-        .from(locations)
-        .where(inArray(locations.id, placeIds))
-        .all())
+      for (const l of await many(
+        this.db
+          .select({ id: locations.id, code: locations.code, name: locations.name })
+          .from(locations)
+          .where(inArray(locations.id, placeIds)),
+      ))
         targets.set(l.id, { code: l.code, name: l.name });
     const userIds = [
       ...new Set(rows.flatMap((r) => [r.userId, r.resolvedBy]).filter((x): x is string => !!x)),
     ];
     const names = new Map(
       userIds.length
-        ? (await this.db.select().from(users).where(inArray(users.id, userIds)).all()).map((u) => [
+        ? (await many(this.db.select().from(users).where(inArray(users.id, userIds)))).map((u) => [
             u.id,
             u.name,
           ])

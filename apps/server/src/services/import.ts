@@ -9,7 +9,7 @@ import {
   type StockAmount,
 } from '@ixfwms/domain';
 import { asc, eq, inArray } from 'drizzle-orm';
-import type { Db } from '../db/client.js';
+import { many, type Db } from '../db/client.js';
 import { importMappings, locations, partIdentifiers, parts } from '../db/schema.js';
 import { AppError, invalid } from '../lib/errors.js';
 import { nowIso } from '../lib/ids.js';
@@ -118,7 +118,7 @@ export class ImportService {
   }
 
   private async plan(rows: ImportRow[], options: ImportOptions): Promise<Plan[]> {
-    const all = await this.db.select().from(locations).all();
+    const all = await many(this.db.select().from(locations));
     const summaries = await this.locations.summaries(this.db, all);
     const byAddress = new Map<string, LocationRow | null>();
     for (const [i, s] of summaries.entries()) {
@@ -181,28 +181,27 @@ export class ImportService {
     ];
     const map = new Map<string, { id: string; code: string; name: string }>();
     if (keys.length === 0) return map;
-    const hits = await this.db
-      .select({
-        key: partIdentifiers.valueNormalised,
-        id: parts.id,
-        code: parts.code,
-        name: parts.name,
-      })
-      .from(partIdentifiers)
-      .innerJoin(parts, eq(parts.id, partIdentifiers.partId))
-      .where(inArray(partIdentifiers.valueNormalised, keys))
-      .all();
+    const hits = await many(
+      this.db
+        .select({
+          key: partIdentifiers.valueNormalised,
+          id: parts.id,
+          code: parts.code,
+          name: parts.name,
+        })
+        .from(partIdentifiers)
+        .innerJoin(parts, eq(parts.id, partIdentifiers.partId))
+        .where(inArray(partIdentifiers.valueNormalised, keys)),
+    );
     for (const h of hits)
       if (!map.has(h.key)) map.set(h.key, { id: h.id, code: h.code, name: h.name });
     return map;
   }
 
   async listMappings(): Promise<{ name: string; mapping: ImportMapping }[]> {
-    const rows = await this.db
-      .select()
-      .from(importMappings)
-      .orderBy(asc(importMappings.name))
-      .all();
+    const rows = await many(
+      this.db.select().from(importMappings).orderBy(asc(importMappings.name)),
+    );
     return rows.map((r) => ({ name: r.name, mapping: ImportMapping.parse(r.mapping) }));
   }
 

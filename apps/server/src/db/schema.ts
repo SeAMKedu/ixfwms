@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  check,
   index,
   integer,
   primaryKey,
@@ -27,6 +28,7 @@ import type {
   UnitStatus,
   UserRole,
 } from '@ixfwms/domain';
+import { nowIso } from '../lib/ids.js';
 import { nowIsoDefault } from './dialect.js';
 
 /*
@@ -36,8 +38,9 @@ import { nowIsoDefault } from './dialect.js';
  */
 
 const id = () => text('id').primaryKey();
-const createdAt = () => text('created_at').notNull().default(nowIsoDefault);
-const updatedAt = () => text('updated_at').notNull().default(nowIsoDefault);
+// The app writes timestamps (nowIso: one fixed-width form); the SQL default is for raw SQL.
+const createdAt = () => text('created_at').notNull().default(nowIsoDefault).$defaultFn(nowIso);
+const updatedAt = () => text('updated_at').notNull().default(nowIsoDefault).$defaultFn(nowIso);
 
 export const users = sqliteTable('users', {
   id: id(),
@@ -150,6 +153,8 @@ export const parts = sqliteTable(
     notes: text('notes'),
     source: text('source'),
     status: text('status').$type<PartStatus>().notNull().default('draft'),
+    /** Name, description, maker and aliases folded (fold()), which search matches against. */
+    searchText: text('search_text'),
     createdBy: text('created_by').references(() => users.id),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -233,6 +238,10 @@ export const stockLots = sqliteTable(
       sql`coalesce(${t.unit}, '')`,
       sql`coalesce(${t.originLocationId}, '')`,
     ),
+    check(
+      'stock_lots_whole_count',
+      sql`${t.mode} <> 'count' or ${t.quantity} = cast(${t.quantity} as integer)`,
+    ),
   ],
 );
 
@@ -312,6 +321,8 @@ export const units = sqliteTable(
       .references(() => parts.id),
     name: text('name'),
     serialNo: text('serial_no'),
+    /** Own name and serial number folded (fold()), which search matches against. */
+    searchText: text('search_text'),
     status: text('status').$type<UnitStatus>().notNull().default('ok'),
     /** Where it is now. */
     locationId: text('location_id')
@@ -370,7 +381,7 @@ export const loans = sqliteTable(
       .notNull()
       .references(() => users.id),
     description: text('description').notNull(),
-    outAt: text('out_at').notNull().default(nowIsoDefault),
+    outAt: text('out_at').notNull().default(nowIsoDefault).$defaultFn(nowIso),
     /** Expected back (a date, YYYY-MM-DD). */
     dueAt: text('due_at'),
     returnedAt: text('returned_at'),
