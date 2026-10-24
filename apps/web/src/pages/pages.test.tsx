@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { renderAt } from '../test/render';
 import { CarryPage } from './carry';
 import { LocationPage } from './location';
+import { NotFoundPage } from './not-found';
 import { ScanPage } from './scan';
 import { SearchPage } from './search';
 
@@ -253,5 +254,27 @@ describe('unknown codes', () => {
     });
     expect(await screen.findByRole('heading', { name: 'New place with code ZZZ9' })).toBeTruthy();
     localStorage.clear();
+  });
+
+  it("sends a merged duplicate's label to the part it was merged into", async () => {
+    const { router } = renderAt(
+      '/p/K7Q2',
+      [
+        { path: '/p/K7Q2', element: <NotFoundPage code="K7Q2" /> },
+        { path: '/p/A3F9', element: <h1>Kept part</h1> },
+      ],
+      {
+        '/api/codes/K7Q2': {
+          code: 'K7Q2',
+          assigned: null,
+          reserved: false,
+          free: false,
+          retired: { at: '2026-10-24T10:00:00.000Z', note: 'was part M3 x 10' },
+          forward: { kind: 'part', code: 'A3F9' },
+        },
+      },
+    );
+    expect(await screen.findByRole('heading', { name: 'Kept part' })).toBeTruthy();
+    expect(router.state.location.pathname).toBe('/p/A3F9');
   });
 });

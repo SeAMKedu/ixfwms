@@ -1,0 +1,1 @@
+ALTER TABLE `code_reservations` ADD `forward_to` text;

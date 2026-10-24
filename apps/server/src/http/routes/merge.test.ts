@@ -48,6 +48,26 @@ describe('merging duplicate parts', () => {
     expect(merged.attachments).toHaveLength(1);
     await expect(parts.get(dup.code)).rejects.toThrow(/not found/);
   });
+
+  it("retires the duplicate's code and sends scans of it to the part that was kept", async () => {
+    const { parts, labels } = env.services;
+    const keep = await parts.create({ ...base, name: 'M3x10 screw' }, env.admin);
+    const dup = await parts.create({ ...base, name: 'M3 x 10' }, env.admin);
+    await parts.mergeInto(dup.code, keep.code, env.admin);
+
+    const info = await labels.lookup(dup.code);
+    expect(info).toMatchObject({ assigned: null, free: false, reserved: false });
+    expect(info.retired?.note).toBe('was part M3 x 10, merged into M3x10 screw');
+    expect(info.forward).toEqual({ kind: 'part', code: keep.code });
+    await expect(
+      env.services.locations.create({ name: 'Box', type: 'box', code: dup.code }, env.admin),
+    ).rejects.toThrow(/retired/);
+
+    // Merged again: the oldest label follows along to wherever the part ended up.
+    const final = await parts.create({ ...base, name: 'Screw M3x10 DIN 912' }, env.admin);
+    await parts.mergeInto(keep.code, final.code, env.admin);
+    expect((await labels.lookup(dup.code)).forward).toEqual({ kind: 'part', code: final.code });
+  });
 });
 
 describe('web login', () => {

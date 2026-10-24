@@ -12,6 +12,8 @@ import { invalid } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
 
 const ATTEMPTS_PER_LENGTH = 8;
+/** Forwards followed at most, in case two merges ever point at each other. */
+const MAX_FORWARDS = 10;
 
 /** Allocates a short code that is unique across places, items, units and pre-printed blank labels. */
 export async function allocateCode(ex: Executor): Promise<string> {
@@ -50,7 +52,32 @@ export async function lookupCode(ex: Executor, raw: string): Promise<CodeInfo> {
       : null;
   const reserved =
     reservation != null && reservation.claimedAt == null && !retired && assigned == null;
-  return { code, assigned, reserved, free: assigned == null && reservation == null, retired };
+  const forward =
+    retired && reservation?.forwardTo ? await forwardOf(ex, reservation.forwardTo) : null;
+  return {
+    code,
+    assigned,
+    reserved,
+    free: assigned == null && reservation == null,
+    retired,
+    forward,
+  };
+}
+
+/** Follows forwards from `code` to whatever holds a code now, or null where the trail ends. */
+async function forwardOf(ex: Executor, code: string): Promise<CodeInfo['forward']> {
+  let current: string | null = code;
+  for (let i = 0; current && i < MAX_FORWARDS; i++) {
+    const info = await lookupCode(ex, current);
+    if (info.assigned) return { kind: info.assigned, code: info.code };
+    const row = await ex
+      .select({ forwardTo: codeReservations.forwardTo })
+      .from(codeReservations)
+      .where(eq(codeReservations.code, current))
+      .get();
+    current = row?.forwardTo ?? null;
+  }
+  return null;
 }
 
 /** Reserves codes for blank labels to stick on boxes before they are registered. */
@@ -80,10 +107,19 @@ export async function claimCode(ex: Executor, raw: string): Promise<string> {
   return info.code;
 }
 
-/** Takes a code out of use for good: it is never handed out again, and scanning it says why. */
-export async function retireCode(ex: Executor, code: string, note: string | null): Promise<void> {
+/**
+ * Takes a code out of use for good: it is never handed out again, and scanning it says why.
+ * With `forwardTo`, scans of it go to that code instead (a merged part's label keeps working).
+ */
+export async function retireCode(
+  ex: Executor,
+  code: string,
+  note: string | null,
+  forwardTo: string | null = null,
+): Promise<void> {
+  const set = { retiredAt: nowIso(), note, forwardTo };
   await ex
     .insert(codeReservations)
-    .values({ code, retiredAt: nowIso(), note })
-    .onConflictDoUpdate({ target: codeReservations.code, set: { retiredAt: nowIso(), note } });
+    .values({ code, ...set })
+    .onConflictDoUpdate({ target: codeReservations.code, set });
 }

@@ -347,6 +347,8 @@ export interface CodeInfo {
   free: boolean;
   /** Taken out of use; the label should be thrown away. */
   retired: { at: string; note: string | null } | null;
+  /** A retired code that still works: scans go here (a duplicate part's code goes to the part it was merged into). */
+  forward: { kind: 'location' | 'part' | 'unit'; code: string } | null;
 }
 
 export interface LabelBatch {

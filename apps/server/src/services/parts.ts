@@ -36,7 +36,7 @@ import {
 } from '../db/schema.js';
 import { AppError, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
-import { allocateCode } from './codes.js';
+import { allocateCode, retireCode } from './codes.js';
 import { audit, requireScope, type Actor } from './context.js';
 import type { FileService } from './files.js';
 import type { LocationService } from './locations.js';
@@ -291,6 +291,12 @@ export class PartService {
       fill.attributes = { ...source.attributes, ...target.attributes };
       await tx.update(parts).set(fill).where(eq(parts.id, target.id));
       await tx.delete(parts).where(eq(parts.id, source.id));
+      await retireCode(
+        tx,
+        source.code,
+        `was part ${source.name}, merged into ${target.name}`,
+        target.code,
+      );
       await audit(tx, who, 'merge', 'part', target.id, {
         mergedPartId: source.id,
         mergedCode: source.code,

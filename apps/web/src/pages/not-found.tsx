@@ -1,14 +1,22 @@
 import { isValidCode, normalizeCode } from '@ixfwms/domain';
 import { useTranslation } from 'react-i18next';
+import { Navigate } from 'react-router';
 import { useCodeInfo } from '../api/queries';
 import { CodeLabel, PageHeader } from '../components/ui';
 import { formatDate } from '../lib/format';
 
-/** Unknown page or code. A retired label says so, so nobody hunts for what it used to mean. */
+const PREFIX = { location: 'l', part: 'p', unit: 'u' } as const;
+
+/**
+ * Unknown page or code. A retired label says so, so nobody hunts for what it used to mean;
+ * one that still leads somewhere (a merged duplicate's) goes there.
+ */
 export function NotFoundPage({ code }: { code?: string }) {
   const { t } = useTranslation();
   const normalized = code ? normalizeCode(code) : '';
   const info = useCodeInfo(normalized, isValidCode(normalized));
+  const forward = info.data?.forward;
+  if (forward) return <Navigate to={`/${PREFIX[forward.kind]}/${forward.code}`} replace />;
   const retired = info.data?.retired;
   if (retired) {
     return (

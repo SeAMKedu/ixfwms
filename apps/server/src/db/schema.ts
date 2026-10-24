@@ -418,6 +418,8 @@ export const codeReservations = sqliteTable('code_reservations', {
   retiredAt: text('retired_at'),
   /** What the code was, e.g. "was place Box: vacuum parts". */
   note: text('note'),
+  /** Where scans of this retired code go instead: the part a duplicate was merged into. */
+  forwardTo: text('forward_to'),
 });
 
 /** Saved spreadsheet column mappings, so the same export format imports with one click next time. */
