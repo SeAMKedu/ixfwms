@@ -1,0 +1,70 @@
+import { normalizeCode, type PartDetail } from '@ixfwms/domain';
+import { useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router';
+import { useShortcut } from '../../lib/shortcuts';
+import { useMergePart, useSetStatus } from '../../api/queries';
+import { Button, Card, ErrorBox, Field, TextInput } from '../../components/ui';
+
+export function Review({ part }: { part: PartDetail }) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const setStatus = useSetStatus(part.code);
+  const merge = useMergePart(part.code);
+  const [target, setTarget] = useState('');
+  const [mergeOpen, setMergeOpen] = useState(false);
+  useShortcut(
+    'r',
+    t('shortcuts.review'),
+    () => setStatus.mutate('active'),
+    part.status === 'draft',
+  );
+  const doMerge = async (e: FormEvent) => {
+    e.preventDefault();
+    const kept = await merge.mutateAsync(normalizeCode(target));
+    void navigate(`/p/${kept.code}`, { replace: true });
+  };
+  return (
+    <Card
+      className={part.status === 'draft' ? 'border-link/40 bg-link-soft/40' : undefined}
+      title={part.status === 'draft' ? undefined : t('part.duplicates')}
+    >
+      {part.status === 'draft' && <p className="text-sm">{t('part.confirmHint')}</p>}
+      <div className="flex flex-wrap gap-2">
+        {part.status === 'draft' && (
+          <Button
+            variant="primary"
+            busy={setStatus.isPending}
+            onClick={() => setStatus.mutate('active')}
+          >
+            {t('part.confirm')}
+          </Button>
+        )}
+        <Button variant={mergeOpen ? 'dark' : 'secondary'} onClick={() => setMergeOpen((o) => !o)}>
+          {t('part.merge')}
+        </Button>
+      </div>
+      {mergeOpen && (
+        <form onSubmit={(e) => void doMerge(e)} className="flex flex-col gap-2">
+          <p className="text-[13px] text-muted">{t('part.mergeHint')}</p>
+          <Field label={t('part.mergeTarget')}>
+            {(id) => (
+              <TextInput
+                id={id}
+                required
+                autoCapitalize="characters"
+                value={target}
+                onChange={(e) => setTarget(e.target.value)}
+                className="font-mono"
+              />
+            )}
+          </Field>
+          <Button type="submit" variant="primary" busy={merge.isPending} className="self-start">
+            {t('part.merge')}
+          </Button>
+        </form>
+      )}
+      <ErrorBox error={setStatus.error ?? merge.error} />
+    </Card>
+  );
+}
