@@ -851,7 +851,7 @@ export function PartPage() {
         </Card>
         {can('write') && p.status === 'active' && <Review part={p} />}
       </div>
-      {can('admin') && <LabelPanel code={p.code} fix="part" />}
+      {can('inventory') && <LabelPanel code={p.code} fix="part" />}
     </>
   );
 }

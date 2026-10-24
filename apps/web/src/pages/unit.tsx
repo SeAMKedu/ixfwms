@@ -753,7 +753,7 @@ export function UnitPage() {
           </Card>
         )}
       </div>
-      {can('admin') && <LabelPanel code={u.code} fix="unit" />}
+      {can('inventory') && <LabelPanel code={u.code} fix="unit" />}
     </>
   );
 }

@@ -747,7 +747,7 @@ export function LocationPage() {
       {canEdit && layers.data && (
         <MapManager code={d.code} layers={layers.data.filter((l) => l.location.code === d.code)} />
       )}
-      {d.kind === 'normal' && can('admin') && (
+      {d.kind === 'normal' && can('inventory') && (
         <LabelPanel
           code={d.code}
           csvHref={`/api/labels.csv?location=${d.code}&recursive=1`}
