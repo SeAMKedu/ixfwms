@@ -27,22 +27,17 @@ import type {
   UnitStatus,
   UserRole,
 } from '@ixfwms/domain';
+import { nowIsoDefault } from './dialect.js';
 
 /*
- * SQLite schema. The app is SQLite through and through (strftime defaults, json_extract,
- * VACUUM INTO backups, the code triggers), which suits one lab server with one file.
+ * SQLite schema. Kept to portable column types (text, integer, real, json-as-text) so a
+ * Postgres variant stays a mechanical translation; SQL that differs lives in ./dialect.ts.
  * Timestamps are ISO-8601 strings in UTC.
  */
 
 const id = () => text('id').primaryKey();
-const createdAt = () =>
-  text('created_at')
-    .notNull()
-    .default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`);
-const updatedAt = () =>
-  text('updated_at')
-    .notNull()
-    .default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`);
+const createdAt = () => text('created_at').notNull().default(nowIsoDefault);
+const updatedAt = () => text('updated_at').notNull().default(nowIsoDefault);
 
 export const users = sqliteTable('users', {
   id: id(),
@@ -357,9 +352,7 @@ export const loans = sqliteTable(
       .notNull()
       .references(() => users.id),
     description: text('description').notNull(),
-    outAt: text('out_at')
-      .notNull()
-      .default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`),
+    outAt: text('out_at').notNull().default(nowIsoDefault),
     /** Expected back (a date, YYYY-MM-DD). */
     dueAt: text('due_at'),
     returnedAt: text('returned_at'),

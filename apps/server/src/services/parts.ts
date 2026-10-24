@@ -18,6 +18,7 @@ import {
 import { and, asc, desc, eq, exists, inArray, like, or, sql, type SQL } from 'drizzle-orm';
 import type { z } from 'zod';
 import type { Db, Executor } from '../db/client.js';
+import { jsonValue } from '../db/dialect.js';
 import {
   attachments,
   categories,
@@ -726,9 +727,9 @@ export class PartService {
 
 /** SQL for one category-field filter on parts.attributes (keys are validated, so the JSON path is safe). */
 function attributeCondition(filter: AttributeFilter): SQL {
-  const value = sql`json_extract(${parts.attributes}, ${`$.${filter.key}`})`;
+  const value = jsonValue(parts.attributes, [filter.key]);
   // Colour values are { name, hex }: text filters compare the name.
-  const text = sql`lower(cast(coalesce(json_extract(${parts.attributes}, ${`$.${filter.key}.name`}), ${value}) as text))`;
+  const text = sql`lower(cast(coalesce(${jsonValue(parts.attributes, [filter.key, 'name'])}, ${value}) as text))`;
   switch (filter.op) {
     case 'gte':
       return sql`cast(${value} as real) >= ${Number(filter.value)}`;
