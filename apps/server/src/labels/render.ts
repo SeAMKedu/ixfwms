@@ -89,7 +89,7 @@ interface Line {
  * A complete tape label in millimetres: QR on the left, text on the right. Fixed places show their
  * address ("Robolab-A-" small, "C" large); containers, parts and blank labels show the code.
  * 9 mm: QR + address or code. 12 mm: + name. 24 mm: + name and path.
- * Units (tools, devices) show their name and home address instead; the code is in the QR.
+ * Units (tools, devices) show their name and home address instead (both also on 9 mm); the code is in the QR.
  */
 export function labelSvg(label: LabelData, tape: TapeWidth, ecl: ErrorCorrection = 'M'): string {
   const h = PRINTABLE_MM[tape];
@@ -171,7 +171,8 @@ function unitLines(label: LabelData, tape: TapeWidth, h: number): Line[] {
     mono: false,
     bold: true,
   });
-  if (tape === 9) return [home ? where(h * 0.5) : name(h * 0.5, 22)];
+  // 9 mm fits two small lines: the name, and where it belongs (or the code).
+  if (tape === 9) return [name(h * 0.38, 22), where(h * 0.34)];
   if (tape === 12) return [name(h * 0.34, 26), where(h * 0.3)];
   const detail = [label.path, home ? label.code : ''].filter(Boolean).join(' · ');
   return [

@@ -45,6 +45,7 @@ describe('label rendering', () => {
       movable: false,
     };
     const narrow = labelSvg(drill, 9);
+    expect(narrow).toContain('Drill 2');
     expect(narrow).toContain('Robolab-A-3');
     expect(narrow).not.toContain('D2D2</text>');
     const mid = labelSvg(drill, 12);

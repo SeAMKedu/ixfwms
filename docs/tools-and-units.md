@@ -16,7 +16,7 @@ An item can switch between the two kinds of tracking while it has neither stock 
 
 Add units on the item page (**Add units**): one per line as `name; serial number`, or just a number for that many. Give their **home place**, where they belong. Each unit gets its own code and QR label (`/U/<code>`).
 
-A unit's label shows its name and its **home address** (e.g. `Robolab-A-3`), so whoever finds it lying around knows where it goes; the code is in the QR. On 9 mm tape only the home address fits; 24 mm adds the item, serial number and code. Without a home place, the code takes the address's place. P-touch Editor templates get the home address in the CSV's `address` column.
+A unit's label shows its name and its **home address** (e.g. `Robolab-A-3`), so whoever finds it lying around knows where it goes; the code is in the QR. On 9 mm tape both are printed in two small lines; 24 mm adds the item, serial number and code. Without a home place, the code takes the address's place. P-touch Editor templates get the home address in the CSV's `address` column.
 
 A unit page shows:
 
