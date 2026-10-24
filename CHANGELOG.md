@@ -1,6 +1,15 @@
 # Changelog
 
 All notable changes to ixfwms.
+## 0.13.0 (2026-10-24)
+
+### Features
+- leave people's names out for readers without a login
+- erase a person's data, keeping their history as "Removed user"
+
+### Maintenance
+- keep namesHidden private
+- license copyright to SEAMK
 ## 0.12.0 (2026-10-24)
 
 ### Features
