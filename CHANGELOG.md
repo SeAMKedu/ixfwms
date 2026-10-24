@@ -1,6 +1,13 @@
 # Changelog
 
 All notable changes to ixfwms.
+## 0.11.1 (2026-10-24)
+
+### Features
+- search lists tools by their units; drop the order no. column
+
+### Maintenance
+- cap file and function size in lint; trim bundled fonts
 ## 0.11.0 (2026-10-24)
 
 ### Features

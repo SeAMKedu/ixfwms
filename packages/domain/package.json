@@ -1,6 +1,6 @@
 {
   "name": "@ixfwms/domain",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "private": true,
   "description": "Pure domain logic and shared schemas for ixfwms (no I/O)",
   "type": "module",
