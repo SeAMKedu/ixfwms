@@ -1,14 +1,14 @@
 import {
   MEASURE_UNITS,
-  STOCK_LEVELS,
   type AmountInput,
   type MeasureUnit,
   type StockLevel,
   type StockMode,
 } from '@ixfwms/domain';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { parseNumber } from '../lib/format';
+import { useStockLevels } from '../lib/levels';
 import { Field, Segmented, Select, TextInput } from './ui';
 
 export interface AmountState {
@@ -50,7 +50,13 @@ export function AmountFields({
   lockMode?: boolean;
 }) {
   const { t } = useTranslation();
+  const { levels, label } = useStockLevels();
   const set = (patch: Partial<AmountState>) => onChange({ ...value, ...patch });
+  // The lab may not have a "plenty" level: start from its first (best) one.
+  const known = levels.some((l) => l.key === value.level);
+  useEffect(() => {
+    if (!known && levels[0]) onChange({ ...value, level: levels[0].key });
+  }, [known, levels, value, onChange]);
   return (
     <div className="flex flex-col gap-2">
       {!lockMode && (
@@ -68,14 +74,10 @@ export function AmountFields({
       {value.mode === 'level' ? (
         <Field label={t('amount.level')}>
           {(id) => (
-            <Select
-              id={id}
-              value={value.level}
-              onChange={(e) => set({ level: e.target.value as StockLevel })}
-            >
-              {STOCK_LEVELS.map((l) => (
-                <option key={l} value={l}>
-                  {t(`amount.${l}`)}
+            <Select id={id} value={value.level} onChange={(e) => set({ level: e.target.value })}>
+              {levels.map((l) => (
+                <option key={l.key} value={l.key}>
+                  {label(l.key)}
                 </option>
               ))}
             </Select>

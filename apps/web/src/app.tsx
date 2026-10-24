@@ -17,6 +17,7 @@ import { MapsPage } from './pages/maps';
 import {
   CarryingSection,
   GuestsSection,
+  LevelsSection,
   LabelsSection,
   MappingsSection,
   ServerSection,
@@ -67,6 +68,7 @@ const routes = [
           { index: true, element: <SettingsIndex /> },
           { path: 'types', element: <TypesSection /> },
           { path: 'categories', element: <CategoriesPage /> },
+          { path: 'levels', element: <LevelsSection /> },
           { path: 'carrying', element: <CarryingSection /> },
           { path: 'labels', element: <LabelsSection /> },
           { path: 'import', element: <MappingsSection /> },

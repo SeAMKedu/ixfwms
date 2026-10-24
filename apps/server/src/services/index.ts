@@ -54,10 +54,10 @@ export function createServices(
   const locations = new LocationService(db);
   const resolver = new PartResolver(db);
   const files = new FileService(db, join(config.dataDir, 'files'), locations, resolver);
-  const stock = new StockService(db, locations, resolver);
+  const settings = new SettingsService(db);
+  const stock = new StockService(db, locations, resolver, settings);
   const units = new UnitService(db, locations, resolver);
   const parts = new PartService(db, resolver, locations, stock, files, units);
-  const settings = new SettingsService(db);
   return {
     auth: new AuthService(db),
     backup: new BackupService(database.client, join(config.dataDir, 'backups'), config.backupKeep),
@@ -77,7 +77,7 @@ export function createServices(
     settings,
     stock,
     units,
-    where: new WhereService(parts),
+    where: new WhereService(parts, stock),
   };
 }
 

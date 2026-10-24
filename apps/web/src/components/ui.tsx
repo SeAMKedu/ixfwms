@@ -11,6 +11,7 @@ import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, type LinkProps } from 'react-router';
 import { ApiError } from '../api/client';
+import { useStockLevels } from '../lib/levels';
 import { placeTag } from '../lib/places';
 
 const cx = (...classes: (string | false | null | undefined)[]) => classes.filter(Boolean).join(' ');
@@ -147,11 +148,16 @@ export function StatusPill({ status }: { status: PartStatus }) {
   return <Pill tone={status === 'draft' ? 'info' : 'muted'}>{t(`status.${status}`)}</Pill>;
 }
 
-/** Stock amount with a colour hint: empty/zero is red, "low" is amber. */
+/** Stock amount with a colour hint: empty/zero is red, low is amber. Levels show the lab's names. */
 export function AmountPill({ display }: { display: string }) {
-  const tone: Tone =
-    display === 'empty' || /^0(\s|$)/.test(display) ? 'crit' : display === 'low' ? 'warn' : 'ok';
-  return <Pill tone={tone}>{display}</Pill>;
+  const { find, label } = useStockLevels();
+  const level = find(display);
+  const tone: Tone = level
+    ? { ok: 'ok' as const, low: 'warn' as const, empty: 'crit' as const }[level.state]
+    : /^0(\s|$)/.test(display)
+      ? 'crit'
+      : 'ok';
+  return <Pill tone={tone}>{level ? label(display) : display}</Pill>;
 }
 
 /** A location or part code drawn like the white P-touch label it is printed on. */

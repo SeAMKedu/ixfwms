@@ -1,10 +1,4 @@
-import {
-  IMPORT_FIELDS,
-  MEASURE_UNITS,
-  STOCK_LEVELS,
-  type ImportField,
-  type ImportRow,
-} from '@ixfwms/domain';
+import { IMPORT_FIELDS, MEASURE_UNITS, type ImportField, type ImportRow } from '@ixfwms/domain';
 import type { Table } from './table';
 
 export type Columns = Partial<Record<ImportField, string>>;
@@ -96,10 +90,8 @@ export function mapRows(table: Table, headerRow: number, columns: Columns): Mapp
         row: null,
         problem: `unknown unit "${unitText}" (use ${['pcs', ...MEASURE_UNITS].join(', ')})`,
       };
-    const levelText = cell(r, 'level').toLowerCase();
-    const level = (STOCK_LEVELS as readonly string[]).includes(levelText)
-      ? (levelText as ImportRow['level'])
-      : undefined;
+    // Any of the lab's level names or keys; the server checks it against the list.
+    const level = cell(r, 'level') || undefined;
     const optional = (field: ImportField) => cell(r, field) || null;
     return {
       line,

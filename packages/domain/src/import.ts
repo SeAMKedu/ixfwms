@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MEASURE_UNITS, STOCK_LEVELS } from './quantity.js';
+import { MEASURE_UNITS } from './quantity.js';
 
 /** One row of a spreadsheet, after the person has mapped its columns to these fields. */
 export const ImportRow = z.object({
@@ -13,7 +13,8 @@ export const ImportRow = z.object({
   tags: z.array(z.string().trim().min(1).max(60)).max(20).default([]),
   quantity: z.number().nonnegative().nullish(),
   unit: z.union([z.literal('pcs'), z.enum(MEASURE_UNITS)]).nullish(),
-  level: z.enum(STOCK_LEVELS).nullish(),
+  /** A stock level's key or name; the server checks it against the lab's levels. */
+  level: z.string().trim().min(1).max(60).nullish(),
   /** A place code, or a path of names like "Robotics lab › Cabinet A › Shelf 3". */
   location: z.string().trim().max(500).nullish(),
   unitMassG: z.number().positive().nullish(),

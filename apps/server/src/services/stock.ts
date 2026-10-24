@@ -1,7 +1,9 @@
 import {
   estimateCount,
+  findLevel,
   formatAmount,
   isCompatible,
+  type StockLevelDef,
   type AddStockInput,
   type AmountInput,
   type LotView,
@@ -17,10 +19,9 @@ import { newId, nowIso } from '../lib/ids.js';
 import { requireScope, type Actor } from './context.js';
 import type { LocationService } from './locations.js';
 import type { PartResolver } from './parts.js';
+import type { SettingsService } from './settings.js';
 
 export type LotRow = typeof stockLots.$inferSelect;
-
-const LEVEL_RANK: Record<StockLevel, number> = { empty: 0, low: 1, plenty: 2 };
 
 function amountOf(
   lot: Pick<LotRow, 'mode' | 'quantity' | 'unit' | 'level' | 'tareG'>,
@@ -49,7 +50,22 @@ export class StockService {
     private readonly db: Db,
     private readonly locations: LocationService,
     private readonly parts: PartResolver,
+    private readonly settings: SettingsService,
   ) {}
+
+  /** The lab's stock levels, best first. */
+  async levels(): Promise<StockLevelDef[]> {
+    return (await this.settings.get()).stockLevels;
+  }
+
+  /** The key of a level given by key or name; an error lists the lab's levels otherwise. */
+  async levelKey(text: string): Promise<string> {
+    const levels = await this.levels();
+    const level = findLevel(text, levels);
+    if (!level)
+      throw invalid(`Unknown level "${text}". Levels: ${levels.map((l) => l.name).join(', ')}`);
+    return level.key;
+  }
 
   async add(input: AddStockInput, actor: Actor | null): Promise<LotView> {
     const who = requireScope(actor, 'inventory');
@@ -84,6 +100,9 @@ export class StockService {
       .get();
     if (part?.tracking === 'individual')
       throw invalid(`${part.name} is tracked one by one; add units instead of an amount`);
+    if (amount.mode === 'level' && amount.level)
+      amount = { ...amount, level: await this.levelKey(amount.level) };
+    const levels = await this.levels();
     const location = locationRef
       ? await this.locations.resolve(locationRef, tx)
       : await this.locations.inbox(tx);
@@ -100,7 +119,7 @@ export class StockService {
       lotId = existing.id;
       await tx
         .update(stockLots)
-        .set({ ...merge(amountOf(existing), amount), updatedAt: nowIso() })
+        .set({ ...merge(amountOf(existing), amount, levels), updatedAt: nowIso() })
         .where(eq(stockLots.id, lotId));
     } else {
       lotId = newId();
@@ -132,13 +151,10 @@ export class StockService {
     return this.db.transaction(async (tx) => {
       const lot = await this.lot(tx, lotId);
       if (lot.mode === 'level') {
-        if (!level)
-          throw invalid(
-            'This stock is tracked as a level; give the new level (plenty, low, empty)',
-          );
+        if (!level) throw invalid('This stock is tracked as a level; give the new level');
         await tx
           .update(stockLots)
-          .set({ level, updatedAt: nowIso() })
+          .set({ level: await this.levelKey(level), updatedAt: nowIso() })
           .where(eq(stockLots.id, lot.id));
       } else {
         if (quantity == null || quantity <= 0) throw invalid('Give how much was taken');
@@ -165,6 +181,7 @@ export class StockService {
     return this.db.transaction(async (tx) => {
       const lot = await this.lot(tx, lotId);
       const next = toAmount(amount);
+      if (next.mode === 'level' && next.level) next.level = await this.levelKey(next.level);
       await tx
         .update(stockLots)
         .set({
@@ -232,7 +249,7 @@ export class StockService {
       if (target) {
         await tx
           .update(stockLots)
-          .set({ ...merge(amountOf(target), moved), updatedAt: nowIso() })
+          .set({ ...merge(amountOf(target), moved, await this.levels()), updatedAt: nowIso() })
           .where(eq(stockLots.id, target.id));
         destLotId = target.id;
       } else {
@@ -314,8 +331,9 @@ export class StockService {
         .all()
     ).filter((l) => l.id !== lot.id && isCompatible(l, lot));
     let amount = amountOf(lot);
+    const levels = await this.levels();
     for (const s of siblings) {
-      amount = { ...amount, ...merge(amount, amountOf(s)) };
+      amount = { ...amount, ...merge(amount, amountOf(s), levels) };
       await tx.delete(stockLots).where(eq(stockLots.id, s.id));
     }
     if (siblings.length) {
@@ -397,12 +415,18 @@ export class StockService {
   }
 }
 
-/** Combines two compatible amounts: quantities add up, levels keep the better one. */
-function merge(into: StockAmount, add: StockAmount): Pick<StockAmount, 'quantity' | 'level'> {
+/** Combines two compatible amounts: quantities add up, levels keep the better one (earlier in the list). */
+function merge(
+  into: StockAmount,
+  add: StockAmount,
+  levels: StockLevelDef[],
+): Pick<StockAmount, 'quantity' | 'level'> {
   if (into.mode === 'level') {
-    const a = into.level ?? 'empty';
-    const b = add.level ?? 'empty';
-    return { quantity: null, level: LEVEL_RANK[b] > LEVEL_RANK[a] ? b : a };
+    const rank = (key: string | null) => {
+      const i = levels.findIndex((l) => l.key === key);
+      return i < 0 ? levels.length : i;
+    };
+    return { quantity: null, level: rank(add.level) < rank(into.level) ? add.level : into.level };
   }
   return { quantity: (into.quantity ?? 0) + (add.quantity ?? 0), level: null };
 }

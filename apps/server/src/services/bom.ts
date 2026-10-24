@@ -1,4 +1,5 @@
 import {
+  levelState,
   estimateCount,
   isValidCode,
   normalizeCode,
@@ -102,6 +103,7 @@ export class BomService {
       };
 
     const lots = await this.stock.lotsOfPart(part.id);
+    const levels = await this.stock.levels();
     let available = 0;
     let uncounted = false;
     let plenty = false;
@@ -109,10 +111,13 @@ export class BomService {
       const n = estimateCount(lot.amount, part.unitMassG);
       if (n != null) available += n;
       else if (
-        lot.amount.mode === 'level' ? lot.amount.level !== 'empty' : (lot.amount.quantity ?? 0) > 0
+        lot.amount.mode === 'level'
+          ? levelState(lot.amount.level, levels) !== 'empty'
+          : (lot.amount.quantity ?? 0) > 0
       ) {
         uncounted = true;
-        if (lot.amount.level === 'plenty' || lot.amount.mode === 'measure') plenty = true;
+        if (lot.amount.mode === 'measure' || levelState(lot.amount.level, levels) === 'ok')
+          plenty = true;
       }
     }
     const status: BomStatus =

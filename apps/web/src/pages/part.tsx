@@ -1,7 +1,6 @@
 import {
   ATTACHMENT_KINDS,
   REPORT_KINDS,
-  STOCK_LEVELS,
   type ReportKind,
   normalizeCode,
   type AttachmentKind,
@@ -58,6 +57,7 @@ import {
 } from '../components/ui';
 import { GuestName, UnitList, useOpenActions } from '../components/units';
 import { formatBytes, formatDate, parseNumber } from '../lib/format';
+import { useStockLevels } from '../lib/levels';
 import { NotFoundPage } from './not-found';
 
 type LotAction = 'take' | 'move' | 'count' | 'carry' | 'bench' | null;
@@ -67,7 +67,8 @@ function LotRow({ lot, canEdit, first }: { lot: LotView; canEdit: boolean; first
   const [action, setAction] = useState<LotAction>(null);
   const [showMap, setShowMap] = useState(false);
   const [qty, setQty] = useState('');
-  const [level, setLevel] = useState<StockLevel>(lot.amount.level ?? 'low');
+  const levels = useStockLevels();
+  const [level, setLevel] = useState<StockLevel>(lot.amount.level ?? '');
   const [dest, setDest] = useState('');
   const [amount, setAmount] = useAmountState(lot.amount.mode);
   const take = useTakeStock();
@@ -224,14 +225,10 @@ function LotRow({ lot, canEdit, first }: { lot: LotView; canEdit: boolean; first
             (isLevel ? (
               <Field label={t('part.newLevel')}>
                 {(id) => (
-                  <Select
-                    id={id}
-                    value={level}
-                    onChange={(e) => setLevel(e.target.value as StockLevel)}
-                  >
-                    {STOCK_LEVELS.map((l) => (
-                      <option key={l} value={l}>
-                        {t(`amount.${l}`)}
+                  <Select id={id} value={level} onChange={(e) => setLevel(e.target.value)}>
+                    {levels.levels.map((l) => (
+                      <option key={l.key} value={l.key}>
+                        {levels.label(l.key)}
                       </option>
                     ))}
                   </Select>

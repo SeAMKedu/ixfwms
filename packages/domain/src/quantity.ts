@@ -1,8 +1,58 @@
 export const STOCK_MODES = ['count', 'measure', 'level'] as const;
 export type StockMode = (typeof STOCK_MODES)[number];
 
-export const STOCK_LEVELS = ['plenty', 'low', 'empty'] as const;
-export type StockLevel = (typeof STOCK_LEVELS)[number];
+/**
+ * What a level means for stock checks: `ok` is in stock, `low` is in stock but should be
+ * reordered, `empty` is out. The levels themselves (names, how many) are a lab setting.
+ */
+export const LEVEL_STATES = ['ok', 'low', 'empty'] as const;
+export type LevelState = (typeof LEVEL_STATES)[number];
+
+/** One stock level, e.g. { key: 'plenty', name: 'Plenty', state: 'ok' }. Stock stores the key. */
+export interface StockLevelDef {
+  key: string;
+  name: string;
+  state: LevelState;
+}
+
+/** A level's key, as stored on stock lots. */
+export type StockLevel = string;
+
+/** The levels a lab starts with, best first. */
+export const DEFAULT_STOCK_LEVELS: StockLevelDef[] = [
+  { key: 'plenty', name: 'Plenty', state: 'ok' },
+  { key: 'low', name: 'Low', state: 'low' },
+  { key: 'empty', name: 'Empty', state: 'empty' },
+];
+
+/** The state of a level key; unknown keys (a level since removed) count as low. */
+export function levelState(
+  key: string | null | undefined,
+  levels: StockLevelDef[] = DEFAULT_STOCK_LEVELS,
+): LevelState {
+  return levels.find((l) => l.key === key)?.state ?? 'low';
+}
+
+/** Finds a level by key or name, case-insensitively ("Low", "low", "Puolillaan"). */
+export function findLevel(text: string, levels: StockLevelDef[]): StockLevelDef | undefined {
+  const t = text.trim().toLowerCase();
+  return levels.find((l) => l.key.toLowerCase() === t || l.name.toLowerCase() === t);
+}
+
+/** "Half full" → "half_full": keys for new levels. */
+export function levelKey(name: string, taken: string[]): string {
+  const base =
+    name
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_|_$/g, '')
+      .slice(0, 30) || 'level';
+  let key = base;
+  for (let n = 2; taken.includes(key); n++) key = `${base}_${n}`;
+  return key;
+}
 
 export const MEASURE_UNITS = ['g', 'kg', 'm', 'mm', 'ml', 'l'] as const;
 export type MeasureUnit = (typeof MEASURE_UNITS)[number];
@@ -33,8 +83,11 @@ export function estimateCount(
 }
 
 /** True when a lot should be considered out of stock. */
-export function isEmpty(amount: StockAmount): boolean {
-  if (amount.mode === 'level') return amount.level === 'empty';
+export function isEmpty(
+  amount: StockAmount,
+  levels: StockLevelDef[] = DEFAULT_STOCK_LEVELS,
+): boolean {
+  if (amount.mode === 'level') return levelState(amount.level, levels) === 'empty';
   return amount.quantity != null && amount.quantity <= 0;
 }
 

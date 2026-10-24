@@ -781,7 +781,18 @@
       "workstation": "Also gather tools and parts at a workstation, and clear it again."
     },
     "guestsNever": "Never without an account: lending, pallets, editing or deleting.",
-    "workstation": "Workstation"
+    "workstation": "Workstation",
+    "levels": "Stock levels",
+    "levelsIntro": "The levels offered for stock tracked as a level, best first. Each one means OK, low (shows in the low-stock list) or empty. A level some stock is at can't be removed until that stock is set to another one.",
+    "levelName": "Level name",
+    "levelState": "Means",
+    "levelStates": {
+      "ok": "OK",
+      "low": "Low, reorder",
+      "empty": "Empty"
+    },
+    "addLevel": "Add a level",
+    "newLevel": "New level"
   },
   "temporary": {
     "lastActivity": "last activity {{date}}",

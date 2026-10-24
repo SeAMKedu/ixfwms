@@ -1,5 +1,12 @@
-import type { LocationSummary, PartSummary, UnitBrief, WhereIsAnswer } from '@ixfwms/domain';
+import type {
+  LocationSummary,
+  PartSummary,
+  StockLevelDef,
+  UnitBrief,
+  WhereIsAnswer,
+} from '@ixfwms/domain';
 import type { PartService } from './parts.js';
+import type { StockService } from './stock.js';
 
 const STATUS_TEXT: Record<string, string> = {
   needs_attention: 'Someone reported a problem with it.',
@@ -15,15 +22,19 @@ const place = (p: LocationSummary) => p.address || p.name;
  * by a voice assistant. English, like the rest of the MCP interface.
  */
 export class WhereService {
-  constructor(private readonly parts: PartService) {}
+  constructor(
+    private readonly parts: PartService,
+    private readonly stock: StockService,
+  ) {}
 
   async ask(query: string, limit = 5): Promise<WhereIsAnswer[]> {
     const { items } = await this.parts.search({ q: query, limit, offset: 0 });
-    return items.flatMap((item) => answersFor(item));
+    const levels = await this.stock.levels();
+    return items.flatMap((item) => answersFor(item, levels));
   }
 }
 
-function answersFor(item: PartSummary): WhereIsAnswer[] {
+function answersFor(item: PartSummary, levels: StockLevelDef[]): WhereIsAnswer[] {
   const ref = { code: item.code, name: item.name, kind: item.kind };
   if (item.tracking === 'individual') {
     if (!item.units.length)
@@ -33,7 +44,10 @@ function answersFor(item: PartSummary): WhereIsAnswer[] {
       .map((u) => ({ item: ref, unit: u.code, text: unitSentence(u) }));
   }
   if (!item.stock.length) return [{ item: ref, unit: null, text: `${item.name}: none in stock.` }];
-  const shown = item.stock.slice(0, 3).map((s) => `${s.display} at ${place(s.place)}`);
+  // Level-tracked stock shows the level's key; say its name instead.
+  const amount = (display: string) =>
+    levels.find((l) => l.key === display)?.name.toLowerCase() ?? display;
+  const shown = item.stock.slice(0, 3).map((s) => `${amount(s.display)} at ${place(s.place)}`);
   const more = item.stock.length > 3 ? `, and ${item.stock.length - 3} more places` : '';
   return [{ item: ref, unit: null, text: `${item.name}: ${shown.join(', ')}${more}.` }];
 }

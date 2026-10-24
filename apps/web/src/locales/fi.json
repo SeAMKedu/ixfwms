@@ -781,7 +781,18 @@
       "workstation": "Myös kerätä työkaluja ja osia työpisteelle ja siivota se taas."
     },
     "guestsNever": "Ei koskaan ilman tunnusta: lainaaminen, lavat, muokkaus tai poistaminen.",
-    "workstation": "Työpiste"
+    "workstation": "Työpiste",
+    "levels": "Saldotasot",
+    "levelsIntro": "Tasona seurattavan saldon vaihtoehdot, paras ensin. Kukin tarkoittaa riittää, vähissä (näkyy vähissä-listalla) tai loppu. Tasoa, jolla jotain on, ei voi poistaa ennen kuin se on vaihdettu toiseen.",
+    "levelName": "Tason nimi",
+    "levelState": "Tarkoittaa",
+    "levelStates": {
+      "ok": "Riittää",
+      "low": "Vähissä, tilattava",
+      "empty": "Loppu"
+    },
+    "addLevel": "Lisää taso",
+    "newLevel": "Uusi taso"
   },
   "temporary": {
     "lastActivity": "viimeksi käytetty {{date}}",

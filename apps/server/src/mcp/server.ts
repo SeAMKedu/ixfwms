@@ -10,7 +10,6 @@ import {
   PART_KINDS,
   PART_STATUSES,
   REPORT_KINDS,
-  STOCK_LEVELS,
   TRACKING_MODES,
   UNIT_LOG_KINDS,
   UpdateUnitInput,
@@ -25,7 +24,7 @@ const MCP_INSTRUCTIONS = `ixfwms is the robotics lab's inventory: parts, tools a
 
 Places form a tree (lab › cabinet › shelf › box). Every place, item and unit has a short code like A3F9, printed on its QR label; any tool taking a "ref" accepts that code or the internal id.
 
-Bulk items (screws, suction cups, filament) are tracked per place as a count (pcs), a measure (g, kg, m, mm, ml, l) or a level (plenty, low, empty). Weighed fasteners show an estimated count when the part's unitMassG is known.
+Bulk items (screws, suction cups, filament) are tracked per place as a count (pcs), a measure (g, kg, m, mm, ml, l) or a level (the lab's own list, e.g. plenty, low, empty: list_stock_levels). Weighed fasteners show an estimated count when the part's unitMassG is known.
 
 Individual items (tools, robots, PLC CPUs, licence dongles) have units, each with its own code, serial number, where it is now, its home place (where it belongs), a status and a log. Units can be lent out of the lab (a person with an account is responsible). For "where is the …?" questions call where_is first: it answers in short sentences that can be read aloud.
 
@@ -161,6 +160,18 @@ export function createMcpServer(
       annotations: read,
     },
     tool(async () => locations.types()),
+  );
+
+  server.registerTool(
+    'list_stock_levels',
+    {
+      title: 'List stock levels',
+      description:
+        'The levels this lab uses for stock tracked as a level (best first), with what each means: ok, low (reorder) or empty.',
+      inputSchema: {},
+      annotations: read,
+    },
+    tool(async () => stock.levels()),
   );
 
   server.registerTool(
@@ -436,7 +447,7 @@ export function createMcpServer(
       inputSchema: {
         lotId: z.string(),
         quantity: z.number().positive().optional(),
-        level: z.enum(STOCK_LEVELS).optional(),
+        level: z.string().optional().describe('New level, key or name (list_stock_levels)'),
       },
       annotations: write,
     },

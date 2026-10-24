@@ -430,9 +430,15 @@ export class PartService {
         ),
       );
     }
+    const levels = await this.stock.levels();
+    const keysWhere = (ok: (state: string) => boolean) => {
+      const keys = levels.filter((l) => ok(l.state)).map((l) => l.key);
+      return keys.length ? keys : ['\u0000'];
+    };
     if (input.lowStock) {
+      const low = keysWhere((s) => s !== 'ok');
       where.push(sql`((${parts.minStock} is not null and coalesce((select sum(${stockLots.quantity}) from ${stockLots} where ${stockLots.partId} = ${parts.id} and ${stockLots.mode} = 'count'), 0) < ${parts.minStock})
-        or exists (select 1 from ${stockLots} where ${stockLots.partId} = ${parts.id} and ${stockLots.level} in ('low', 'empty')))`);
+        or exists (select 1 from ${stockLots} where ${stockLots.partId} = ${parts.id} and ${inArray(stockLots.level, low)}))`);
     }
     for (const filter of input.attributes ?? []) where.push(attributeCondition(filter));
     if (input.inStock !== undefined) {
@@ -443,7 +449,13 @@ export class PartService {
           .where(
             and(
               eq(stockLots.partId, parts.id),
-              or(sql`${stockLots.quantity} > 0`, inArray(stockLots.level, ['plenty', 'low'])),
+              or(
+                sql`${stockLots.quantity} > 0`,
+                inArray(
+                  stockLots.level,
+                  keysWhere((s) => s !== 'empty'),
+                ),
+              ),
             ),
           ),
       );

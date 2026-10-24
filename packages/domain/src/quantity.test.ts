@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { estimateCount, formatAmount, isCompatible, isEmpty } from './quantity.js';
+import {
+  DEFAULT_STOCK_LEVELS,
+  estimateCount,
+  findLevel,
+  formatAmount,
+  isCompatible,
+  isEmpty,
+  levelKey,
+  levelState,
+} from './quantity.js';
 
 describe('quantity', () => {
   it('estimates a count from weight, minus the tare', () => {
@@ -30,5 +39,17 @@ describe('quantity', () => {
     expect(formatAmount({ mode: 'measure', quantity: 7.5, unit: 'm', level: null })).toBe('7.5 m');
     expect(isEmpty({ mode: 'level', quantity: null, unit: null, level: 'empty' })).toBe(true);
     expect(isEmpty({ mode: 'count', quantity: 3, unit: null, level: null })).toBe(false);
+  });
+});
+
+describe('stock levels', () => {
+  it('finds levels by key or name and makes keys for new ones', () => {
+    expect(findLevel('Low', DEFAULT_STOCK_LEVELS)?.key).toBe('low');
+    expect(findLevel(' plenty ', DEFAULT_STOCK_LEVELS)?.key).toBe('plenty');
+    expect(findLevel('lots', DEFAULT_STOCK_LEVELS)).toBeUndefined();
+    expect(levelKey('Half full', ['low'])).toBe('half_full');
+    expect(levelKey('Puolillaan ä', [])).toBe('puolillaan_a');
+    expect(levelKey('Low', ['low'])).toBe('low_2');
+    expect(levelState('gone')).toBe('low');
   });
 });

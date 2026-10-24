@@ -1,4 +1,4 @@
-import { AddStockInput, AmountInput, STOCK_LEVELS } from '@ixfwms/domain';
+import { AddStockInput, AmountInput } from '@ixfwms/domain';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { parse, type AppDeps } from '../context.js';
@@ -18,7 +18,7 @@ export function registerStockRoutes(app: FastifyInstance, { services }: AppDeps)
     const body = parse(
       z.object({
         quantity: z.number().positive().nullish(),
-        level: z.enum(STOCK_LEVELS).nullish(),
+        level: z.string().trim().min(1).max(60).nullish(),
       }),
       request.body,
     );

@@ -1,3 +1,4 @@
+import { DEFAULT_STOCK_LEVELS } from '@ixfwms/domain';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createTestEnv, type TestEnv } from '../test/harness.js';
 
@@ -102,6 +103,7 @@ describe('lab settings', () => {
       carryForgottenHours: 4,
       labelTape: '12',
       anonymousActions: 'workstation',
+      stockLevels: DEFAULT_STOCK_LEVELS,
     });
     expect(await settings.update({ labelTape: '24' }, env.admin)).toMatchObject({
       labelTape: '24',
@@ -118,5 +120,71 @@ describe('lab settings', () => {
     await locations.updateType('pallet', { name: 'EUR pallet' }, env.admin);
     const pallet = (await locations.types()).find((t) => t.key === 'pallet')!;
     expect(pallet).toMatchObject({ name: 'EUR pallet', movable: true, stayDays: 14 });
+  });
+});
+
+describe('stock levels', () => {
+  it("uses the lab's own levels: names, merging, low stock, and no removing levels in use", async () => {
+    const { settings, parts, stock, where } = env.services;
+    await settings.update(
+      {
+        stockLevels: [
+          { key: 'full', name: 'Full', state: 'ok' },
+          { key: 'half', name: 'Half full', state: 'ok' },
+          { key: 'low', name: 'Low', state: 'low' },
+          { key: 'empty', name: 'Empty', state: 'empty' },
+        ],
+      },
+      env.admin,
+    );
+    const box = await env.services.locations.create({ name: 'Box', type: 'box' }, env.admin);
+    // Levels can be given by name too.
+    const tape = await parts.create(
+      {
+        name: 'Tape',
+        status: 'active',
+        stock: { location: box.code, amount: { mode: 'level', level: 'Half full' } },
+      },
+      env.admin,
+    );
+    expect(tape.lots[0]!.amount.level).toBe('half');
+    // Adding to it keeps the better level.
+    await stock.add(
+      { part: tape.code, location: box.code, amount: { mode: 'level', level: 'low' } },
+      env.admin,
+    );
+    expect((await parts.get(tape.code)).lots[0]!.amount.level).toBe('half');
+    await expect(
+      stock.add({ part: tape.code, amount: { mode: 'level', level: 'plenty' } }, env.admin),
+    ).rejects.toThrow(/Unknown level "plenty"/);
+    expect((await where.ask('tape'))[0]!.text).toMatch(/^Tape: half full at /);
+
+    const lowStock = () => parts.search({ lowStock: true, limit: 10, offset: 0 });
+    expect((await lowStock()).total).toBe(0);
+    await stock.take(tape.lots[0]!.id, null, 'Low', env.admin);
+    expect((await lowStock()).total).toBe(1);
+
+    await expect(
+      settings.update(
+        {
+          stockLevels: [
+            { key: 'full', name: 'Full', state: 'ok' },
+            { key: 'empty', name: 'Empty', state: 'empty' },
+          ],
+        },
+        env.admin,
+      ),
+    ).rejects.toThrow(/Stock is at Low/);
+    await expect(
+      settings.update(
+        {
+          stockLevels: [
+            { key: 'a', name: 'Same', state: 'ok' },
+            { key: 'b', name: 'same', state: 'empty' },
+          ],
+        },
+        env.admin,
+      ),
+    ).rejects.toThrow();
   });
 });
