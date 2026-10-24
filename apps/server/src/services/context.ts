@@ -25,7 +25,7 @@ export function viewAs<T>(actor: Actor | null, fn: () => T): T {
 }
 
 /** True inside a request with no login. Outside one (CLI, backups, MCP), names are shown. */
-export function namesHidden(): boolean {
+function namesHidden(): boolean {
   return viewer.getStore()?.anonymous ?? false;
 }
 
