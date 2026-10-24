@@ -1,6 +1,21 @@
 # Changelog
 
 All notable changes to ixfwms.
+## 0.9.0 (2026-10-24)
+
+### Features
+- stock levels set in Settings
+- **web:** place types as a table, one row per type with a column per setting
+- **web:** page QR code on desktop, label sections only for admins
+- **web:** show the label section to members too
+- users list with a page per user; turn accounts off, remove unused ones
+- **web:** account link as a circle with the user's name, and a Log out text link
+
+### Fixes
+- **labels:** 9 mm tool and device labels show the name above the home address
+
+### Documentation
+- plan status for 0.9
 ## 0.8.0 (2026-10-23)
 
 ### Features
