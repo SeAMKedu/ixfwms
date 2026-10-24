@@ -9,7 +9,7 @@ export function registerImportRoutes(app: FastifyInstance, { services }: AppDeps
     const body = parse(
       z.object({
         rows: z.array(ImportRow).min(1),
-        options: ImportOptions.default({ matchExisting: true }),
+        options: ImportOptions.default({ matchExisting: true, blankQuantity: 'none' }),
         dryRun: z.boolean().default(true),
       }),
       request.body,

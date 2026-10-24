@@ -63,7 +63,7 @@ export default tseslint.config(
     'apps/web/src/components/model-map.tsx': [400, 250],
     'apps/web/src/components/place-picker.tsx': [400, 250],
     'apps/web/src/pages/bom.tsx': [400, 300],
-    'apps/web/src/pages/import.tsx': [400, 250],
+    'apps/web/src/pages/import.tsx': [400, 240],
     'apps/web/src/pages/part-edit.tsx': [450, 350],
     'apps/web/src/pages/part/lot-row.tsx': [400, 300],
     'apps/web/src/pages/unit/where.tsx': [400, 250],

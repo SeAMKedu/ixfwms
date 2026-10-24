@@ -72,7 +72,8 @@
     "plenty": "plenty",
     "low": "low",
     "empty": "empty",
-    "approxPcs": "≈ {{count}} pcs"
+    "approxPcs": "≈ {{count}} pcs",
+    "uncounted": "Not counted yet"
   },
   "parts": {
     "title": "Items",
@@ -92,7 +93,8 @@
       "anyTag": "Any tag",
       "lowStock": "Low stock",
       "kind": "Kind",
-      "anyKind": "Any kind"
+      "anyKind": "Any kind",
+      "uncounted": "Not counted"
     },
     "columns": {
       "part": "Item",
@@ -474,7 +476,10 @@
       "unitMassG": "Mass per piece (g)"
     },
     "tryExample": "Try with an example",
-    "template": "Download a template (CSV)"
+    "template": "Download a template (CSV)",
+    "blankQuantity": "A row without a quantity",
+    "blankNone": "has no stock to add",
+    "blankUncounted": "has stock nobody has counted yet"
   },
   "bom": {
     "title": "Can we build it?",

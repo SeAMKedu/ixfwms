@@ -281,7 +281,9 @@ export function LotRow({
               <GuestName />
             </>
           )}
-          {action === 'count' && <AmountFields value={amount} onChange={setAmount} lockMode />}
+          {action === 'count' && (
+            <AmountFields value={amount} onChange={setAmount} lockMode allowUncounted={false} />
+          )}
           {action === 'carry' && !isLevel && (
             <Field label={t('carry.carryHow')}>
               {(id) => (

@@ -32,6 +32,7 @@ import {
 import { AppError, invalid, notFound, ruleConflict } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
 import type { CategoryService } from './categories.js';
+import { toAmount } from './amounts.js';
 import { allocateCode, retireCode } from './codes.js';
 import { audit, requireScope, type Actor } from './context.js';
 import type { FileService } from './files.js';
@@ -111,18 +112,11 @@ export class PartService {
       await this.addIdentifiers(tx, id, input.identifiers);
       await this.addTags(tx, id, input.tags);
       if (input.stock) {
-        const a = input.stock.amount;
         await this.stock.addWithin(
           tx,
           id,
           input.stock.location ?? null,
-          {
-            mode: a.mode,
-            quantity: a.mode === 'level' ? null : (a.quantity ?? null),
-            unit: a.mode === 'measure' ? (a.unit ?? null) : null,
-            level: a.mode === 'level' ? (a.level ?? null) : null,
-            tareG: a.tareG ?? null,
-          },
+          toAmount(input.stock.amount),
           who,
           null,
         );

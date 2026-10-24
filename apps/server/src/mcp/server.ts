@@ -107,6 +107,7 @@ export function createMcpServer(
         location: z.string().optional().describe('Only parts stored in this place or below it'),
         inStock: z.boolean().optional(),
         lowStock: z.boolean().optional().describe('Below minimum stock, or marked low/empty'),
+        uncounted: z.boolean().optional().describe('Has stock nobody has counted yet'),
         attributes: z
           .array(AttributeFilter)
           .optional()

@@ -3,6 +3,7 @@ import {
   findLevel,
   formatAmount,
   isCompatible,
+  isUnknown,
   type StockLevelDef,
   type AddStockInput,
   type AmountInput,
@@ -95,7 +96,8 @@ export class StockService {
       : await this.locations.inbox(tx);
     const lotId = await this.put(tx, { partId, ...amount }, location.id, null, amount, {
       note,
-      lastCheckedAt: nowIso(),
+      // Stock nobody has counted hasn't been checked either.
+      lastCheckedAt: isUnknown(amount) ? null : nowIso(),
       tareG: amount.tareG ?? null,
     });
     await this.record(tx, lotId, reason, { to: location.id, delta: amount.quantity, note, who });
@@ -121,8 +123,9 @@ export class StockService {
       } else {
         if (quantity == null || quantity <= 0) throw invalid('stock.giveTaken');
         checkWhole(lot.mode, quantity);
-        const left = (lot.quantity ?? 0) - quantity;
-        if (left < 0)
+        // Taking from stock nobody has counted leaves it uncounted.
+        const left = lot.quantity == null ? null : lot.quantity - quantity;
+        if (left != null && left < 0)
           throw invalid('stock.notEnough', { amount: formatAmount(amountOf(lot)), quantity });
         await tx
           .update(stockLots)
@@ -143,6 +146,7 @@ export class StockService {
     const who = requireScope(actor, 'inventory');
     return this.db.transaction(async (tx) => {
       const lot = await this.lot(tx, lotId);
+      if (amount.uncounted) throw invalid('stock.countIt');
       const next = toAmount(amount);
       if (next.mode === 'level' && next.level) next.level = await this.levelKey(next.level);
       checkWhole(next.mode, next.quantity);
@@ -208,6 +212,8 @@ export class StockService {
     const lot = await this.lot(tx, lotId);
     const dest = await this.locations.resolve(toRef, tx);
     if (dest.id === lot.locationId) return lot.id;
+    if (quantity != null && lot.mode !== 'level' && lot.quantity == null)
+      throw invalid('stock.uncountedPart');
     const whole = quantity == null || lot.mode === 'level' || quantity >= (lot.quantity ?? 0);
     if (!whole && quantity <= 0) throw invalid('stock.givePositive');
     if (!whole) checkWhole(lot.mode, quantity);
@@ -289,9 +295,12 @@ export class StockService {
   ): Promise<string | null> {
     const target = await this.matchingLot(tx, like, locationId, origin, exceptId);
     if (!target) return null;
+    const merged = merge(amountOf(target), amount, await this.levels());
+    // Uncounted stock joined it: the last count no longer says how much is there.
+    const unchecked = isUnknown({ mode: target.mode, ...merged }) && { lastCheckedAt: null };
     await tx
       .update(stockLots)
-      .set({ ...merge(amountOf(target), amount, await this.levels()), updatedAt: nowIso() })
+      .set({ ...merged, ...unchecked, updatedAt: nowIso() })
       .where(eq(stockLots.id, target.id));
     return target.id;
   }

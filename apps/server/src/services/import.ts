@@ -1,4 +1,5 @@
 import {
+  isUnknown,
   ImportMapping,
   isValidCode,
   normalizeCode,
@@ -44,7 +45,7 @@ export class ImportService {
 
   async importParts(
     rows: ImportRow[],
-    options: ImportOptions,
+    options: Options,
     actor: Actor | null,
     dryRun: boolean,
   ): Promise<ImportResult[]> {
@@ -101,6 +102,7 @@ export class ImportService {
                       quantity: plan.amount.quantity,
                       unit: plan.amount.unit,
                       level: plan.amount.level,
+                      uncounted: isUnknown(plan.amount),
                     },
                   }
                 : null,
@@ -117,7 +119,7 @@ export class ImportService {
     return results;
   }
 
-  private async plan(rows: ImportRow[], options: ImportOptions): Promise<Plan[]> {
+  private async plan(rows: ImportRow[], options: Options): Promise<Plan[]> {
     const all = await many(this.db.select().from(locations));
     const summaries = await this.locations.summaries(this.db, all);
     const byAddress = new Map<string, LocationRow | null>();
@@ -142,7 +144,7 @@ export class ImportService {
         message: null,
         existing: null,
         location: defaultLocation,
-        amount: amountOf(input),
+        amount: amountOf(input, options.blankQuantity ?? 'none'),
       };
       if (input.location) {
         const found =
@@ -223,12 +225,16 @@ export class ImportService {
   }
 }
 
-function amountOf(r: ImportRow): StockAmount | null {
+/** blankQuantity defaults to 'none'. */
+type Options = Omit<ImportOptions, 'blankQuantity'> & Partial<Pick<ImportOptions, 'blankQuantity'>>;
+
+function amountOf(r: ImportRow, blank: ImportOptions['blankQuantity']): StockAmount | null {
   if (r.level) return { mode: 'level', quantity: null, unit: null, level: r.level };
-  if (r.quantity == null) return null;
+  // Not counted: an empty quantity (see isUnknown), in pieces unless the row gives a unit.
+  if (r.quantity == null && blank === 'none') return null;
   if (!r.unit || r.unit === 'pcs')
-    return { mode: 'count', quantity: r.quantity, unit: null, level: null };
-  return { mode: 'measure', quantity: r.quantity, unit: r.unit, level: null };
+    return { mode: 'count', quantity: r.quantity ?? null, unit: null, level: null };
+  return { mode: 'measure', quantity: r.quantity ?? null, unit: r.unit, level: null };
 }
 
 /** A place by code, or by its path of names ("Lab › Cabinet A › Shelf 3", case-insensitive, last levels enough if unique). */

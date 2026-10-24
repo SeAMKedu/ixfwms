@@ -26,6 +26,7 @@ export function SearchPage() {
   const kind = (params.get('kind') as PartKind | null) ?? undefined;
   const inStock = params.get('inStock') === '1' ? true : undefined;
   const lowStock = params.get('lowStock') === '1' ? true : undefined;
+  const uncounted = params.get('uncounted') === '1' ? true : undefined;
   const attr = params.getAll('attr');
   const fields = useCategoryFields(category ?? '').data?.effective ?? [];
   const [limit, setLimit] = useState(PAGE);
@@ -58,6 +59,7 @@ export function SearchPage() {
     kind,
     inStock,
     lowStock,
+    uncounted,
     attr,
     limit,
   });
@@ -133,7 +135,7 @@ export function SearchPage() {
         <Loading />
       ) : parts.data && parts.data.rows.length === 0 ? (
         <Empty>
-          {q || status || category || tag || kind || inStock || lowStock
+          {q || status || category || tag || kind || inStock || lowStock || uncounted
             ? t('parts.empty')
             : t('parts.emptyAll')}
         </Empty>

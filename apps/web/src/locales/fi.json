@@ -72,7 +72,8 @@
     "plenty": "runsaasti",
     "low": "vähän",
     "empty": "loppu",
-    "approxPcs": "≈ {{count}} kpl"
+    "approxPcs": "≈ {{count}} kpl",
+    "uncounted": "Ei vielä laskettu"
   },
   "parts": {
     "title": "Tavarat",
@@ -92,7 +93,8 @@
       "anyTag": "Kaikki tunnisteet",
       "lowStock": "Vähissä",
       "kind": "Laji",
-      "anyKind": "Kaikki lajit"
+      "anyKind": "Kaikki lajit",
+      "uncounted": "Laskematta"
     },
     "columns": {
       "part": "Tavara",
@@ -474,7 +476,10 @@
       "unitMassG": "Kappaleen paino (g)"
     },
     "tryExample": "Kokeile esimerkillä",
-    "template": "Lataa pohja (CSV)"
+    "template": "Lataa pohja (CSV)",
+    "blankQuantity": "Rivi ilman määrää",
+    "blankNone": "ei lisää saldoa",
+    "blankUncounted": "on saldoa, jota kukaan ei ole laskenut"
   },
   "bom": {
     "title": "Riittääkö varasto?",
@@ -1083,7 +1088,9 @@
       "notEnough": "Täällä on vain {{amount}}, ei voi ottaa {{quantity}}",
       "givePositive": "Anna siirrettävä määrä, joka on suurempi kuin nolla",
       "noLot": "Saldoerää {{id}} ei ole",
-      "pickUpToCarry": "Ota se mukaan kantaaksesi sitä"
+      "pickUpToCarry": "Ota se mukaan kantaaksesi sitä",
+      "uncountedPart": "Tätä varastoa ei ole laskettu, joten osaa siitä ei voi siirtää; siirrä kaikki tai laske ensin",
+      "countIt": "Inventointi kertoo, paljonko on; anna määrä"
     },
     "codes": {
       "notValid": "\"{{code}}\" ei ole kelvollinen koodi",

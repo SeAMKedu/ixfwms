@@ -26,6 +26,8 @@ export const ImportOptions = z.object({
   matchExisting: z.boolean().default(true),
   /** Place for rows without one; the Inbox when empty. */
   defaultLocation: z.string().trim().max(64).nullish(),
+  /** What a row without a quantity means: no stock to add, or stock nobody has counted yet. */
+  blankQuantity: z.enum(['none', 'uncounted']).default('none'),
   /** Recorded on new parts, e.g. the file name. */
   source: z.string().trim().max(500).nullish(),
 });

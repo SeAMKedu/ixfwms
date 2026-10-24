@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next';
 import { Link, Navigate } from 'react-router';
 import { api } from '../api/client';
 import { useSession } from '../auth/session';
-import { PlacePicker } from '../components/place-picker';
 import {
   Button,
   Card,
@@ -19,6 +18,7 @@ import {
 } from '../components/ui';
 import { guessColumns, mapRows, type Columns } from '../lib/import-map';
 import { parseDelimited, readTable, type Table } from '../lib/table';
+import { DEFAULT_CHOICES, ImportOptionsCard, type ImportChoices } from './import/options';
 
 const ACTION_TONE = { create: 'info', add_stock: 'ok', skip: 'muted', error: 'crit' } as const;
 
@@ -34,8 +34,7 @@ export function ImportPage() {
   const [table, setTable] = useState<Table | null>(null);
   const [headerRow, setHeaderRow] = useState(1);
   const [columns, setColumns] = useState<Columns>({});
-  const [defaultLocation, setDefaultLocation] = useState('');
-  const [matchExisting, setMatchExisting] = useState(true);
+  const [choices, setChoices] = useState<ImportChoices>(DEFAULT_CHOICES);
   const [mappingName, setMappingName] = useState('');
   const [results, setResults] = useState<ImportResult[] | null>(null);
   const [imported, setImported] = useState(false);
@@ -89,8 +88,9 @@ export function ImportPage() {
         body: {
           rows: good.map((m) => m.row),
           options: {
-            matchExisting,
-            defaultLocation: defaultLocation || null,
+            matchExisting: choices.matchExisting,
+            blankQuantity: choices.blankQuantity,
+            defaultLocation: choices.defaultLocation || null,
             source: `import: ${fileName}`,
           },
           dryRun,
@@ -232,21 +232,7 @@ export function ImportPage() {
             </div>
           </Card>
 
-          <Card title={t('import.options')}>
-            <Field label={t('import.defaultLocation')} hint={t('import.defaultLocationHint')}>
-              {(id) => (
-                <PlacePicker id={id} value={defaultLocation} onChange={setDefaultLocation} />
-              )}
-            </Field>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={matchExisting}
-                onChange={(e) => setMatchExisting(e.target.checked)}
-              />
-              {t('import.matchExisting')}
-            </label>
-          </Card>
+          <ImportOptionsCard value={choices} onChange={setChoices} />
 
           <Card title={t('import.preview')}>
             <PreviewTable table={table} mapped={mapped} results={results} />

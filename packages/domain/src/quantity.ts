@@ -84,6 +84,14 @@ export function estimateCount(
   return Math.max(0, Math.round(netG / unitMassG));
 }
 
+/**
+ * Not counted yet: there is stock, but nobody has said how much (no quantity, or no level).
+ * It counts as in stock and never as low; merging with it stays unknown; a stocktake ends it.
+ */
+export function isUnknown(amount: Pick<StockAmount, 'mode' | 'quantity' | 'level'>): boolean {
+  return amount.mode === 'level' ? amount.level == null : amount.quantity == null;
+}
+
 /** True when a lot should be considered out of stock. */
 export function isEmpty(
   amount: StockAmount,

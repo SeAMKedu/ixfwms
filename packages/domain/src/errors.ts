@@ -85,6 +85,9 @@ export const ERROR_MESSAGES = {
   'stock.giveTaken': 'Give how much was taken',
   'stock.notEnough': "Only {{amount}} here, can't take {{quantity}}",
   'stock.givePositive': 'Give a positive quantity to move',
+  'stock.uncountedPart':
+    "Nobody has counted this stock, so part of it can't be moved; move all of it, or count it first",
+  'stock.countIt': 'A stocktake says how much there is; give the amount',
   'stock.noLot': 'No stock lot {{id}}',
   'stock.pickUpToCarry': 'Pick it up to carry it',
 

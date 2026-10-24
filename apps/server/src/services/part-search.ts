@@ -181,9 +181,14 @@ export class PartSearch {
       const keys = levels.filter((l) => ok(l.state)).map((l) => l.key);
       return keys.length ? keys : ['\u0000'];
     };
+    // Lots nobody has counted (no quantity, or no level; see isUnknown).
+    const uncounted = sql`(${stockLots.mode} = 'level' and ${stockLots.level} is null) or (${stockLots.mode} <> 'level' and ${stockLots.quantity} is null)`;
+    const hasUncounted = sql`exists (select 1 from ${stockLots} where ${stockLots.partId} = ${parts.id} and (${uncounted}))`;
+    if (input.uncounted) where.push(hasUncounted);
     if (input.lowStock) {
       const low = keysWhere((s) => s !== 'ok');
-      where.push(sql`((${parts.minStock} is not null and coalesce((select sum(${stockLots.quantity}) from ${stockLots} where ${stockLots.partId} = ${parts.id} and ${stockLots.mode} = 'count'), 0) + ${usableUnits} < ${parts.minStock})
+      // Below the minimum only when every lot is counted: uncounted stock may be plenty.
+      where.push(sql`((${parts.minStock} is not null and not ${hasUncounted} and coalesce((select sum(${stockLots.quantity}) from ${stockLots} where ${stockLots.partId} = ${parts.id} and ${stockLots.mode} = 'count'), 0) + ${usableUnits} < ${parts.minStock})
         or exists (select 1 from ${stockLots} where ${stockLots.partId} = ${parts.id} and ${inArray(stockLots.level, low)}))`);
     }
     for (const filter of input.attributes ?? [])
@@ -198,6 +203,7 @@ export class PartSearch {
               eq(stockLots.partId, parts.id),
               or(
                 sql`${stockLots.quantity} > 0`,
+                uncounted,
                 inArray(
                   stockLots.level,
                   keysWhere((s) => s !== 'empty'),

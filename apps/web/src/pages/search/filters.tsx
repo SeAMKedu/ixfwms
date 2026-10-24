@@ -23,6 +23,7 @@ export function SearchFilters({
   const kind = (params.get('kind') as PartKind | null) ?? undefined;
   const inStock = params.get('inStock') === '1';
   const lowStock = params.get('lowStock') === '1';
+  const uncounted = params.get('uncounted') === '1';
   const setParam = (key: string, value: string | undefined) => {
     const next = new URLSearchParams(params);
     if (value) next.set(key, value);
@@ -62,6 +63,13 @@ export function SearchFilters({
         onClick={() => setParam('lowStock', lowStock ? undefined : '1')}
       >
         {t('parts.filters.lowStock')}
+      </button>
+      <button
+        type="button"
+        className={chip(uncounted)}
+        onClick={() => setParam('uncounted', uncounted ? undefined : '1')}
+      >
+        {t('parts.filters.uncounted')}
       </button>
       <Select
         aria-label={t('parts.filters.kind')}

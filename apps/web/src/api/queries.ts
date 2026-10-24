@@ -67,6 +67,7 @@ export interface PartFilters {
   location?: string;
   inStock?: boolean;
   lowStock?: boolean;
+  uncounted?: boolean;
   /** false: one result per part instead of one per unit of a tool or device. */
   byUnit?: boolean;
   /** Category field filters as text, e.g. "thread:M4", "lengthMm>=10". */

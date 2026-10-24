@@ -17,6 +17,8 @@ export interface AmountState {
   unit: MeasureUnit;
   level: StockLevel;
   tare: string;
+  /** Ticked "Not counted": there is stock, nobody has said how much. Never assumed from a blank. */
+  uncounted: boolean;
 }
 
 const initialAmount = (mode: StockMode = 'count'): AmountState => ({
@@ -25,10 +27,15 @@ const initialAmount = (mode: StockMode = 'count'): AmountState => ({
   unit: 'g',
   level: 'plenty',
   tare: '',
+  uncounted: false,
 });
 
 /** Converts the form state to an API amount, or null when it is incomplete. */
 export function toAmountInput(s: AmountState): AmountInput | null {
+  if (s.uncounted)
+    return s.mode === 'measure'
+      ? { mode: 'measure', unit: s.unit, uncounted: true }
+      : { mode: s.mode, uncounted: true };
   if (s.mode === 'level') return { mode: 'level', level: s.level };
   const quantity = parseNumber(s.quantity);
   if (quantity === undefined || quantity < 0) return null;
@@ -44,10 +51,13 @@ export function AmountFields({
   value,
   onChange,
   lockMode,
+  allowUncounted = true,
 }: {
   value: AmountState;
   onChange: (v: AmountState) => void;
   lockMode?: boolean;
+  /** Offer "Not counted" (not for a stocktake, which is the counting). */
+  allowUncounted?: boolean;
 }) {
   const { t } = useTranslation();
   const { levels, label } = useStockLevels();
@@ -71,7 +81,35 @@ export function AmountFields({
           ]}
         />
       )}
-      {value.mode === 'level' ? (
+      {allowUncounted && (
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={value.uncounted}
+            onChange={(e) => set({ uncounted: e.target.checked })}
+          />
+          {t('amount.uncounted')}
+        </label>
+      )}
+      {value.uncounted && allowUncounted ? (
+        value.mode === 'measure' && (
+          <Field label={t('amount.unit')}>
+            {(id) => (
+              <Select
+                id={id}
+                value={value.unit}
+                onChange={(e) => set({ unit: e.target.value as MeasureUnit })}
+              >
+                {MEASURE_UNITS.map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
+        )
+      ) : value.mode === 'level' ? (
         <Field label={t('amount.level')}>
           {(id) => (
             <Select id={id} value={value.level} onChange={(e) => set({ level: e.target.value })}>
@@ -114,18 +152,20 @@ export function AmountFields({
           )}
         </div>
       )}
-      {value.mode === 'measure' && (value.unit === 'g' || value.unit === 'kg') && (
-        <Field label={t('amount.tare')} hint={t('common.optional')}>
-          {(id) => (
-            <TextInput
-              id={id}
-              inputMode="decimal"
-              value={value.tare}
-              onChange={(e) => set({ tare: e.target.value })}
-            />
-          )}
-        </Field>
-      )}
+      {!value.uncounted &&
+        value.mode === 'measure' &&
+        (value.unit === 'g' || value.unit === 'kg') && (
+          <Field label={t('amount.tare')} hint={t('common.optional')}>
+            {(id) => (
+              <TextInput
+                id={id}
+                inputMode="decimal"
+                value={value.tare}
+                onChange={(e) => set({ tare: e.target.value })}
+              />
+            )}
+          </Field>
+        )}
     </div>
   );
 }

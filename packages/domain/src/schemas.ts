@@ -109,8 +109,21 @@ export const AmountInput = z
       .nullish()
       .describe("A stock level's key or name, e.g. plenty, low, empty (the lab's own list)"),
     tareG: z.number().nonnegative().nullish(),
+    uncounted: z
+      .boolean()
+      .optional()
+      .describe(
+        'Not counted yet: the amount is unknown. Give no quantity or level (a unit still for measure).',
+      ),
   })
   .superRefine((a, ctx) => {
+    if (a.uncounted) {
+      if (a.quantity != null || a.level != null)
+        ctx.addIssue({ code: 'custom', message: 'an uncounted amount has no quantity or level' });
+      if (a.mode === 'measure' && a.unit == null)
+        ctx.addIssue({ code: 'custom', message: 'measure mode needs a unit' });
+      return;
+    }
     if (a.mode === 'count' && a.quantity == null)
       ctx.addIssue({ code: 'custom', message: 'count mode needs a quantity' });
     if (a.mode === 'count' && a.quantity != null && !Number.isInteger(a.quantity))
@@ -203,6 +216,7 @@ export const PartSearchInput = z.object({
   location: RefSchema.optional().describe('Only parts stored in this location or below it'),
   inStock: z.boolean().optional(),
   lowStock: z.boolean().optional().describe('Below minimum stock, or marked low/empty'),
+  uncounted: z.boolean().optional().describe('Has stock nobody has counted yet'),
   attributes: z
     .array(AttributeFilter)
     .max(10)

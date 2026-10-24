@@ -1,4 +1,5 @@
 import {
+  isUnknown,
   levelState,
   estimateCount,
   isValidCode,
@@ -111,7 +112,11 @@ export class BomService {
     for (const lot of lots) {
       const n = estimateCount(lot.amount, part.unitMassG);
       if (n != null) available += n;
-      else if (
+      else if (isUnknown(lot.amount)) {
+        // There is some, nobody has said how much: it may well be enough.
+        uncounted = true;
+        plenty = true;
+      } else if (
         lot.amount.mode === 'level'
           ? levelState(lot.amount.level, levels) !== 'empty'
           : (lot.amount.quantity ?? 0) > 0

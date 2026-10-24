@@ -236,8 +236,9 @@ export class HistoryService {
         throw invalid('history.onlyMoves');
       const lot = await one(tx.select().from(stockLots).where(eq(stockLots.id, move.lotId)));
       if (!lot || lot.locationId !== move.toLocationId) throw invalid('history.changedSince');
-      if (move.delta != null && (lot.quantity ?? 0) < move.delta)
-        throw invalid('history.takenSince');
+      // Merged since with stock nobody counted: what was moved can't be told apart any more.
+      if (move.delta != null && lot.quantity == null) throw invalid('history.changedSince');
+      if (move.delta != null && lot.quantity! < move.delta) throw invalid('history.takenSince');
       // Back where it came from, belonging where it did then. Moves recorded before the origin
       // was saved (no originBefore) leave it to the move rules.
       const after = move.after ?? {};
