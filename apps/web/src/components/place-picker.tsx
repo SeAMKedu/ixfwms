@@ -44,7 +44,10 @@ export function PlacePicker({
   const [scope, setScope] = useState<PlaceOption | null>(null);
 
   const options = useMemo(
-    () => (places.data ?? []).filter((p) => p.kind !== 'in_transit' && !(exclude?.(p) ?? false)),
+    () =>
+      (places.data ?? []).filter(
+        (p) => p.kind !== 'in_transit' && !p.dismantledAt && !(exclude?.(p) ?? false),
+      ),
     [places.data, exclude],
   );
   const childCount = useMemo(() => {

@@ -1,5 +1,5 @@
 import type { LocationSummary, PartStatus } from '@ixfwms/domain';
-import { Loader2 } from 'lucide-react';
+import { Blocks, Loader2 } from 'lucide-react';
 import type {
   ButtonHTMLAttributes,
   ComponentProps,
@@ -204,11 +204,15 @@ export function PlaceTag({
   className,
 }: {
   place: Pick<LocationSummary, 'movable' | 'address' | 'shortName' | 'code'> &
-    Partial<Pick<LocationSummary, 'overdue'>>;
+    Partial<Pick<LocationSummary, 'overdue' | 'build' | 'name'>>;
   className?: string;
 }) {
   return (
-    <span title={place.code} className="inline-flex">
+    <span
+      title={place.build ? `${place.name} (${place.code})` : place.code}
+      className="inline-flex items-center gap-1"
+    >
+      {place.build && <Blocks className="size-3.5 text-muted" aria-hidden />}
       <CodeLabel
         code={placeTag(place)}
         className={cx(place.overdue && 'border-warn bg-warn-soft text-warn', className)}

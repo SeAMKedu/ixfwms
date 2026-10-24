@@ -20,6 +20,7 @@ import {
   ErrorBox,
   Field,
   LocationPath,
+  Pill,
   Select,
   TextInput,
 } from '../../components/ui';
@@ -107,7 +108,12 @@ export function LotRow({
   return (
     <li className="flex flex-col gap-2 border-t border-dashed border-line pt-3 first:border-t-0 first:pt-0">
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <LocationPath path={lot.path} />
+        <span className="flex flex-wrap items-center gap-1.5">
+          <LocationPath path={lot.path} />
+          {lot.location.inBuild && (
+            <Pill tone="info">{t('builds.builtInto', { name: lot.location.inBuild.name })}</Pill>
+          )}
+        </span>
         <span className="flex items-center gap-1.5">
           {lot.estimatedCount != null && lot.amount.mode === 'measure' && (
             <span className="text-[12px] text-muted">

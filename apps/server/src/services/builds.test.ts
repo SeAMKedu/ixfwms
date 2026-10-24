@@ -81,8 +81,8 @@ describe('builds', () => {
     expect(made.moved.map((m) => [m.name, m.display])).toEqual([
       ['Socket head screw M3x10', '8 pcs'],
       ['Hex nut M3', '4 g'],
-      ['Servo A', '1'],
-      ['Servo B', '1'],
+      ['Servo A', '1 pcs'],
+      ['Servo B', '1 pcs'],
     ]);
     expect(made.left).toEqual([
       { name: 'Push-in fitting 6 mm', quantity: 2, reason: 'byHand' },

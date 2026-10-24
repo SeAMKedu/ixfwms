@@ -39,7 +39,7 @@ function TypeRow({
     else setStay(type.stayDays === null ? '' : String(type.stayDays));
   };
   const error = update.error ?? remove.error;
-  const check = (field: 'movable' | 'workstation', title: string) => (
+  const check = (field: 'movable' | 'workstation' | 'build', title: string) => (
     <td className="px-1.5 py-1.5 text-center">
       <input
         type="checkbox"
@@ -66,6 +66,7 @@ function TypeRow({
         </td>
         {check('movable', t('settings.movable'))}
         {check('workstation', t('settings.workstation'))}
+        {check('build', t('settings.build'))}
         <td className="px-1.5 py-1.5">
           <TextInput
             type="number"
@@ -124,7 +125,7 @@ function TypeRow({
       </tr>
       {!!error && (
         <tr>
-          <td colSpan={canEdit ? 6 : 5} className="pb-2">
+          <td colSpan={canEdit ? 7 : 6} className="pb-2">
             <ErrorBox error={error} />
           </td>
         </tr>
@@ -172,6 +173,7 @@ export function TypesSection() {
                   <th className={`${th} pl-0`}>{t('settings.colType')}</th>
                   <th className={`${th} text-center`}>{t('settings.movable')}</th>
                   <th className={`${th} text-center`}>{t('settings.workstation')}</th>
+                  <th className={`${th} text-center`}>{t('settings.build')}</th>
                   <th className={th}>{t('settings.colStay')}</th>
                   <th className={`${th} text-right`}>{t('settings.colPlaces')}</th>
                   {canEdit && <th className={th} aria-label={t('settings.colActions')} />}
@@ -221,6 +223,8 @@ export function TypesSection() {
           <dd className="text-muted">{t('settings.legendMovable')}</dd>
           <dt className="font-medium">{t('settings.workstation')}</dt>
           <dd className="text-muted">{t('settings.legendWorkstation')}</dd>
+          <dt className="font-medium">{t('settings.build')}</dt>
+          <dd className="text-muted">{t('settings.legendBuild')}</dd>
           <dt className="font-medium">{t('settings.colStay')}</dt>
           <dd className="text-muted">{t('settings.legendStay')}</dd>
         </dl>

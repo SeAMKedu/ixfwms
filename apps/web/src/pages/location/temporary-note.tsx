@@ -4,7 +4,10 @@ import { useStillNeeded } from '../../api/queries';
 import { formatDate } from '../../lib/format';
 import { Button, ErrorBox } from '../../components/ui';
 
-/** A temporary place: how long it's expected to stay, when it was last touched, whose it is. */
+/**
+ * A temporary place: how long it's expected to stay, when it was last touched, whose it is. A
+ * build is checked on the same way: still in use, or can it be taken apart?
+ */
 export function TemporaryNote({ place, canEdit }: { place: LocationDetail; canEdit: boolean }) {
   const { t } = useTranslation();
   const still = useStillNeeded(place.code);
@@ -14,9 +17,16 @@ export function TemporaryNote({ place, canEdit }: { place: LocationDetail; canEd
     >
       <span>
         {[
-          t(place.overdue ? 'temporary.overdue' : 'temporary.note', {
-            count: place.stayDays ?? 0,
-          }),
+          t(
+            place.build
+              ? place.overdue
+                ? 'builds.checkDue'
+                : 'builds.check'
+              : place.overdue
+                ? 'temporary.overdue'
+                : 'temporary.note',
+            { count: place.stayDays ?? 0 },
+          ),
           t('temporary.lastActivity', { date: formatDate(place.lastActivityAt) }),
           place.dueAt && !place.overdue && t('temporary.due', { date: formatDate(place.dueAt) }),
           place.contact && t('temporary.contactIs', { contact: place.contact }),
@@ -26,7 +36,7 @@ export function TemporaryNote({ place, canEdit }: { place: LocationDetail; canEd
       </span>
       {canEdit && (
         <Button small busy={still.isPending} onClick={() => still.mutate()}>
-          {t('temporary.stillNeeded')}
+          {t(place.build ? 'builds.stillInUse' : 'temporary.stillNeeded')}
         </Button>
       )}
       <ErrorBox error={still.error} />

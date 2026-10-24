@@ -18,9 +18,11 @@ import {
   Loading,
   LocationPath,
   PageHeader,
+  Pill,
   PlaceTag,
   isNotFound,
 } from '../components/ui';
+import { BuildPanel } from './location/build-panel';
 import { ClearBench } from './location/clear-bench';
 import { NewPlaceForm, Missing, NEXT_TYPE } from './location/new-place';
 import { TemporaryNote } from './location/temporary-note';
@@ -47,7 +49,7 @@ export function LocationPage() {
     setPanel((cur) => (cur === p ? null : p));
   };
   const navigate = useNavigate();
-  const editable = can('inventory') && loc.data?.kind === 'normal';
+  const editable = can('inventory') && loc.data?.kind === 'normal' && !loc.data.dismantledAt;
   useShortcut('a', t('shortcuts.addItems'), () => void navigate(`/l/${code}/add`), editable);
   useShortcut('e', t('shortcuts.editPlace'), () => openPanel('edit'), editable);
   useShortcut('m', t('shortcuts.movePlace'), () => openPanel('move'), editable);
@@ -57,7 +59,7 @@ export function LocationPage() {
   if (isNotFound(loc.error)) return <Missing code={code} />;
   if (!loc.data) return <ErrorBox error={loc.error} />;
   const d = loc.data;
-  const canEdit = can('inventory') && d.kind === 'normal';
+  const canEdit = can('inventory') && d.kind === 'normal' && !d.dismantledAt;
   const hasMap = (layers.data?.length ?? 0) > 0;
 
   return (
@@ -71,6 +73,7 @@ export function LocationPage() {
             <PlaceTag place={d} />
             {d.movable && d.within && <span>{t('places.within', { address: d.within })}</span>}
             <span>{typeName(d.type)}</span>
+            {d.dismantledAt && <Pill tone="warn">{t('builds.dismantledPill')}</Pill>}
             {placeTag(d) !== d.code && (
               <span className="font-mono text-[12px]" title={t('places.codeHint')}>
                 {d.code}
@@ -197,6 +200,7 @@ export function LocationPage() {
         )}
       </div>
       {d.workstation && <ClearBench place={d} />}
+      {d.build && <BuildPanel place={d} canEdit={canEdit} />}
       {canEdit && layers.data && (
         <MapManager code={d.code} layers={layers.data.filter((l) => l.location.code === d.code)} />
       )}

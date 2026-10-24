@@ -52,6 +52,12 @@ Needs at least a **code** or a **name** column; quantity defaults to 1 per row.
 Parts are matched by code first (order number or MPN), then by name. The example is laid out like
 a Solid Edge parts list (Item Number, Document Number, Title, Quantity).
 
+Only free stock counts as available: parts built into a build are shown separately ("+2 in
+builds"), since they could be had by dismantling it. Logged in, **Make a build from this** creates
+a build and moves the matched parts into it: counted stock by count, weighed stock by count × piece
+mass, units one by one. What can't be moved that way (stock tracked as a level, stock nobody has
+counted, not enough free) is listed to put in by hand.
+
 Getting a parts list out of the CAD/automation tools (menu names vary between versions):
 
 - **Solid Edge:** in Draft, save or export the parts list to Excel; or in Assembly, export the

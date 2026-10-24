@@ -1,4 +1,4 @@
-import { PART_KINDS, type PartKind, type PartStatus } from '@ixfwms/domain';
+import { PART_KINDS, type PartStatus, type SearchKind } from '@ixfwms/domain';
 import { useTranslation } from 'react-i18next';
 import { useCategories, useTags } from '../../api/queries';
 import { Select } from '../../components/ui';
@@ -20,7 +20,7 @@ export function SearchFilters({
   const status = (params.get('status') as PartStatus | null) ?? undefined;
   const category = params.get('category') ?? undefined;
   const tag = params.get('tag') ?? undefined;
-  const kind = (params.get('kind') as PartKind | null) ?? undefined;
+  const kind = (params.get('kind') as SearchKind | null) ?? undefined;
   const inStock = params.get('inStock') === '1';
   const lowStock = params.get('lowStock') === '1';
   const uncounted = params.get('uncounted') === '1';
@@ -83,6 +83,7 @@ export function SearchFilters({
             {t(`partKinds.${k}`)}
           </option>
         ))}
+        <option value="build">{t('builds.kindFilter')}</option>
       </Select>
       <Select
         aria-label={t('parts.filters.category')}

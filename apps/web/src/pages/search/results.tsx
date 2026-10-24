@@ -1,4 +1,5 @@
-import type { PartSearchResult, PartSummary, UnitBrief } from '@ixfwms/domain';
+import type { BuildBrief, PartSearchResult, PartSummary, UnitBrief } from '@ixfwms/domain';
+import { Blocks } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { AmountPill, Pill, PlaceTag, StatusPill } from '../../components/ui';
@@ -21,26 +22,50 @@ function StockSummary({ part }: { part: PartSummary }) {
 
 export type Row =
   | { kind: 'part'; part: PartSummary; href: string }
-  | { kind: 'unit'; part: PartSummary; unit: UnitBrief; href: string };
+  | { kind: 'unit'; part: PartSummary; unit: UnitBrief; href: string }
+  | { kind: 'build'; build: BuildBrief; href: string };
+
+const rowKey = (row: Row) =>
+  row.kind === 'build' ? row.build.id : row.kind === 'unit' ? row.unit.id : row.part.id;
 
 /**
- * The server's results as links: individually tracked items come as their units, so one click
- * lands on the thing itself and where it is. Which rows, and how many, the server decides.
+ * The server's results as links: builds the text matches first, then items; individually
+ * tracked items come as their units, so one click lands on the thing itself and where it is.
+ * Which rows, and how many, the server decides.
  */
 export function resultRows(result: PartSearchResult | undefined): Row[] {
   if (!result) return [];
   const parts = new Map(result.items.map((p) => [p.id, p]));
-  return result.rows.flatMap((row): Row[] => {
-    const part = parts.get(row.partId);
-    if (!part) return [];
-    const unit = row.unitId ? part.units.find((u) => u.id === row.unitId) : undefined;
-    return unit
-      ? [{ kind: 'unit', part, unit, href: `/u/${unit.code}` }]
-      : [{ kind: 'part', part, href: `/p/${part.code}` }];
-  });
+  const builds = (result.builds ?? []).map((build): Row => ({
+    kind: 'build',
+    build,
+    href: `/l/${build.code}`,
+  }));
+  return [
+    ...builds,
+    ...result.rows.flatMap((row): Row[] => {
+      const part = parts.get(row.partId);
+      if (!part) return [];
+      const unit = row.unitId ? part.units.find((u) => u.id === row.unitId) : undefined;
+      return unit
+        ? [{ kind: 'unit', part, unit, href: `/u/${unit.code}` }]
+        : [{ kind: 'part', part, href: `/p/${part.code}` }];
+    }),
+  ];
 }
 
 function RowName({ row }: { row: Row }) {
+  const { t } = useTranslation();
+  if (row.kind === 'build')
+    return (
+      <>
+        <Blocks className="size-4 shrink-0 text-muted" aria-hidden />
+        <span className="truncate font-medium">{row.build.name}</span>
+        <Pill tone={row.build.dismantledAt ? 'warn' : 'info'}>
+          {row.build.dismantledAt ? t('builds.dismantledPill') : t('builds.build')}
+        </Pill>
+      </>
+    );
   if (row.kind === 'part')
     return (
       <>
@@ -65,7 +90,7 @@ export function SearchResults({ rows, selected }: { rows: Row[]; selected: numbe
       <ul className="md:hidden overflow-hidden rounded-xl border border-line bg-surface">
         {rows.map((row, i) => (
           <li
-            key={row.kind === 'unit' ? row.unit.id : row.part.id}
+            key={rowKey(row)}
             data-result={i}
             className={`border-t border-line first:border-t-0 ${i === selected ? 'bg-link-soft' : ''}`}
           >
@@ -78,10 +103,14 @@ export function SearchResults({ rows, selected }: { rows: Row[]; selected: numbe
                   <RowName row={row} />
                 </span>
                 <span className="block truncate font-mono text-[11.5px] text-muted">
-                  {row.part.manufacturer || row.part.code}
+                  {row.kind === 'build'
+                    ? t('builds.items', { count: row.build.items })
+                    : row.part.manufacturer || row.part.code}
                 </span>
               </span>
-              {row.kind === 'part' ? (
+              {row.kind === 'build' ? (
+                row.build.in && <PlaceTag place={row.build.in} />
+              ) : row.kind === 'part' ? (
                 <StockSummary part={row.part} />
               ) : row.unit.loan ? (
                 <Pill tone={row.unit.loan.overdue ? 'crit' : 'warn'}>{t('units.lentOut')}</Pill>
@@ -106,10 +135,12 @@ export function SearchResults({ rows, selected }: { rows: Row[]; selected: numbe
           </thead>
           <tbody>
             {rows.map((row, i) => {
+              if (row.kind === 'build')
+                return <BuildRow key={row.build.id} row={row} i={i} selected={selected} />;
               const p = row.part;
               return (
                 <tr
-                  key={row.kind === 'unit' ? row.unit.id : p.id}
+                  key={rowKey(row)}
                   data-result={i}
                   className={`border-t border-line hover:bg-surface-2 ${i === selected ? 'bg-link-soft' : ''}`}
                 >
@@ -148,5 +179,41 @@ export function SearchResults({ rows, selected }: { rows: Row[]; selected: numbe
         </table>
       </div>
     </>
+  );
+}
+
+/** A build in the desktop table: where it sits, who to ask, how many things are in it. */
+function BuildRow({
+  row,
+  i,
+  selected,
+}: {
+  row: Extract<Row, { kind: 'build' }>;
+  i: number;
+  selected: number;
+}) {
+  const { t } = useTranslation();
+  const b = row.build;
+  return (
+    <tr
+      data-result={i}
+      className={`border-t border-line hover:bg-surface-2 ${i === selected ? 'bg-link-soft' : ''}`}
+    >
+      <td className="px-3 py-2">
+        <Link to={row.href} className="inline-flex items-center gap-1.5 hover:underline">
+          <RowName row={row} />
+        </Link>
+      </td>
+      <td className="px-3 py-2 text-muted">{b.contact}</td>
+      <td className="px-3 py-2">
+        {b.in && (
+          <Link to={`/l/${b.in.code}`} title={b.in.name}>
+            <PlaceTag place={b.in} />
+          </Link>
+        )}
+      </td>
+      <td className="px-3 py-2 text-right text-muted">{t('builds.items', { count: b.items })}</td>
+      <td className="px-3 py-2" />
+    </tr>
   );
 }

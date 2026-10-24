@@ -1,4 +1,4 @@
-import type { PartKind, PartStatus } from '@ixfwms/domain';
+import type { PartStatus, SearchKind } from '@ixfwms/domain';
 import { Plus, Search } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -23,7 +23,7 @@ export function SearchPage() {
   const status = (params.get('status') as PartStatus | null) ?? undefined;
   const category = params.get('category') ?? undefined;
   const tag = params.get('tag') ?? undefined;
-  const kind = (params.get('kind') as PartKind | null) ?? undefined;
+  const kind = (params.get('kind') as SearchKind | null) ?? undefined;
   const inStock = params.get('inStock') === '1' ? true : undefined;
   const lowStock = params.get('lowStock') === '1' ? true : undefined;
   const uncounted = params.get('uncounted') === '1' ? true : undefined;
@@ -95,7 +95,10 @@ export function SearchPage() {
     <>
       <PageHeader
         title={t('parts.title')}
-        meta={parts.data && t('parts.total', { count: parts.data.total })}
+        meta={
+          parts.data &&
+          t('parts.total', { count: parts.data.total + (parts.data.builds?.length ?? 0) })
+        }
         actions={
           can('inventory') && (
             <ButtonLink to="/parts/new" variant="primary">
@@ -133,7 +136,7 @@ export function SearchPage() {
       <ErrorBox error={parts.error} />
       {parts.isPending ? (
         <Loading />
-      ) : parts.data && parts.data.rows.length === 0 ? (
+      ) : parts.data && rows.length === 0 ? (
         <Empty>
           {q || status || category || tag || kind || inStock || lowStock || uncounted
             ? t('parts.empty')

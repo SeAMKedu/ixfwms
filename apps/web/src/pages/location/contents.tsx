@@ -10,21 +10,23 @@ export function ChildList({ place: d }: { place: LocationDetail }) {
   const { t } = useTranslation();
   return (
     <ul className="-mx-1 flex flex-col">
-      {d.children.map((c) => (
-        <li key={c.id}>
-          <Link
-            to={`/l/${c.code}`}
-            className="flex items-center justify-between gap-2 rounded-md px-1 py-1.5 hover:bg-surface-2"
-          >
-            <span className="min-w-0 truncate">{c.name}</span>
-            <span className="flex shrink-0 items-center gap-2 text-[12px] text-muted">
-              {t('places.parts', { count: c.partCount })}
-              <PlaceTag place={c} />
-              <ChevronRight className="size-4" aria-hidden />
-            </span>
-          </Link>
-        </li>
-      ))}
+      {d.children
+        .filter((c) => !c.dismantledAt)
+        .map((c) => (
+          <li key={c.id}>
+            <Link
+              to={`/l/${c.code}`}
+              className="flex items-center justify-between gap-2 rounded-md px-1 py-1.5 hover:bg-surface-2"
+            >
+              <span className="min-w-0 truncate">{c.name}</span>
+              <span className="flex shrink-0 items-center gap-2 text-[12px] text-muted">
+                {t('places.parts', { count: c.partCount })}
+                <PlaceTag place={c} />
+                <ChevronRight className="size-4" aria-hidden />
+              </span>
+            </Link>
+          </li>
+        ))}
     </ul>
   );
 }

@@ -228,7 +228,8 @@
       "system": "System",
       "in_transit": "Being carried",
       "pallet": "Pallet",
-      "workstation": "Workstation / table"
+      "workstation": "Workstation / table",
+      "build": "Build"
     },
     "unassignedTitle": "New place with code {{code}}",
     "unassignedText": "This code isn't used yet (maybe from a blank label). Register the place it's stuck on.",
@@ -841,7 +842,9 @@
     "colActions": "Order and remove",
     "legendMovable": "Containers that get carried around (boxes, bins, pallets). They aren't part of addresses, so moving them never makes an address or label wrong. The others (rooms, cabinets, shelves) make up addresses like Robolab-A-C.",
     "legendWorkstation": "Tables people bring tools and parts to. Anyone may bring things there (if allowed under Without an account), and Clear the bench sends them back.",
-    "legendStay": "A place nobody has touched for that many days (no stock in or out, not moved, nobody pressed Still needed) is flagged amber and listed in the Inbox. Empty for places that stay."
+    "legendStay": "A place nobody has touched for that many days (no stock in or out, not moved, nobody pressed Still needed) is flagged amber and listed in the Inbox. Empty for places that stay.",
+    "build": "Build",
+    "legendBuild": "Things made from parts (a gripper, a test rig). What's in them is built in, not free stock, and they can be dismantled to put the parts back."
   },
   "temporary": {
     "lastActivity": "last activity {{date}}",
@@ -989,5 +992,46 @@
     "onLoanTitle_one": "{{count}} lent out of the lab",
     "onLoanTitle_other": "{{count}} lent out of the lab",
     "attentionTitle": "Units needing attention"
+  },
+  "builds": {
+    "kindFilter": "Builds",
+    "build": "Build",
+    "dismantledPill": "dismantled",
+    "items_one": "{{count}} thing in it",
+    "items_other": "{{count}} things in it",
+    "dismantledOn": "Dismantled {{date}}.",
+    "builtOn": "Built {{date}}",
+    "wasInIt": "What was in it",
+    "dismantle": "Dismantle",
+    "dismantleIntro": "Take it apart for parts: everything goes back where it came from, or onto a table to sort first. Once nothing is left in it, it's marked dismantled; its label keeps working and this page keeps the list of what was in it.",
+    "putBack": "Put everything back where it came from",
+    "onto": "Or put everything on",
+    "putOnto": "Put it all there",
+    "returned_one": "Moved {{count}} thing:",
+    "returned_other": "Moved {{count}} things:",
+    "left": "Still in it (no known place): {{names}}. Put these away by hand, then dismantle again.",
+    "done": "Dismantled.",
+    "check_one": "A build: checked on after {{count}} day untouched",
+    "check_other": "A build: checked on after {{count}} days untouched",
+    "checkDue_one": "Untouched for over {{count}} day: still in use?",
+    "checkDue_other": "Untouched for over {{count}} days: still in use?",
+    "stillInUse": "Still in use",
+    "make": "Make a build from this",
+    "makeIntro": "Moves the matched parts from free stock into a new build, so they're recorded as built in. What can't be moved that way is listed.",
+    "name": "Name",
+    "sitsIn": "Where it sits",
+    "contact": "Who to ask",
+    "namePlaceholder": "e.g. Gripper v3",
+    "made_one": "Moved {{count}} thing into {{name}}:",
+    "made_other": "Moved {{count}} things into {{name}}:",
+    "leftToDo": "To do by hand:",
+    "reasons": {
+      "unknown": "no such part",
+      "short": "not enough free",
+      "byHand": "take by hand (a level, or not counted)"
+    },
+    "open": "Open {{name}}",
+    "salvageable": "+{{count}} in builds",
+    "builtInto": "built into {{name}}"
   }
 }

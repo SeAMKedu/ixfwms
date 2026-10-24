@@ -18,6 +18,7 @@ import {
   TextInput,
 } from '../components/ui';
 import { guessBomColumns, toBomLines, type BomColumns } from '../lib/bom-map';
+import { MakeBuild } from './bom/make-build';
 import { parseDelimited, readTable, type Table } from '../lib/table';
 
 const STATUS_TONE: Record<BomStatus, 'ok' | 'warn' | 'crit' | 'info'> = {
@@ -242,6 +243,11 @@ export function BomPage() {
                     </td>
                     <td className="px-2 py-1.5 text-right tabular">
                       {l.part ? `${l.available}${l.uncounted ? '+' : ''}` : ''}
+                      {l.salvageable > 0 && (
+                        <span className="block whitespace-nowrap text-[12px] text-muted">
+                          {t('builds.salvageable', { count: l.salvageable })}
+                        </span>
+                      )}
                     </td>
                     <td className="px-2 py-1.5">
                       <span className="flex flex-col gap-0.5">
@@ -252,7 +258,10 @@ export function BomPage() {
                             className="flex items-center gap-1.5 hover:underline"
                           >
                             <CodeLabel code={w.code} />
-                            <span className="text-muted">{w.display}</span>
+                            <span className="text-muted">
+                              {w.display}
+                              {w.build && ` · ${t('builds.builtInto', { name: w.build.name })}`}
+                            </span>
                           </Link>
                         ))}
                       </span>
@@ -283,6 +292,9 @@ export function BomPage() {
                 </Link>
               )}
             </div>
+          )}
+          {can('inventory') && result.lines.some((l) => l.part) && (
+            <MakeBuild key={JSON.stringify(result.lines.map((l) => l.line))} result={result} />
           )}
         </Card>
       )}

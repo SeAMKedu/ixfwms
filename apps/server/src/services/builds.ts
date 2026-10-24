@@ -104,7 +104,11 @@ export class BuildService {
       if (need === 0) break;
       if (brief.loan || brief.location.inBuild || brief.location.kind !== 'normal') continue;
       await this.units.moveWithin(tx, unit, build.id, who);
-      result.moved.push({ name: brief.name, display: '1', from: brief.location });
+      result.moved.push({
+        name: brief.name,
+        display: formatAmount({ mode: 'count', quantity: 1, unit: null, level: null }),
+        from: brief.location,
+      });
       need--;
     }
     return { need, byHand: false };

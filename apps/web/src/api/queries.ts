@@ -46,7 +46,7 @@ import type {
   MapKind,
   MapLayer,
   PartDetail,
-  PartKind,
+  SearchKind,
   PartStatus,
   PlaceOption,
   PartSearchResult,
@@ -61,7 +61,7 @@ import { api, qs } from './client';
 export interface PartFilters {
   q?: string;
   status?: PartStatus;
-  kind?: PartKind;
+  kind?: SearchKind;
   category?: string;
   tag?: string;
   location?: string;
@@ -128,7 +128,8 @@ export const useTags = () =>
  * Every change can affect lists, counts and pages elsewhere; with a small inventory it is
  * simplest and always correct to refetch whatever is on screen.
  */
-function useChange<I, O>(fn: (input: I) => Promise<O>) {
+/** A change: on success every query is fetched again. */
+export function useChange<I, O>(fn: (input: I) => Promise<O>) {
   const client = useQueryClient();
   return useMutation({ mutationFn: fn, onSuccess: () => client.invalidateQueries() });
 }

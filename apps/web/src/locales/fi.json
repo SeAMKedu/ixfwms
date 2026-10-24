@@ -228,7 +228,8 @@
       "system": "Järjestelmä",
       "in_transit": "Kannettavana",
       "pallet": "Lava",
-      "workstation": "Työpiste / pöytä"
+      "workstation": "Työpiste / pöytä",
+      "build": "Rakennelma"
     },
     "unassignedTitle": "Uusi paikka koodilla {{code}}",
     "unassignedText": "Tätä koodia ei ole vielä käytetty (ehkä tyhjästä tarrasta). Rekisteröi paikka, johon tarra on kiinnitetty.",
@@ -841,7 +842,9 @@
     "colActions": "Järjestys ja poisto",
     "legendMovable": "Kuljetettavat säilytysastiat (laatikot, pussit, lavat). Ne eivät kuulu osoitteisiin, joten niiden siirtäminen ei tee osoitteesta tai tarrasta väärää. Muut (huoneet, kaapit, hyllyt) muodostavat osoitteet, kuten Robolab-A-C.",
     "legendWorkstation": "Pöydät, joille tuodaan työkaluja ja osia. Kuka tahansa saa tuoda tavaroita niille (jos Ilman tunnusta sallii), ja Siivoa pöytä palauttaa ne.",
-    "legendStay": "Paikka, johon kukaan ei ole koskenut niin moneen päivään (ei varastoa sisään tai ulos, ei siirtoa, kukaan ei painanut Tarvitaan yhä), merkitään oranssilla ja näytetään Saapuneissa. Tyhjä pysyville paikoille."
+    "legendStay": "Paikka, johon kukaan ei ole koskenut niin moneen päivään (ei varastoa sisään tai ulos, ei siirtoa, kukaan ei painanut Tarvitaan yhä), merkitään oranssilla ja näytetään Saapuneissa. Tyhjä pysyville paikoille.",
+    "build": "Rakennelma",
+    "legendBuild": "Osista tehdyt asiat (tarttuja, testiteline). Niissä olevat osat ovat rakennettuina eivätkä vapaata varastoa, ja ne voi purkaa, jolloin osat palaavat paikoilleen."
   },
   "temporary": {
     "lastActivity": "viimeksi käytetty {{date}}",
@@ -1157,5 +1160,46 @@
       "glbTooLarge": "Malli on liian suuri kartaksi (enintään 100 Mt)",
       "wrongFormat": "Kartat ovat SVG-piirroksia (.svg) tai binäärisiä glTF-malleja (.glb)"
     }
+  },
+  "builds": {
+    "kindFilter": "Rakennelmat",
+    "build": "Rakennelma",
+    "dismantledPill": "purettu",
+    "items_one": "{{count}} asia sisällä",
+    "items_other": "{{count}} asiaa sisällä",
+    "dismantledOn": "Purettu {{date}}.",
+    "builtOn": "Rakennettu {{date}}",
+    "wasInIt": "Mitä siinä oli",
+    "dismantle": "Pura",
+    "dismantleIntro": "Pura osiksi: kaikki palaa sinne, mistä se tuli, tai pöydälle lajiteltavaksi ensin. Kun siihen ei jää mitään, se merkitään puretuksi; sen tarra toimii yhä, ja tällä sivulla näkyy, mitä siinä oli.",
+    "putBack": "Palauta kaikki sinne, mistä se tuli",
+    "onto": "Tai laske kaikki paikkaan",
+    "putOnto": "Laske kaikki sinne",
+    "returned_one": "Siirrettiin {{count}} asia:",
+    "returned_other": "Siirrettiin {{count}} asiaa:",
+    "left": "Jäi siihen (ei tunnettua paikkaa): {{names}}. Vie nämä paikoilleen käsin ja pura sitten uudelleen.",
+    "done": "Purettu.",
+    "check_one": "Rakennelma: tarkistetaan, kun sitä ei ole käsitelty {{count}} päivään",
+    "check_other": "Rakennelma: tarkistetaan, kun sitä ei ole käsitelty {{count}} päivään",
+    "checkDue_one": "Käsittelemättä yli {{count}} päivän: onko yhä käytössä?",
+    "checkDue_other": "Käsittelemättä yli {{count}} päivää: onko yhä käytössä?",
+    "stillInUse": "Yhä käytössä",
+    "make": "Tee tästä rakennelma",
+    "makeIntro": "Siirtää löydetyt osat vapaasta varastosta uuteen rakennelmaan, jolloin ne näkyvät rakennettuina. Mitä ei voi siirtää näin, luetellaan.",
+    "name": "Nimi",
+    "sitsIn": "Missä se on",
+    "contact": "Keneltä kysyä",
+    "namePlaceholder": "esim. Tarttuja v3",
+    "made_one": "Siirrettiin {{count}} asia rakennelmaan {{name}}:",
+    "made_other": "Siirrettiin {{count}} asiaa rakennelmaan {{name}}:",
+    "leftToDo": "Tehtävä käsin:",
+    "reasons": {
+      "unknown": "osaa ei löydy",
+      "short": "ei tarpeeksi vapaana",
+      "byHand": "ota käsin (taso tai laskematta)"
+    },
+    "open": "Avaa {{name}}",
+    "salvageable": "+{{count}} rakennelmissa",
+    "builtInto": "rakennettu: {{name}}"
   }
 }

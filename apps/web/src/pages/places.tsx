@@ -11,7 +11,9 @@ import { NewPlaceForm } from './location/new-place';
 
 function Node({ node, depth }: { node: LocationNode; depth: number }) {
   const [open, setOpen] = useState(depth < 1);
-  const hasChildren = node.children.length > 0;
+  // Dismantled builds are only a record now: found by search or their label.
+  const children = node.children.filter((c) => !c.dismantledAt);
+  const hasChildren = children.length > 0;
   return (
     <li>
       <div
@@ -43,7 +45,7 @@ function Node({ node, depth }: { node: LocationNode; depth: number }) {
       </div>
       {open && hasChildren && (
         <ul>
-          {node.children.map((c) => (
+          {children.map((c) => (
             <Node key={c.id} node={c} depth={depth + 1} />
           ))}
         </ul>
@@ -73,7 +75,7 @@ export function PlacesPage() {
       {adding && <NewPlaceForm parent={null} defaultType="room" onDone={() => setAdding(false)} />}
       <ErrorBox error={tree.error} />
       {tree.data
-        ?.filter((n) => n.kind === 'normal')
+        ?.filter((n) => n.kind === 'normal' && !n.dismantledAt)
         .map((n) => (
           <MapLayers key={n.id} code={n.code} />
         ))}
@@ -85,9 +87,11 @@ export function PlacesPage() {
             <Empty>{t('places.empty')}</Empty>
           )}
           <ul className="-mx-1">
-            {tree.data?.map((n) => (
-              <Node key={n.id} node={n} depth={0} />
-            ))}
+            {tree.data
+              ?.filter((n) => !n.dismantledAt)
+              .map((n) => (
+                <Node key={n.id} node={n} depth={0} />
+              ))}
           </ul>
         </Card>
       )}
