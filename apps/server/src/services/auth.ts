@@ -10,12 +10,33 @@ import {
   USER_ROLES,
   type LoginResult,
   type Scope,
+  type UserDetail,
   type UserInfo,
   type UserRole,
 } from '@ixfwms/domain';
-import { and, eq, gt, isNull, or } from 'drizzle-orm';
+import { and, eq, gt, isNull, ne, or, sql, type SQL } from 'drizzle-orm';
+import type { SQLiteColumn } from 'drizzle-orm/sqlite-core';
 import type { Db } from '../db/client.js';
-import { apiTokens, users } from '../db/schema.js';
+import {
+  apiTokens,
+  attachments,
+  auditLog,
+  codeReservations,
+  files,
+  importMappings,
+  loans,
+  locationMoves,
+  locations,
+  mapDrawings,
+  parts,
+  reports,
+  settings,
+  stockLots,
+  stockMovements,
+  unitEvents,
+  units,
+  users,
+} from '../db/schema.js';
 import { AppError, conflict, invalid, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
 import type { Actor } from './context.js';
@@ -101,6 +122,7 @@ export class AuthService {
       this.failedLogins.set(key, [...recent, now]);
       throw new AppError('unauthorized', 'Wrong name or password');
     }
+    if (user.disabledAt) throw new AppError('forbidden', 'This account is turned off');
     this.failedLogins.delete(key);
     const token = TOKEN_PREFIX + randomBytes(24).toString('base64url');
     const expiresAt = new Date(now + SESSION_DAYS * 86_400_000).toISOString();
@@ -147,6 +169,7 @@ export class AuthService {
   ): Promise<{ token: string; id: string }> {
     const user = await this.db.select().from(users).where(eq(users.name, userName)).get();
     if (!user) throw notFound('User', userName);
+    if (user.disabledAt) throw invalid(`${user.name}'s account is turned off`);
     const bad = scopes.filter((s) => !SCOPES.includes(s));
     if (bad.length || scopes.length === 0)
       throw invalid(`Scopes must be some of: ${SCOPES.join(', ')}`);
@@ -171,12 +194,20 @@ export class AuthService {
         ),
       )
       .all();
+    const lastUsed = await this.db
+      .select({ userId: apiTokens.userId, at: sql<string | null>`max(${apiTokens.lastUsedAt})` })
+      .from(apiTokens)
+      .groupBy(apiTokens.userId)
+      .all();
     return all.map((u) => ({
       id: u.id,
       name: u.name,
       role: u.role,
       hasPassword: u.passwordHash != null,
       createdAt: u.createdAt,
+      active: u.disabledAt == null,
+      disabledAt: u.disabledAt,
+      lastActiveAt: lastUsed.find((l) => l.userId === u.id)?.at ?? null,
       tokens: tokens
         .filter((t) => t.userId === u.id)
         .map((t) => ({
@@ -211,6 +242,126 @@ export class AuthService {
     await this.db.update(apiTokens).set({ revokedAt: nowIso() }).where(eq(apiTokens.id, id));
   }
 
+  /** One user with what would stop turning them off or removing them. */
+  async userDetail(userName: string): Promise<UserDetail> {
+    const user = await this.byName(userName);
+    const info = (await this.listUsersWithTokens()).find((u) => u.id === user.id)!;
+    const history = await this.historyCount(user.id);
+    const openLoans = await this.db.$count(
+      loans,
+      and(eq(loans.responsibleUserId, user.id), isNull(loans.returnedAt)),
+    );
+    const carrying = await this.carryCount(user.id);
+    return { ...info, history, openLoans, carrying, canDelete: history === 0 && carrying === 0 };
+  }
+
+  /**
+   * Turns a user off: no logins, every token revoked. They stay in the history under their name.
+   * Not yourself, not the last admin, and not someone still responsible for a loan or carrying things.
+   */
+  async deactivate(userName: string, actor: Actor): Promise<void> {
+    const user = await this.byName(userName);
+    if (user.id === actor.userId) throw invalid("You can't turn off your own account");
+    if (user.role === 'admin' && (await this.activeAdmins(user.id)) === 0)
+      throw invalid('This is the last admin; make someone else an admin first');
+    const openLoans = await this.db.$count(
+      loans,
+      and(eq(loans.responsibleUserId, user.id), isNull(loans.returnedAt)),
+    );
+    if (openLoans)
+      throw invalid(
+        `${user.name} is responsible for ${openLoans} loan(s) out of the lab; return them or lend them again under someone else first`,
+      );
+    const carrying = await this.carryCount(user.id);
+    if (carrying)
+      throw invalid(`${user.name} is carrying ${carrying} thing(s); put them down first`);
+    await this.db.update(users).set({ disabledAt: nowIso() }).where(eq(users.id, user.id));
+    await this.db
+      .update(apiTokens)
+      .set({ revokedAt: nowIso() })
+      .where(and(eq(apiTokens.userId, user.id), isNull(apiTokens.revokedAt)));
+  }
+
+  async reactivate(userName: string): Promise<void> {
+    const user = await this.byName(userName);
+    await this.db.update(users).set({ disabledAt: null }).where(eq(users.id, user.id));
+  }
+
+  /**
+   * Removes a user for good. Only for users with no history (typically added by mistake):
+   * anyone whose name is on a change, move, log entry or loan is turned off instead, so the
+   * history keeps saying who did what.
+   */
+  async deleteUser(userName: string, actor: Actor): Promise<void> {
+    const user = await this.byName(userName);
+    if (user.id === actor.userId) throw invalid("You can't remove your own account");
+    if (user.role === 'admin' && (await this.activeAdmins(user.id)) === 0)
+      throw invalid('This is the last admin; make someone else an admin first');
+    if ((await this.historyCount(user.id)) > 0 || (await this.carryCount(user.id)) > 0)
+      throw invalid(`${user.name} has history; turn the account off instead`);
+    await this.db.transaction(async (tx) => {
+      await tx.delete(apiTokens).where(eq(apiTokens.userId, user.id));
+      await tx.delete(locations).where(eq(locations.ownerUserId, user.id));
+      await tx.delete(users).where(eq(users.id, user.id));
+    });
+  }
+
+  private async byName(userName: string) {
+    const user = await this.db.select().from(users).where(eq(users.name, userName)).get();
+    if (!user) throw notFound('User', userName);
+    return user;
+  }
+
+  /** Active admins other than `exceptId`. */
+  private activeAdmins(exceptId: string): Promise<number> {
+    return this.db.$count(
+      users,
+      and(eq(users.role, 'admin'), isNull(users.disabledAt), ne(users.id, exceptId)),
+    );
+  }
+
+  /** How many records name this user: the history that would lose its "who". */
+  private async historyCount(userId: string): Promise<number> {
+    const columns: [Parameters<Db['$count']>[0], SQLiteColumn][] = [
+      [auditLog, auditLog.userId],
+      [stockMovements, stockMovements.userId],
+      [locationMoves, locationMoves.userId],
+      [unitEvents, unitEvents.userId],
+      [loans, loans.responsibleUserId],
+      [loans, loans.returnedBy],
+      [loans, loans.createdBy],
+      [reports, reports.userId],
+      [reports, reports.resolvedBy],
+      [parts, parts.createdBy],
+      [files, files.createdBy],
+      [attachments, attachments.createdBy],
+      [codeReservations, codeReservations.createdBy],
+      [mapDrawings, mapDrawings.createdBy],
+      [importMappings, importMappings.updatedBy],
+      [settings, settings.updatedBy],
+    ];
+    let n = 0;
+    for (const [table, column] of columns) n += await this.db.$count(table, eq(column, userId));
+    return n;
+  }
+
+  /** Things in the user's carry list (boxes, stock, units). */
+  private async carryCount(userId: string): Promise<number> {
+    const carry = await this.db
+      .select({ id: locations.id })
+      .from(locations)
+      .where(and(eq(locations.ownerUserId, userId), eq(locations.kind, 'in_transit')))
+      .get();
+    if (!carry) return 0;
+    const inside = (where: SQL | undefined, table: Parameters<Db['$count']>[0]) =>
+      this.db.$count(table, where);
+    return (
+      (await inside(eq(stockLots.locationId, carry.id), stockLots)) +
+      (await inside(eq(units.locationId, carry.id), units)) +
+      (await inside(eq(locations.parentId, carry.id), locations))
+    );
+  }
+
   /** Returns the actor for a bearer token, or null when it is unknown or revoked. */
   async verify(token: string): Promise<Actor | null> {
     if (!token.startsWith(TOKEN_PREFIX)) return null;
@@ -222,6 +373,7 @@ export class AuthService {
         and(
           eq(apiTokens.tokenHash, hashToken(token)),
           isNull(apiTokens.revokedAt),
+          isNull(users.disabledAt),
           or(isNull(apiTokens.expiresAt), gt(apiTokens.expiresAt, nowIso())),
         ),
       )

@@ -238,6 +238,8 @@ export class UnitService {
         throw invalid(
           `No user "${input.responsible}"; the person responsible needs an account (a teacher, say)`,
         );
+      if ('disabledAt' in responsible && responsible.disabledAt)
+        throw invalid(`${responsible.name}'s account is turned off`);
       const away = await this.locations.away(tx);
       await this.moveWithin(tx, unit, away.id, who, null, 'lent', input.description);
       await tx.insert(loans).values({

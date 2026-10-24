@@ -21,6 +21,7 @@ import type {
   CarrySummary,
   HistoryEntry,
   Scope,
+  UserDetail,
   UserInfo,
   UserRole,
   CodeInfo,
@@ -354,6 +355,22 @@ export const useUpdateUser = () =>
       body: { role: input.role, password: input.password },
     }),
   );
+export const useUser = (name: string, enabled: boolean) =>
+  useQuery({
+    queryKey: ['users', name],
+    queryFn: () => api<UserDetail>(`/api/users/${encodeURIComponent(name)}`),
+    enabled,
+  });
+export const useDeactivateUser = () =>
+  useChange((name: string) =>
+    api(`/api/users/${encodeURIComponent(name)}/deactivate`, { body: {} }),
+  );
+export const useReactivateUser = () =>
+  useChange((name: string) =>
+    api(`/api/users/${encodeURIComponent(name)}/reactivate`, { body: {} }),
+  );
+export const useDeleteUser = () =>
+  useChange((name: string) => api(`/api/users/${encodeURIComponent(name)}`, { method: 'DELETE' }));
 export const useCreateToken = () =>
   useChange((input: { user: string; name: string; scopes: Scope[] }) =>
     api<{ token: string; id: string }>(`/api/users/${encodeURIComponent(input.user)}/tokens`, {

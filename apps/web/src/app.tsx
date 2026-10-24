@@ -36,7 +36,7 @@ import { SearchPage } from './pages/search';
 import { SessionPage } from './pages/session';
 import { SetupPage } from './pages/setup';
 import { UnitPage } from './pages/unit';
-import { UsersPage } from './pages/users';
+import { UserPage, UsersPage } from './pages/users';
 import { NetworkPage } from './pages/network';
 
 /** Paths match the QR label format: /L/<code> for places, /P/<code> for items, /U/<code> for units (case-insensitive). */
@@ -73,6 +73,7 @@ const routes = [
           { path: 'labels', element: <LabelsSection /> },
           { path: 'import', element: <MappingsSection /> },
           { path: 'users', element: <UsersPage /> },
+          { path: 'users/:name', element: <UserPage /> },
           { path: 'guests', element: <GuestsSection /> },
           { path: 'backups', element: <BackupsPage /> },
           { path: 'server', element: <ServerSection /> },

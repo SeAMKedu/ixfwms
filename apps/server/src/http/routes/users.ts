@@ -16,6 +16,31 @@ export function registerUserRoutes(app: FastifyInstance, { services }: AppDeps):
     return auth.listUsersWithTokens();
   });
 
+  app.get('/api/users/:name', async (request) => {
+    requireScope(request.actor, 'admin');
+    return auth.userDetail(parse(NameParams, request.params).name);
+  });
+
+  /** Turn off: no logins, tokens revoked, history kept. */
+  app.post('/api/users/:name/deactivate', async (request, reply) => {
+    const who = requireScope(request.actor, 'admin');
+    await auth.deactivate(parse(NameParams, request.params).name, who);
+    return reply.status(204).send();
+  });
+
+  app.post('/api/users/:name/reactivate', async (request, reply) => {
+    requireScope(request.actor, 'admin');
+    await auth.reactivate(parse(NameParams, request.params).name);
+    return reply.status(204).send();
+  });
+
+  /** Only users without history; others are turned off instead. */
+  app.delete('/api/users/:name', async (request, reply) => {
+    const who = requireScope(request.actor, 'admin');
+    await auth.deleteUser(parse(NameParams, request.params).name, who);
+    return reply.status(204).send();
+  });
+
   app.post('/api/users', async (request, reply) => {
     requireScope(request.actor, 'admin');
     const body = parse(

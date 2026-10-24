@@ -416,8 +416,25 @@ export interface UserInfo {
   role: UserRole;
   hasPassword: boolean;
   createdAt: string;
+  /** False when turned off: can't log in and has no tokens, but stays in the history. */
+  active: boolean;
+  disabledAt: string | null;
+  /** Last time any of the user's tokens or sessions was used. */
+  lastActiveAt: string | null;
   /** Active tokens (not revoked, not expired). */
   tokens: TokenInfo[];
+}
+
+/** One user for the admin's user page: what would stop turning them off or removing them. */
+export interface UserDetail extends UserInfo {
+  /** Things recorded with this user's name (changes, moves, log entries, loans…). */
+  history: number;
+  /** Loans out of the lab this user is responsible for. */
+  openLoans: number;
+  /** Things in this user's carry list. */
+  carrying: number;
+  /** Only users with no history can be removed; others are turned off instead. */
+  canDelete: boolean;
 }
 
 /** Someone's carry list, for the "still being carried" reminder. */

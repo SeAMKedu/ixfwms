@@ -50,6 +50,8 @@ export const users = sqliteTable('users', {
   role: text('role').$type<UserRole>().notNull().default('member'),
   /** scrypt hash for web login; null for users that only use API tokens. */
   passwordHash: text('password_hash'),
+  /** Turned off: can't log in, tokens revoked; kept so history still shows who did what. */
+  disabledAt: text('disabled_at'),
   createdAt: createdAt(),
 });
 
