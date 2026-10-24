@@ -9,7 +9,6 @@ import {
   Inbox,
   ListChecks,
   LogIn,
-  LogOut,
   MapPin,
   Map as MapIcon,
   Network,
@@ -80,17 +79,26 @@ function UserBox() {
     );
   }
   return (
-    <div className="flex items-center gap-2 text-sm">
-      <Link to="/account" className="truncate text-muted hover:text-link hover:underline">
-        {t('nav.loggedInAs', { name: user.name })}
+    <div className="flex items-center gap-3 text-sm">
+      <Link
+        to="/account"
+        title={t('nav.account')}
+        className="flex min-w-0 items-center gap-2 rounded-full hover:text-link"
+      >
+        <span
+          aria-hidden
+          className="grid size-7 shrink-0 place-items-center rounded-full bg-link text-[13px] font-semibold text-surface uppercase"
+        >
+          {user.name.slice(0, 1)}
+        </span>
+        <span className="truncate font-medium">{user.name}</span>
       </Link>
       <button
         type="button"
         onClick={() => void logout()}
-        className="inline-flex items-center gap-1 text-link"
-        aria-label={t('nav.logout')}
+        className="shrink-0 text-[13px] text-muted hover:text-link hover:underline"
       >
-        <LogOut className="size-4" aria-hidden />
+        {t('nav.logout')}
       </button>
     </div>
   );
