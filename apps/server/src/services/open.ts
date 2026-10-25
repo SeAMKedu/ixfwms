@@ -8,7 +8,8 @@ import {
 } from '@ixfwms/domain';
 import { eq } from 'drizzle-orm';
 import { many, one, type Db, type Executor } from '../db/client.js';
-import { locations, parts, stockLots } from '../db/schema.js';
+import { locations, parts, stockLots, units } from '../db/schema.js';
+import { nowIso } from '../lib/ids.js';
 import { fail, invalid } from '../lib/errors.js';
 import { requireScope, type Actor } from './context.js';
 import type { LocationRow, LocationService } from './locations.js';
@@ -48,6 +49,37 @@ export class OpenActionService {
         summary.workstation,
       );
       await this.units.moveWithin(tx, unit, dest.id, who, guest);
+    });
+    return this.units.detail(ref, actor);
+  }
+
+  /**
+   * A lost unit turned up: OK again, at `to` (logged in), or back home (without an account,
+   * as far as the lab allows putting things back). Its log says it was found.
+   */
+  async foundUnit(
+    ref: string,
+    to: string | null,
+    guest: string | null,
+    actor: Actor | null,
+  ): Promise<UnitDetail> {
+    await this.db.transaction(async (tx) => {
+      const unit = await this.units.resolve(ref, tx);
+      if (unit.status !== 'lost') throw invalid('units.notLost');
+      const destId = to
+        ? (await this.locations.resolve(to, tx)).id
+        : (unit.homeLocationId ?? unit.locationId);
+      const dest = await this.locations.resolve(destId, tx);
+      this.units.checkDestination(dest);
+      const summary = await this.locations.summarize(tx, dest);
+      const back = dest.id === unit.homeLocationId || dest.id === unit.locationId;
+      const who = await this.allow(actor, back ? 'put_back' : 'workstation', summary.workstation);
+      await tx
+        .update(units)
+        .set({ status: 'ok', lastSeenAt: nowIso(), updatedAt: nowIso() })
+        .where(eq(units.id, unit.id));
+      await this.units.event(tx, unit.id, 'found', { to: dest.id, who, guest });
+      if (dest.id !== unit.locationId) await this.units.moveWithin(tx, unit, dest.id, who, guest);
     });
     return this.units.detail(ref, actor);
   }

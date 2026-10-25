@@ -129,6 +129,7 @@ export const ERROR_MESSAGES = {
   'units.noResponsible':
     'No user "{{name}}"; the person responsible needs an account (a teacher, say)',
   'units.notLent': "This isn't lent out",
+  'units.notLost': "This isn't marked lost",
   'units.lendInstead': 'Lend it out instead of moving it out of the lab',
   'delete.hasUnits': '{{name}} has units; delete or retire them first',
   'delete.inBuild': '{{name}} is built into something; take it out first',

@@ -16,7 +16,15 @@ export type SearchKind = (typeof SEARCH_KINDS)[number];
 export const TRACKING_MODES = ['bulk', 'individual'] as const;
 export type TrackingMode = (typeof TRACKING_MODES)[number];
 
-export const UNIT_STATUSES = ['ok', 'needs_attention', 'broken', 'in_repair', 'retired'] as const;
+/** `lost`: nobody can find it (it may turn up: "Found it"); `retired`: gone for good. */
+export const UNIT_STATUSES = [
+  'ok',
+  'needs_attention',
+  'broken',
+  'in_repair',
+  'lost',
+  'retired',
+] as const;
 export type UnitStatus = (typeof UNIT_STATUSES)[number];
 /** Unit states that count as having the thing (in stock, low stock, "Can we build it?"). */
 export const USABLE_UNIT_STATUSES: UnitStatus[] = ['ok', 'needs_attention'];
@@ -30,6 +38,7 @@ export const UNIT_EVENT_KINDS = [
   'status',
   'lent',
   'returned',
+  'found',
 ] as const;
 export type UnitLogKind = (typeof UNIT_LOG_KINDS)[number];
 export type UnitEventKind = (typeof UNIT_EVENT_KINDS)[number];

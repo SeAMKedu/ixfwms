@@ -17,6 +17,16 @@ const Guest = z.object({ name: z.string().trim().max(80).nullish() });
 export function registerUnitRoutes(app: FastifyInstance, { services }: AppDeps): void {
   const { units, reports, open, where } = services;
 
+  /** A lost unit turned up: here (`to`), or back home. */
+  app.post('/api/units/:ref/found', async (request) => {
+    const { ref } = parse(z.object({ ref: z.string() }), request.params);
+    const body = parse(
+      z.object({ to: z.string().nullish(), name: z.string().trim().max(80).nullish() }),
+      request.body ?? {},
+    );
+    return open.foundUnit(ref, body.to ?? null, body.name ?? null, request.actor);
+  });
+
   /** Deletes a unit made by mistake; not while it's lent out. */
   app.delete('/api/units/:ref', async (request, reply) => {
     await services.deletes.unit(

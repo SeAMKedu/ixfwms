@@ -905,7 +905,8 @@
     "needs_attention": "Needs attention",
     "broken": "Broken",
     "in_repair": "In repair",
-    "retired": "Retired"
+    "retired": "Retired",
+    "lost": "Lost"
   },
   "unitEvents": {
     "note": "Note",
@@ -917,7 +918,8 @@
     "moved": "Moved",
     "status": "Status",
     "lent": "Lent out",
-    "returned": "Returned"
+    "returned": "Returned",
+    "found": "Found"
   },
   "reportKinds": {
     "broken": "Broken",
@@ -1103,5 +1105,11 @@
     "placeHint": "For a place made by mistake. Only when it's empty and no unit has it as home.",
     "buildHint": "For a build made by mistake. Only when it's empty; dismantle it first.",
     "dismantledHint": "Delete the record of this build, with what was in it. Its parts' own history stays."
+  },
+  "lost": {
+    "note": "Marked lost. Last seen {{date}} at",
+    "foundHome": "Found it: put it back at {{place}}",
+    "foundAt": "Found it somewhere else",
+    "foundHere": "Found it here"
   }
 }

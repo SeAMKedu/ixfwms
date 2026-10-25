@@ -905,7 +905,8 @@
     "needs_attention": "Vaatii huomiota",
     "broken": "Rikki",
     "in_repair": "Korjattavana",
-    "retired": "Poistettu käytöstä"
+    "retired": "Poistettu käytöstä",
+    "lost": "Kadonnut"
   },
   "unitEvents": {
     "note": "Muistiinpano",
@@ -917,7 +918,8 @@
     "moved": "Siirretty",
     "status": "Tila",
     "lent": "Lainattu",
-    "returned": "Palautettu"
+    "returned": "Palautettu",
+    "found": "Löytyi"
   },
   "reportKinds": {
     "broken": "Rikki",
@@ -1174,7 +1176,8 @@
       "alreadyLent": "Tämä on jo lainassa",
       "noResponsible": "Käyttäjää \"{{name}}\" ei ole; vastuuhenkilöllä on oltava tili (esimerkiksi opettaja)",
       "notLent": "Tämä ei ole lainassa",
-      "lendInstead": "Lainaa se sen sijaan, että siirtäisit sen ulos labrasta"
+      "lendInstead": "Lainaa se sen sijaan, että siirtäisit sen ulos labrasta",
+      "notLost": "Tätä ei ole merkitty kadonneeksi"
     },
     "builds": {
       "dismantled": "{{name}} on purettu; siihen ei voi enää laittaa mitään",
@@ -1287,5 +1290,11 @@
     "placeHint": "Vahingossa tehdylle paikalle. Vain kun se on tyhjä eikä se ole minkään yksilön kotipaikka.",
     "buildHint": "Vahingossa tehdylle rakennelmalle. Vain kun se on tyhjä; pura se ensin.",
     "dismantledHint": "Poista tämän rakennelman tiedot ja luettelo siitä, mitä siinä oli. Osien oma historia säilyy."
+  },
+  "lost": {
+    "note": "Merkitty kadonneeksi. Viimeksi nähty {{date}} paikassa",
+    "foundHome": "Löytyi: vie se takaisin paikkaan {{place}}",
+    "foundAt": "Löytyi muualta",
+    "foundHere": "Löytyi täältä"
   }
 }

@@ -55,7 +55,7 @@ export type UnitRow = typeof units.$inferSelect;
 type LoanRow = typeof loans.$inferSelect;
 
 /** Statuses that need someone to look at the unit. */
-const ATTENTION: UnitStatus[] = ['needs_attention', 'broken', 'in_repair'];
+const ATTENTION: UnitStatus[] = ['needs_attention', 'broken', 'in_repair', 'lost'];
 
 const today = () => new Date().toISOString().slice(0, 10);
 

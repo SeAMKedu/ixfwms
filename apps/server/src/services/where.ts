@@ -13,6 +13,7 @@ const STATUS_TEXT: Record<string, string> = {
   needs_attention: 'Someone reported a problem with it.',
   broken: 'Marked broken.',
   in_repair: 'In repair.',
+  lost: 'Marked lost; that is where it was last seen.',
   retired: 'Retired.',
 };
 

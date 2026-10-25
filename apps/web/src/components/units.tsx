@@ -18,6 +18,7 @@ const STATUS_TONE: Record<UnitStatus, 'ok' | 'warn' | 'crit' | 'muted'> = {
   needs_attention: 'warn',
   broken: 'crit',
   in_repair: 'warn',
+  lost: 'crit',
   retired: 'muted',
 };
 

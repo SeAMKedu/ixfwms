@@ -16,6 +16,7 @@ import { UnitStatusPill } from '../components/units';
 import { formatDay } from '../lib/format';
 import { NotFoundPage } from './not-found';
 import { Where } from './unit/where';
+import { Found } from './unit/found';
 import { Problems } from './unit/problems';
 import { Details } from './unit/details';
 import { Log } from './unit/log';
@@ -53,6 +54,7 @@ export function UnitPage() {
           </>
         }
       />
+      {u.status === 'lost' && <Found unit={u} />}
       <div className="grid gap-4 md:grid-cols-2">
         <Where unit={u} />
         <Problems unit={u} />

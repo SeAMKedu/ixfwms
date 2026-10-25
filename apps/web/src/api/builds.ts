@@ -5,10 +5,11 @@ import type {
   DismantleResult,
   MakeBuildInput,
   MakeBuildResult,
+  UnitDetail,
 } from '@ixfwms/domain';
 import { useQuery } from '@tanstack/react-query';
 import { api } from './client';
-import { useChange } from './queries';
+import { getGuestName, useChange } from './queries';
 
 /** Makes a build from a parts list, moving the parts in from free stock. */
 export const useMakeBuild = () =>
@@ -35,3 +36,9 @@ export const useAddToBuild = (code: string) =>
 
 /** Deletes what was made by mistake: `/api/parts/X`, `/api/units/X` or `/api/locations/X`. */
 export const useDelete = () => useChange((path: string) => api(path, { method: 'DELETE' }));
+
+/** A lost unit turned up: at `to`, or back home. */
+export const useFoundUnit = (code: string) =>
+  useChange((to: string | null) =>
+    api<UnitDetail>(`/api/units/${code}/found`, { body: { to, name: getGuestName() || null } }),
+  );
