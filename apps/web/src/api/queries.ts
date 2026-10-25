@@ -47,6 +47,7 @@ import type {
   MapLayer,
   PartDetail,
   SearchKind,
+  MoveAmount,
   PartStatus,
   PlaceOption,
   PartSearchResult,
@@ -158,8 +159,8 @@ export const useStocktake = () =>
     api<LotView>(`/api/stock/${i.lotId}/stocktake`, { body: i.amount }),
   );
 export const useMoveStock = () =>
-  useChange((i: { lotId: string; to: string; quantity?: number }) =>
-    api<LotView>(`/api/stock/${i.lotId}/move`, { body: { to: i.to, quantity: i.quantity } }),
+  useChange(({ lotId, ...body }: { lotId: string; to: string } & MoveAmount) =>
+    api<LotView>(`/api/stock/${lotId}/move`, { body }),
   );
 
 export const useCreateLocation = () =>
@@ -193,7 +194,7 @@ export const useCarry = (enabled: boolean) =>
   useQuery({ queryKey: ['carry'], queryFn: () => api<CarryState>('/api/carry'), enabled });
 
 export const usePick = () =>
-  useChange((input: { location?: string; lotId?: string; unit?: string; quantity?: number }) =>
+  useChange((input: { location?: string; lotId?: string; unit?: string } & MoveAmount) =>
     api<CarryState>('/api/carry/pick', { body: input }),
   );
 
@@ -488,10 +489,8 @@ export const useReturnUnit = (code: string) =>
   useChange((to: string | null) => api<UnitDetail>(`/api/units/${code}/return`, { body: { to } }));
 
 export const useOpenMoveLot = () =>
-  useChange((i: { lotId: string; to: string; quantity?: number }) =>
-    api<LotView>(`/api/stock/${i.lotId}/open-move`, {
-      body: { to: i.to, quantity: i.quantity, name: guest() },
-    }),
+  useChange(({ lotId, ...body }: { lotId: string; to: string } & MoveAmount) =>
+    api<LotView>(`/api/stock/${lotId}/open-move`, { body: { ...body, name: guest() } }),
   );
 
 export const usePutBackLot = () =>

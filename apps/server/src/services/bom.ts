@@ -1,12 +1,10 @@
 import {
-  cutsFrom,
+  cutsIn,
   levelState,
   isValidCode,
   parseSize,
   piecesIn,
   type Piece,
-  type StockAmount,
-  type StockLevelDef,
   normalizeCode,
   normalizeIdentifier,
   type BomCheck,
@@ -20,7 +18,6 @@ import { many, one, type Db } from '../db/client.js';
 import { partIdentifiers, parts } from '../db/schema.js';
 import { invalid } from '../lib/errors.js';
 import { requireScope, type Actor } from './context.js';
-import { sizeInUnit } from './amounts.js';
 import type { PartRow, PartService } from './parts.js';
 import type { StockService } from './stock.js';
 import type { UnitService } from './units.js';
@@ -200,13 +197,4 @@ export class BomService {
     for (const h of hits) if (!map.has(h.key)) map.set(h.key, h.part);
     return map;
   }
-}
-
-/** Pieces of `size` a lot could give: cut from its pieces or its total; null when nobody measured it. */
-function cutsIn(amount: StockAmount, size: Piece, levels: StockLevelDef[]): number | null {
-  if (amount.mode === 'cut')
-    return (amount.pieces ?? []).reduce((n, p) => n + cutsFrom(p, size), 0);
-  const per = sizeInUnit(amount, size);
-  if (per != null) return Math.floor(amount.quantity! / per);
-  return piecesIn(amount, null, levels) === 0 ? 0 : null;
 }

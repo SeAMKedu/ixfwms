@@ -74,7 +74,12 @@
     "low": "low",
     "empty": "empty",
     "approxPcs": "≈ {{count}} pcs",
-    "uncounted": "Not counted yet"
+    "uncounted": "Not counted yet",
+    "cut": "Pieces with sizes",
+    "bars": "Pieces, mm",
+    "barsHint": "Each piece's length, e.g. 6000, 2 x 3000",
+    "sheets": "Sheets, mm",
+    "sheetsHint": "Each sheet's width x height, e.g. 1250x2500, 600x400"
   },
   "parts": {
     "title": "Items",
@@ -381,7 +386,11 @@
     "notPutIn_one": "{{count}} not put in: {{reason}}",
     "notPutIn_other": "{{count}} not put in: {{reason}}",
     "asNew": "{{amount}} new",
-    "useThis": "Use this"
+    "useThis": "Use this",
+    "freeAndMore_one": "{{count}} counted free, and more nobody counted",
+    "freeAndMore_other": "{{count}} counted free, and more nobody counted",
+    "cutLength": "Cut each to, mm",
+    "cutSheet": "Cut each to, mm (width × height)"
   },
   "picker": {
     "placeholder": "Type a place name or code…",
@@ -533,7 +542,8 @@
     "fields": {
       "ref": "Code / order number",
       "name": "Name",
-      "quantity": "Quantity"
+      "quantity": "Quantity",
+      "size": "Size (cut stock)"
     },
     "statuses": {
       "ok": "have",
@@ -1047,8 +1057,7 @@
     "leftToDo": "To do by hand:",
     "reasons": {
       "unknown": "no such part",
-      "short": "not enough free",
-      "byHand": "take by hand (a level, or not counted)"
+      "short": "not enough free"
     },
     "open": "Open {{name}}",
     "salvageable": "+{{count}} in builds",
@@ -1063,5 +1072,27 @@
     "dismantledList": "Dismantled",
     "none": "No builds yet.",
     "noneDismantled": "Nothing dismantled yet."
+  },
+  "cut": {
+    "title": "Cut stock",
+    "titleHint": "Profiles and tube by length, sheet metal and boards as sheets: each piece keeps its size, so offcuts stay pieces of their own.",
+    "notCut": "Not cut",
+    "length": "By length (bars, tube)",
+    "sheet": "As sheets",
+    "howManyPieces": "How many pieces",
+    "staysAsItIs": "Empty: all of it. Nobody counted this, so it stays as it is.",
+    "emptyIsAll": "Empty: all of it",
+    "cutSheet": "Or cut a piece, mm (width × height)",
+    "cutLength": "Or cut a piece, mm",
+    "cutHint": "From the smallest piece it fits in",
+    "badSize": "That isn't a size: give millimetres, e.g. 400 or 300 x 200",
+    "leftover": "What to keep of the sheet",
+    "across": "Cut across first: keeps {{keeps}}",
+    "along": "Cut along first: keeps {{keeps}}",
+    "scrap": "Keep nothing (scrap)",
+    "nothing": "nothing",
+    "keepBest": "Keep the biggest piece whole",
+    "keepAcross": "Cut across first",
+    "keepAlong": "Cut along first"
   }
 }

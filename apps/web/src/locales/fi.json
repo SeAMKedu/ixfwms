@@ -74,7 +74,12 @@
     "low": "vähän",
     "empty": "loppu",
     "approxPcs": "≈ {{count}} kpl",
-    "uncounted": "Ei vielä laskettu"
+    "uncounted": "Ei vielä laskettu",
+    "cut": "Palat kokoineen",
+    "bars": "Palat, mm",
+    "barsHint": "Jokaisen palan pituus, esim. 6000, 2 x 3000",
+    "sheets": "Levyt, mm",
+    "sheetsHint": "Jokaisen levyn leveys x korkeus, esim. 1250x2500, 600x400"
   },
   "parts": {
     "title": "Tavarat",
@@ -381,7 +386,11 @@
     "notPutIn_one": "{{count}} jäi laittamatta: {{reason}}",
     "notPutIn_other": "{{count}} jäi laittamatta: {{reason}}",
     "asNew": "{{amount}} uutena",
-    "useThis": "Käytä tätä"
+    "useThis": "Käytä tätä",
+    "freeAndMore_one": "{{count}} laskettuna vapaana, ja lisää laskematta",
+    "freeAndMore_other": "{{count}} laskettuna vapaana, ja lisää laskematta",
+    "cutLength": "Leikkaa kukin, mm",
+    "cutSheet": "Leikkaa kukin, mm (leveys × korkeus)"
   },
   "picker": {
     "placeholder": "Kirjoita paikan nimi tai koodi…",
@@ -533,7 +542,8 @@
     "fields": {
       "ref": "Koodi / tilausnumero",
       "name": "Nimi",
-      "quantity": "Määrä"
+      "quantity": "Määrä",
+      "size": "Koko (leikattava)"
     },
     "statuses": {
       "ok": "on",
@@ -1080,7 +1090,9 @@
       "movedAgain": "{{name}} on siirretty sen jälkeen uudelleen; kumoa ensin se",
       "onlyMoves": "Vain siirtoja voi kumota",
       "changedSince": "Saldo on muuttunut sen jälkeen; tätä ei voi enää kumota",
-      "takenSince": "Osa on otettu sen jälkeen; siirrä se takaisin käsin"
+      "takenSince": "Osa on otettu sen jälkeen; siirrä se takaisin käsin",
+      "absorbed": "Se palasi varastoon, jota kukaan ei ole laskenut; ota se takaisin käsin",
+      "cut": "Leikkausta ei voi perua; siirrä pala takaisin käsin"
     },
     "parts": {
       "mergeSelf": "Osaa ei voi yhdistää itseensä",
@@ -1116,7 +1128,12 @@
       "noLot": "Saldoerää {{id}} ei ole",
       "pickUpToCarry": "Ota se mukaan kantaaksesi sitä",
       "uncountedPart": "Tätä varastoa ei ole laskettu, joten osaa siitä ei voi siirtää; siirrä kaikki tai laske ensin",
-      "countIt": "Inventointi kertoo, paljonko on; anna määrä"
+      "countIt": "Inventointi kertoo, paljonko on; anna määrä",
+      "noneLeft": "Tämä on merkitty tyhjäksi; siitä ei voi ottaa mitään",
+      "notCutStock": "{{name}} ei ole leikattavaa materiaalia; aseta se ensin leikattavaksi pituuden mukaan tai levyinä",
+      "wrongShape": "Anna jokainen pala pituutena, tai levyille leveys × korkeus, tavaran mukaan",
+      "noPieceFits": "Mikään pala ei ole tarpeeksi iso koolle {{size}}",
+      "cutPieces": "Kerro, montako palaa siirretään tai minkä kokoinen pala leikataan"
     },
     "codes": {
       "notValid": "\"{{code}}\" ei ole kelvollinen koodi",
@@ -1215,8 +1232,7 @@
     "leftToDo": "Tehtävä käsin:",
     "reasons": {
       "unknown": "osaa ei löydy",
-      "short": "ei tarpeeksi vapaana",
-      "byHand": "ota käsin (taso tai laskematta)"
+      "short": "ei tarpeeksi vapaana"
     },
     "open": "Avaa {{name}}",
     "salvageable": "+{{count}} rakennelmissa",
@@ -1231,5 +1247,27 @@
     "dismantledList": "Puretut",
     "none": "Ei vielä rakennelmia.",
     "noneDismantled": "Mitään ei ole vielä purettu."
+  },
+  "cut": {
+    "title": "Leikattava materiaali",
+    "titleHint": "Profiilit ja putket pituuden mukaan, pelti ja levyt levyinä: jokainen pala pitää kokonsa, joten hukkapalat jäävät omiksi paloikseen.",
+    "notCut": "Ei leikata",
+    "length": "Pituuden mukaan (tangot, putket)",
+    "sheet": "Levyinä",
+    "howManyPieces": "Kuinka monta kappaletta",
+    "staysAsItIs": "Tyhjä: kaikki. Tätä ei ole laskettu, joten se pysyy ennallaan.",
+    "emptyIsAll": "Tyhjä: kaikki",
+    "cutSheet": "Tai leikkaa pala, mm (leveys × korkeus)",
+    "cutLength": "Tai leikkaa pala, mm",
+    "cutHint": "Pienimmästä palasta, johon se mahtuu",
+    "badSize": "Tämä ei ole koko: anna millimetreinä, esim. 400 tai 300 x 200",
+    "leftover": "Mitä levystä jätetään",
+    "across": "Ensin poikki: jää {{keeps}}",
+    "along": "Ensin pitkittäin: jää {{keeps}}",
+    "scrap": "Ei mitään (hukkaan)",
+    "nothing": "ei mitään",
+    "keepBest": "Isoin pala jää ehjäksi",
+    "keepAcross": "Ensin poikki",
+    "keepAlong": "Ensin pitkittäin"
   }
 }

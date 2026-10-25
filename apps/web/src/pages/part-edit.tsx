@@ -2,6 +2,7 @@ import {
   IDENTIFIER_KINDS,
   PART_KINDS,
   normalizeCode,
+  type CutShape,
   type IdentifierKind,
   type PartDetail,
   type PartKind,
@@ -60,6 +61,7 @@ interface FormState {
   tags: string;
   unitMassG: string;
   minStock: string;
+  cut: CutShape | '';
   notes: string;
   source: string;
 }
@@ -78,6 +80,7 @@ const fromPart = (p?: PartDetail, kind?: string | null): FormState => ({
   tags: p?.tags.join(', ') ?? '',
   unitMassG: p?.unitMassG?.toString() ?? '',
   minStock: p?.minStock?.toString() ?? '',
+  cut: p?.cut ?? '',
   notes: p?.notes ?? '',
   source: p?.source ?? '',
 });
@@ -136,6 +139,7 @@ function PartForm({ part }: { part?: PartDetail }) {
       description: form.description || null,
       unitMassG: parseNumber(form.unitMassG) ?? null,
       minStock: parseNumber(form.minStock) ?? null,
+      cut: form.cut || null,
       notes: form.notes || null,
       source: form.source || null,
       attributes: fromDraft(attrs, fields),
@@ -358,6 +362,19 @@ function PartForm({ part }: { part?: PartDetail }) {
               />
             )}
           </Field>
+          <Field label={t('cut.title')} hint={t('cut.titleHint')}>
+            {(id) => (
+              <Select
+                id={id}
+                value={form.cut}
+                onChange={(e) => set({ cut: e.target.value as CutShape | '' })}
+              >
+                <option value="">{t('cut.notCut')}</option>
+                <option value="length">{t('cut.length')}</option>
+                <option value="sheet">{t('cut.sheet')}</option>
+              </Select>
+            )}
+          </Field>
         </div>
         <Field label={t('part.notes')}>
           {(id) => (
@@ -402,7 +419,7 @@ function PartForm({ part }: { part?: PartDetail }) {
               <Field label={t('part.location')} hint={t('part.initialStockHint')}>
                 {(id) => <PlacePicker id={id} value={location} onChange={setLocation} />}
               </Field>
-              <AmountFields value={amount} onChange={setAmount} />
+              <AmountFields value={amount} onChange={setAmount} cut={form.cut || null} />
             </>
           )}
           {can('write') && (

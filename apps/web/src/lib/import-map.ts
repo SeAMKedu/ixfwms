@@ -53,6 +53,9 @@ const UNIT_ALIASES: Record<string, ImportRow['unit']> = {
   kg: 'kg',
   m: 'm',
   mm: 'mm',
+  m2: 'm2',
+  'm²': 'm2',
+  'sq m': 'm2',
   ml: 'ml',
   l: 'l',
 };

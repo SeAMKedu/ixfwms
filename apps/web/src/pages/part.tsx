@@ -83,7 +83,14 @@ export function PartPage() {
             ) : (
               <ul className="flex flex-col gap-3">
                 {p.lots.map((lot, i) => (
-                  <LotRow key={lot.id} lot={lot} canEdit={canEdit} first={i === 0} />
+                  <LotRow
+                    key={lot.id}
+                    lot={lot}
+                    canEdit={canEdit}
+                    first={i === 0}
+                    cut={p.cut}
+                    unitMassG={p.unitMassG}
+                  />
                 ))}
               </ul>
             )}

@@ -1,6 +1,10 @@
 import {
   MEASURE_UNITS,
+  parsePieces,
+  unitLabel,
   type AmountInput,
+  type CutShape,
+  type Piece,
   type MeasureUnit,
   type StockLevel,
   type StockMode,
@@ -19,7 +23,13 @@ export interface AmountState {
   tare: string;
   /** Ticked "Not counted": there is stock, nobody has said how much. Never assumed from a blank. */
   uncounted: boolean;
+  /** Cut stock: the pieces as typed ("6000, 400" or "1250x2500"), and their shape. */
+  pieces: string;
+  shape: CutShape;
 }
+
+/** Pieces as the pieces field shows them: "6000, 400" or "1250x2500, 600x400". */
+export const piecesText = (pieces: Piece[]) => pieces.map((p) => p.join('x')).join(', ');
 
 const initialAmount = (mode: StockMode = 'count'): AmountState => ({
   mode,
@@ -28,10 +38,16 @@ const initialAmount = (mode: StockMode = 'count'): AmountState => ({
   level: 'plenty',
   tare: '',
   uncounted: false,
+  pieces: '',
+  shape: 'length',
 });
 
 /** Converts the form state to an API amount, or null when it is incomplete. */
 export function toAmountInput(s: AmountState): AmountInput | null {
+  if (s.mode === 'cut') {
+    const pieces = parsePieces(s.pieces, s.shape);
+    return pieces && pieces.length ? { mode: 'cut', pieces } : null;
+  }
   if (s.uncounted)
     return s.mode === 'measure'
       ? { mode: 'measure', unit: s.unit, uncounted: true }
@@ -52,10 +68,13 @@ export function AmountFields({
   onChange,
   lockMode,
   allowUncounted = true,
+  cut = null,
 }: {
   value: AmountState;
   onChange: (v: AmountState) => void;
   lockMode?: boolean;
+  /** The item is cut stock: pieces with their sizes can be given. */
+  cut?: CutShape | null;
   /** Offer "Not counted" (not for a stocktake, which is the counting). */
   allowUncounted?: boolean;
 }) {
@@ -73,15 +92,16 @@ export function AmountFields({
         <Segmented<StockMode>
           label={t('amount.mode')}
           value={value.mode}
-          onChange={(mode) => set({ mode })}
+          onChange={(mode) => set({ mode, shape: cut ?? value.shape })}
           options={[
             { value: 'count', label: t('amount.count') },
             { value: 'measure', label: t('amount.measure') },
             { value: 'level', label: t('amount.level') },
+            ...(cut ? [{ value: 'cut' as const, label: t('amount.cut') }] : []),
           ]}
         />
       )}
-      {allowUncounted && (
+      {allowUncounted && value.mode !== 'cut' && (
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
@@ -91,7 +111,21 @@ export function AmountFields({
           {t('amount.uncounted')}
         </label>
       )}
-      {value.uncounted && allowUncounted ? (
+      {value.mode === 'cut' ? (
+        <Field
+          label={t(value.shape === 'sheet' ? 'amount.sheets' : 'amount.bars')}
+          hint={t(value.shape === 'sheet' ? 'amount.sheetsHint' : 'amount.barsHint')}
+        >
+          {(id) => (
+            <TextInput
+              id={id}
+              value={value.pieces}
+              placeholder={value.shape === 'sheet' ? '1250x2500, 600x400' : '6000, 2 x 3000'}
+              onChange={(e) => set({ pieces: e.target.value })}
+            />
+          )}
+        </Field>
+      ) : value.uncounted && allowUncounted ? (
         value.mode === 'measure' && (
           <Field label={t('amount.unit')}>
             {(id) => (
@@ -102,7 +136,7 @@ export function AmountFields({
               >
                 {MEASURE_UNITS.map((u) => (
                   <option key={u} value={u}>
-                    {u}
+                    {unitLabel(u)}
                   </option>
                 ))}
               </Select>
@@ -143,7 +177,7 @@ export function AmountFields({
                 >
                   {MEASURE_UNITS.map((u) => (
                     <option key={u} value={u}>
-                      {u}
+                      {unitLabel(u)}
                     </option>
                   ))}
                 </Select>

@@ -41,7 +41,7 @@ export function AddStock({ part }: { part: PartDetail }) {
       <Field label={t('part.location')} hint={t('part.initialStockHint')}>
         {(id) => <PlacePicker id={id} value={location} onChange={setLocation} />}
       </Field>
-      <AmountFields value={amount} onChange={setAmount} />
+      <AmountFields value={amount} onChange={setAmount} cut={part.cut} />
       <ErrorBox error={add.error} />
       <div className="flex gap-2">
         <Button

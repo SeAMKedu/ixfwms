@@ -1,4 +1,4 @@
-import type { BomCheck } from '@ixfwms/domain';
+import type { BomCheck, Piece } from '@ixfwms/domain';
 import { Blocks } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -7,12 +7,18 @@ import { useMakeBuild } from '../../api/builds';
 import { PlacePicker } from '../../components/place-picker';
 import { Button, ErrorBox, Field, PlaceTag, TextInput } from '../../components/ui';
 
-/** The matched parts of a checked list, each once, with whole quantities. */
+/** The matched parts of a checked list, each once (per size), with whole quantities. */
 function buildLines(result: BomCheck) {
-  const byCode = new Map<string, number>();
-  for (const l of result.lines)
-    if (l.part) byCode.set(l.part.code, (byCode.get(l.part.code) ?? 0) + Math.ceil(l.quantity));
-  return [...byCode].map(([part, quantity]) => ({ part, quantity }));
+  const byKey = new Map<string, { part: string; quantity: number; size: Piece | null }>();
+  for (const l of result.lines) {
+    if (!l.part) continue;
+    // The same part in two sizes is two lines.
+    const key = `${l.part.code} ${l.size?.join('x') ?? ''}`;
+    const line = byKey.get(key) ?? { part: l.part.code, quantity: 0, size: l.size };
+    line.quantity += Math.ceil(l.quantity);
+    byKey.set(key, line);
+  }
+  return [...byKey.values()];
 }
 
 /** "Make a build from this": a new build, with the matched parts moved in from free stock. */

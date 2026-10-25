@@ -65,16 +65,23 @@ describe('BOM columns', () => {
   it('guesses CAD/TIA headers and multiplies quantities by sets', async () => {
     const { guessBomColumns, toBomLines } = await import('./bom-map');
     const table = [
-      ['Item', 'Article no.', 'Description', 'Qty'],
-      ['1', '6ES7 214-1AG40-0XB0', 'CPU 1214C', '1'],
-      ['2', '', 'Suction cup 30', '4'],
-      ['3', '', '', ''],
+      ['Item', 'Article no.', 'Description', 'Qty', 'Length'],
+      ['1', '6ES7 214-1AG40-0XB0', 'CPU 1214C', '1', ''],
+      ['2', '', 'Suction cup 30', '4', ''],
+      ['3', 'PROFILE-45', 'Profile 45x45', '2', '400'],
+      ['4', '', '', '', ''],
     ];
     const cols = guessBomColumns(table[0]!);
-    expect(cols).toEqual({ ref: 'Article no.', quantity: 'Qty', name: 'Description' });
+    expect(cols).toEqual({
+      ref: 'Article no.',
+      quantity: 'Qty',
+      name: 'Description',
+      size: 'Length',
+    });
     expect(toBomLines(table, 1, cols, 2)).toEqual([
-      { ref: '6ES7 214-1AG40-0XB0', name: 'CPU 1214C', quantity: 2 },
-      { ref: null, name: 'Suction cup 30', quantity: 8 },
+      { ref: '6ES7 214-1AG40-0XB0', name: 'CPU 1214C', quantity: 2, size: null },
+      { ref: null, name: 'Suction cup 30', quantity: 8, size: null },
+      { ref: 'PROFILE-45', name: 'Profile 45x45', quantity: 4, size: '400' },
     ]);
   });
 });

@@ -3,6 +3,7 @@ import {
   formatPiece,
   normalizeCode,
   pickPiece,
+  sizeInUnit,
   piecesIn,
   USABLE_UNIT_STATUSES,
   type Leftover,
@@ -13,7 +14,7 @@ import {
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import { many, type Executor } from '../db/client.js';
 import { units } from '../db/schema.js';
-import { countAmount, sizeInUnit } from './amounts.js';
+import { countAmount } from './amounts.js';
 import type { Actor } from './context.js';
 import type { LocationRow } from './locations.js';
 import type { StockService } from './stock.js';

@@ -129,11 +129,3 @@ export function checkCut(part: { name: string; cut: CutShape | null }, amount: S
   const n = part.cut === 'sheet' ? 2 : 1;
   if ((amount.pieces ?? []).some((p) => p.length !== n)) throw invalid('stock.wrongShape');
 }
-
-/** How much a piece takes off a total: metres or millimetres of length, square metres of sheet. */
-export function sizeInUnit(amount: StockAmount, size: Piece): number | null {
-  if (amount.mode !== 'measure' || amount.quantity == null) return null;
-  if (size.length === 1)
-    return amount.unit === 'm' ? size[0]! / 1000 : amount.unit === 'mm' ? size[0]! : null;
-  return amount.unit === 'm2' ? (size[0]! * size[1]!) / 1e6 : null;
-}

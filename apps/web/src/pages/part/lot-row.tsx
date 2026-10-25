@@ -1,4 +1,4 @@
-import { normalizeCode, type LotView, type StockLevel } from '@ixfwms/domain';
+import { normalizeCode, type CutShape, type LotView, type StockLevel } from '@ixfwms/domain';
 import { Map as MapIcon, Undo2 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -13,7 +13,12 @@ import {
 } from '../../api/queries';
 import { PlacePicker } from '../../components/place-picker';
 import { MapLayers } from '../../components/svg-map';
-import { AmountFields, toAmountInput, useAmountState } from '../../components/amount-fields';
+import {
+  AmountFields,
+  piecesText,
+  toAmountInput,
+  useAmountState,
+} from '../../components/amount-fields';
 import {
   AmountPill,
   Button,
@@ -26,6 +31,7 @@ import {
 } from '../../components/ui';
 import { GuestName, useOpenActions } from '../../components/units';
 import { formatDate, parseNumber } from '../../lib/format';
+import { emptyHowMuch, HowMuch, toMoveAmount, type HowMuchState } from './how-much';
 import { useStockLevels } from '../../lib/levels';
 
 type LotAction = 'take' | 'move' | 'count' | 'carry' | 'bench' | null;
@@ -34,19 +40,33 @@ export function LotRow({
   lot,
   canEdit,
   first,
+  cut = null,
+  unitMassG = null,
 }: {
   lot: LotView;
   canEdit: boolean;
   first: boolean;
+  /** The item's cut shape, for cutting a piece off. */
+  cut?: CutShape | null;
+  unitMassG?: number | null;
 }) {
   const { t } = useTranslation();
   const [action, setAction] = useState<LotAction>(null);
   const [showMap, setShowMap] = useState(false);
   const [qty, setQty] = useState('');
+  const [much, setMuch] = useState<HowMuchState>(emptyHowMuch);
   const levels = useStockLevels();
   const [level, setLevel] = useState<StockLevel>(lot.amount.level ?? '');
   const [dest, setDest] = useState('');
   const [amount, setAmount] = useAmountState(lot.amount.mode);
+  // A stocktake of cut stock starts from the pieces there are.
+  const startCount = () =>
+    lot.amount.mode === 'cut' &&
+    setAmount((s) => ({
+      ...s,
+      shape: cut ?? s.shape,
+      pieces: piecesText(lot.amount.pieces ?? []),
+    }));
   const take = useTakeStock();
   const move = useMoveStock();
   const count = useStocktake();
@@ -61,6 +81,7 @@ export function LotRow({
   const isLevel = lot.amount.mode === 'level';
 
   const toggle = (a: LotAction) => {
+    if (a === 'count') startCount();
     setAction((cur) => (cur === a ? null : a));
     take.reset();
     move.reset();
@@ -83,25 +104,19 @@ export function LotRow({
       await take.mutateAsync(
         isLevel ? { lotId: lot.id, level } : { lotId: lot.id, quantity: parseNumber(qty) },
       );
+    const by = toMoveAmount(much, lot, cut, unitMassG);
     if (action === 'move')
-      await move.mutateAsync({
-        lotId: lot.id,
-        to: normalizeCode(dest),
-        quantity: parseNumber(qty),
-      });
-    if (action === 'carry') await pick.mutateAsync({ lotId: lot.id, quantity: parseNumber(qty) });
+      await move.mutateAsync({ lotId: lot.id, to: normalizeCode(dest), ...by });
+    if (action === 'carry') await pick.mutateAsync({ lotId: lot.id, ...by });
     if (action === 'bench')
-      await bench.mutateAsync({
-        lotId: lot.id,
-        to: normalizeCode(dest),
-        quantity: parseNumber(qty),
-      });
+      await bench.mutateAsync({ lotId: lot.id, to: normalizeCode(dest), ...by });
     if (action === 'count') {
       const a = toAmountInput({ ...amount, unit: lot.amount.unit ?? amount.unit });
       if (a) await count.mutateAsync({ lotId: lot.id, amount: a });
     }
     setAction(null);
     setQty('');
+    setMuch(emptyHowMuch);
     setDest('');
   };
 
@@ -160,13 +175,15 @@ export function LotRow({
               {t('units.putBack')}
             </Button>
           )}
-          <Button
-            small
-            variant={action === 'take' ? 'dark' : 'secondary'}
-            onClick={() => toggle('take')}
-          >
-            {t('common.take')}
-          </Button>
+          {lot.amount.mode !== 'cut' && (
+            <Button
+              small
+              variant={action === 'take' ? 'dark' : 'secondary'}
+              onClick={() => toggle('take')}
+            >
+              {t('common.take')}
+            </Button>
+          )}
           <Button
             small
             variant={action === 'move' ? 'dark' : 'secondary'}
@@ -245,18 +262,14 @@ export function LotRow({
               <Field label={t('part.moveTo')}>
                 {(id) => <PlacePicker id={id} value={dest} onChange={setDest} autoFocus />}
               </Field>
-              {!isLevel && (
-                <Field label={t('part.moveQuantity')}>
-                  {(id) => (
-                    <TextInput
-                      id={id}
-                      inputMode="decimal"
-                      value={qty}
-                      onChange={(e) => setQty(e.target.value)}
-                    />
-                  )}
-                </Field>
-              )}
+              <HowMuch
+                lot={lot}
+                cut={cut}
+                unitMassG={unitMassG}
+                value={much}
+                onChange={setMuch}
+                label={t('part.moveQuantity')}
+              />
             </>
           )}
           {action === 'bench' && (
@@ -272,36 +285,35 @@ export function LotRow({
                   />
                 )}
               </Field>
-              {!isLevel && (
-                <Field label={t('part.moveQuantity')}>
-                  {(id) => (
-                    <TextInput
-                      id={id}
-                      inputMode="decimal"
-                      value={qty}
-                      onChange={(e) => setQty(e.target.value)}
-                    />
-                  )}
-                </Field>
-              )}
+              <HowMuch
+                lot={lot}
+                cut={cut}
+                unitMassG={unitMassG}
+                value={much}
+                onChange={setMuch}
+                label={t('part.moveQuantity')}
+              />
               <GuestName />
             </>
           )}
           {action === 'count' && (
-            <AmountFields value={amount} onChange={setAmount} lockMode allowUncounted={false} />
+            <AmountFields
+              value={amount}
+              onChange={setAmount}
+              lockMode
+              allowUncounted={false}
+              cut={cut}
+            />
           )}
-          {action === 'carry' && !isLevel && (
-            <Field label={t('carry.carryHow')}>
-              {(id) => (
-                <TextInput
-                  id={id}
-                  inputMode="decimal"
-                  autoFocus
-                  value={qty}
-                  onChange={(e) => setQty(e.target.value)}
-                />
-              )}
-            </Field>
+          {action === 'carry' && (
+            <HowMuch
+              lot={lot}
+              cut={cut}
+              unitMassG={unitMassG}
+              value={much}
+              onChange={setMuch}
+              label={t('carry.carryHow')}
+            />
           )}
           <ErrorBox error={error} />
           <div className="flex gap-2">

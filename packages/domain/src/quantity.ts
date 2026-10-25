@@ -1,4 +1,4 @@
-import { formatPieces, type Piece } from './cut.js';
+import { cutsFrom, formatPieces, type Piece } from './cut.js';
 import { fold } from './names.js';
 
 /** count: pieces; measure: weight, length, area or volume; level: plenty/low/empty; cut: pieces with sizes (see cut.ts). */
@@ -149,4 +149,25 @@ export function formatAmount(amount: StockAmount): string {
     case 'cut':
       return formatPieces(amount.pieces ?? []);
   }
+}
+
+/** How much a piece takes off a total: metres or millimetres of length, square metres of sheet. */
+export function sizeInUnit(amount: StockAmount, size: Piece): number | null {
+  if (amount.mode !== 'measure' || amount.quantity == null) return null;
+  if (size.length === 1)
+    return amount.unit === 'm' ? size[0]! / 1000 : amount.unit === 'mm' ? size[0]! : null;
+  return amount.unit === 'm2' ? (size[0]! * size[1]!) / 1e6 : null;
+}
+
+/** Pieces of `size` a lot could give: cut from its pieces or its total; null when nobody measured it. */
+export function cutsIn(
+  amount: StockAmount,
+  size: Piece,
+  levels: StockLevelDef[] = DEFAULT_STOCK_LEVELS,
+): number | null {
+  if (amount.mode === 'cut')
+    return (amount.pieces ?? []).reduce((n, p) => n + cutsFrom(p, size), 0);
+  const per = sizeInUnit(amount, size);
+  if (per != null) return Math.floor(amount.quantity! / per);
+  return piecesIn(amount, null, levels) === 0 ? 0 : null;
 }

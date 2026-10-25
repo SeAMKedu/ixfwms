@@ -1,4 +1,4 @@
-import type { BomCheck, BomStatus } from '@ixfwms/domain';
+import { formatPiece, type BomCheck, type BomStatus } from '@ixfwms/domain';
 import { Upload } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -139,8 +139,8 @@ export function BomPage() {
 
       {table && (
         <Card title={t('bom.columns')}>
-          <div className="grid gap-3 sm:grid-cols-4">
-            {(['ref', 'name', 'quantity'] as const).map((field) => (
+          <div className="grid gap-3 sm:grid-cols-5">
+            {(['ref', 'name', 'quantity', 'size'] as const).map((field) => (
               <Field key={field} label={t(`bom.fields.${field}`)}>
                 {(id) => (
                   <Select
@@ -213,7 +213,14 @@ export function BomPage() {
                       <span className="font-mono">{l.ref}</span>
                       {l.name && <span className="block text-muted">{l.name}</span>}
                     </td>
-                    <td className="px-2 py-1.5 text-right tabular">{l.quantity}</td>
+                    <td className="px-2 py-1.5 text-right tabular">
+                      {l.quantity}
+                      {l.size && (
+                        <span className="block whitespace-nowrap text-[12px] text-muted">
+                          × {formatPiece(l.size)}
+                        </span>
+                      )}
+                    </td>
                     <td className="px-2 py-1.5">
                       <Pill tone={STATUS_TONE[l.status]}>{t(`bom.statuses.${l.status}`)}</Pill>
                     </td>

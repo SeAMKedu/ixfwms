@@ -28,7 +28,7 @@ press **Import**, and **Check rows** shows first what would happen.
 | Notes        | Note(s), Comment, Huom, Kommentti                                                                      |                                                   |
 | Tags         | Tag(s), Project, Projekti (comma separated)                                                            | cell2, printing                                   |
 | Quantity     | Qty, Quantity, Amount, Count, Pcs, Määrä, Kpl, Lukumäärä, Saldo                                        | `20`, `1 234,5`, `20 kpl`                         |
-| Unit         | Unit, UoM, Yksikkö: `pcs` (kpl, pc, st, ea), `g`, `kg`, `m`, `mm`, `ml`, `l`                           | g                                                 |
+| Unit         | Unit, UoM, Yksikkö: `pcs` (kpl, pc, st, ea), `g`, `kg`, `m`, `mm`, `m2` (m²), `ml`, `l`                | g                                                 |
 | Level        | Level, Stock level, Taso: `plenty`, `low`, `empty`                                                     | plenty                                            |
 | Location     | Location, Place, Bin, Shelf, Box, Sijainti, Paikka, Hylly, Laatikko                                    | `BFH8`, `Robolab-A-3`, `Robotics lab › Cabinet A` |
 | Unit mass    | Weight, Mass, Paino (grams per piece, for weighed stock)                                               | 1.2                                               |
@@ -48,6 +48,7 @@ Needs at least a **code** or a **name** column; quantity defaults to 1 per row.
 | Code     | Order…, Part no / number, Article no, MLFB, Code, MPN, Document Number, Tilaus…, Tuotenumero, Nimikekoodi, Bestell…, Artikelnummer |
 | Name     | Name, Description, Title, Nimi, Nimike, Kuvaus, Bezeichnung, Benennung                                                             |
 | Quantity | Qty, Quantity, Amount, Count, Pcs, Item Count, Määrä, Kpl, Lukumäärä, Menge, Anzahl                                                |
+| Size     | Size, Dimensions, Length, Cut length, Mitat, Koko, Pituus, Abmessung, Länge, Zuschnitt (cut stock: "400" or "300 x 200" mm)        |
 
 Parts are matched by code first (order number or MPN), then by name. The example is laid out like
 a Solid Edge parts list (Item Number, Document Number, Title, Quantity).

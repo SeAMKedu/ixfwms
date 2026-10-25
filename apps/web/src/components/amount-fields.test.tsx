@@ -8,6 +8,8 @@ const state = (over: Partial<AmountState>): AmountState => ({
   level: 'plenty',
   tare: '',
   uncounted: false,
+  pieces: '',
+  shape: 'length',
   ...over,
 });
 
@@ -32,5 +34,22 @@ describe('amount fields', () => {
       mode: 'level',
       uncounted: true,
     });
+  });
+
+  it('reads cut stock as pieces with sizes, and refuses a size that is not one', () => {
+    expect(toAmountInput(state({ mode: 'cut', pieces: '6000, 2 x 400' }))).toEqual({
+      mode: 'cut',
+      pieces: [[6000], [400], [400]],
+    });
+    expect(
+      toAmountInput(state({ mode: 'cut', shape: 'sheet', pieces: '1250x2500; 600 × 400' })),
+    ).toEqual({
+      mode: 'cut',
+      pieces: [
+        [1250, 2500],
+        [600, 400],
+      ],
+    });
+    expect(toAmountInput(state({ mode: 'cut', shape: 'sheet', pieces: '1250' }))).toBeNull();
   });
 });
