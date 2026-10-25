@@ -172,57 +172,47 @@ function IntoBuild({
 
   return (
     <form onSubmit={(e) => void submit(e)} className="flex flex-col gap-3">
-      <div className="grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <Field label={t('session.takeFrom')}>
-          {(id) => (
-            <Select id={id} value={from} onChange={(e) => setFrom(e.target.value)}>
-              <option value="">{t('session.fullestFirst')}</option>
-              {individual
-                ? units.map((u) => (
-                    <option key={u.id} value={u.code}>
-                      {u.name} · {u.location.name}
-                    </option>
-                  ))
-                : lots.map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {l.location.name} · {l.display}
-                    </option>
-                  ))}
-            </Select>
-          )}
-        </Field>
-        <Field
-          label={t('session.howMany')}
-          hint={t(unknown ? 'session.freeAndMore' : 'session.free', { count: free })}
-        >
-          {(id) => (
-            <TextInput
-              id={id}
-              type="number"
-              min={1}
-              inputMode="numeric"
-              value={howMany}
-              onChange={(e) => setHowMany(e.target.value)}
-            />
-          )}
-        </Field>
-      </div>
-      {part.cut && (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field
-            label={t(part.cut === 'sheet' ? 'session.cutSheet' : 'session.cutLength')}
-            hint={t('cut.cutHint')}
-          >
+      {/* One row on wider screens: where from, the cut (cut stock), how many. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+        <div className="min-w-0 sm:flex-[2]">
+          <Field label={t('session.takeFrom')}>
             {(id) => (
-              <TextInput
-                id={id}
-                value={sizeText}
-                placeholder={part.cut === 'sheet' ? '300 x 200' : '400'}
-                onChange={(e) => setSizeText(e.target.value)}
-              />
+              <Select id={id} value={from} onChange={(e) => setFrom(e.target.value)}>
+                <option value="">{t('session.fullestFirst')}</option>
+                {individual
+                  ? units.map((u) => (
+                      <option key={u.id} value={u.code}>
+                        {u.name} · {u.location.name}
+                      </option>
+                    ))
+                  : lots.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.location.name} · {l.display}
+                      </option>
+                    ))}
+              </Select>
             )}
           </Field>
-          {part.cut === 'sheet' && size && (
+        </div>
+        {part.cut && (
+          <div className="min-w-0 sm:flex-1">
+            <Field
+              label={t(part.cut === 'sheet' ? 'session.cutSheet' : 'session.cutLength')}
+              hint={t('cut.cutHint')}
+            >
+              {(id) => (
+                <TextInput
+                  id={id}
+                  value={sizeText}
+                  placeholder={part.cut === 'sheet' ? '300 x 200' : '400'}
+                  onChange={(e) => setSizeText(e.target.value)}
+                />
+              )}
+            </Field>
+          </div>
+        )}
+        {part.cut === 'sheet' && size && (
+          <div className="min-w-0 sm:flex-1">
             <Field label={t('cut.leftover')}>
               {(id) => (
                 <Select
@@ -237,9 +227,26 @@ function IntoBuild({
                 </Select>
               )}
             </Field>
-          )}
+          </div>
+        )}
+        <div className="min-w-0 sm:flex-1">
+          <Field
+            label={t('session.howMany')}
+            hint={t(unknown ? 'session.freeAndMore' : 'session.free', { count: free })}
+          >
+            {(id) => (
+              <TextInput
+                id={id}
+                type="number"
+                min={1}
+                inputMode="numeric"
+                value={howMany}
+                onChange={(e) => setHowMany(e.target.value)}
+              />
+            )}
+          </Field>
         </div>
-      )}
+      </div>
       {sizeText.trim() && !size && <p className="text-sm text-warn">{t('cut.badSize')}</p>}
       {short > 0 &&
         (individual ? (
