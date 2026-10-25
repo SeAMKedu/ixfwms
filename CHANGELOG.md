@@ -1,6 +1,22 @@
 # Changelog
 
 All notable changes to ixfwms.
+## 0.14.0 (2026-10-25)
+
+### Features
+- builds, things made from parts
+- **web:** build pages, builds in search, make a build from a parts list
+- builds page, builds among items, add existing items into builds
+- counts out of uncounted amounts, cut stock for bars and sheets, m²
+- **web:** piece counts, cuts and cut stock in the app
+- delete items, units, places and builds made by mistake
+- lost units, and Found it when one turns up
+
+### Fixes
+- **web:** build's add fields on one row
+
+### Documentation
+- plan builds, things made from parts
 ## 0.13.0 (2026-10-24)
 
 ### Features
