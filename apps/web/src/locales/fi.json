@@ -28,7 +28,8 @@
     "more": "Lisää",
     "maps": "Kartat",
     "settings": "Asetukset",
-    "network": "Verkkolista"
+    "network": "Verkkolista",
+    "builds": "Rakennelmat"
   },
   "common": {
     "save": "Tallenna",
@@ -310,7 +311,7 @@
     "carry": "Kanna",
     "carryHow": "Montako otat mukaan (tyhjä = kaikki)",
     "pickUp": "Ota mukaan",
-    "pickUpBox": "Ota tämä paikka mukaan"
+    "pickUpBox": "Ota mukaan"
   },
   "labels": {
     "title": "Tarrat",
@@ -360,8 +361,27 @@
     "added_other": "{{count}} lisätty",
     "done": "Valmis",
     "similar": "Onko jo varastossa?",
-    "addHere": "Lisää tähän sen sijaan",
-    "addedHere": "Lisätty: {{name}}"
+    "addedHere": "Lisätty: {{name}}",
+    "existing": "Jo inventaariossa: valitse, niin lisätään siihen",
+    "unitCount_one": "{{count}} yksilö",
+    "unitCount_other": "{{count}} yksilöä",
+    "noStock": "ei varastossa",
+    "notThis": "Ei tämä: uusi tavara",
+    "addHereNext": "Lisää tähän & seuraava",
+    "takeFrom": "Mistä otetaan",
+    "fullestFirst": "Vapaasta varastosta, täysin ensin",
+    "howMany": "Kuinka monta",
+    "free_one": "{{count}} vapaana",
+    "free_other": "{{count}} vapaana",
+    "restAsNew_one": "Lisää loput {{count}} uutena varastona (ostettu uutena tai taskusta)",
+    "restAsNew_other": "Lisää loput {{count}} uutena varastona (ostettu uutena tai taskusta)",
+    "unitsShort_one": "{{count}} enemmän kuin vapaana; kirjaa uudet yksilöt ensin tavaran sivulla.",
+    "unitsShort_other": "{{count}} enemmän kuin vapaana; kirjaa uudet yksilöt ensin tavaran sivulla.",
+    "putIn": "Laita rakennelmaan & seuraava",
+    "notPutIn_one": "{{count}} jäi laittamatta: {{reason}}",
+    "notPutIn_other": "{{count}} jäi laittamatta: {{reason}}",
+    "asNew": "{{amount}} uutena",
+    "useThis": "Käytä tätä"
   },
   "picker": {
     "placeholder": "Kirjoita paikan nimi tai koodi…",
@@ -1200,6 +1220,16 @@
     },
     "open": "Avaa {{name}}",
     "salvageable": "+{{count}} rakennelmissa",
-    "builtInto": "rakennettu: {{name}}"
+    "builtInto": "rakennettu: {{name}}",
+    "title": "Rakennelmat",
+    "count_one": "{{count}} rakennelma",
+    "count_other": "{{count}} rakennelmaa",
+    "new": "Uusi rakennelma",
+    "create": "Luo",
+    "intro": "Osista tehdyt asiat: tarttujat, telineet, jigit. Niissä olevat osat ovat rakennettuina eivätkä vapaata varastoa, ja ne palaavat, kun rakennelma puretaan.",
+    "standing": "Käytössä",
+    "dismantledList": "Puretut",
+    "none": "Ei vielä rakennelmia.",
+    "noneDismantled": "Mitään ei ole vielä purettu."
   }
 }

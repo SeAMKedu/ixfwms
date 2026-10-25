@@ -34,10 +34,12 @@ export class WhereService {
     const { rows, items, builds } = await this.parts.search({ q: query, limit, offset: 0 });
     const levels = await this.stock.levels();
     const byId = new Map(items.map((i) => [i.id, i]));
-    return [
-      ...builds.map(buildAnswer),
-      ...rows.map((row) => answerFor(byId.get(row.partId)!, row.unitId, levels)),
-    ].slice(0, limit);
+    const buildById = new Map(builds.map((b) => [b.id, b]));
+    return rows.map((row) =>
+      'buildId' in row
+        ? buildAnswer(buildById.get(row.buildId)!)
+        : answerFor(byId.get(row.partId)!, row.unitId, levels),
+    );
   }
 }
 

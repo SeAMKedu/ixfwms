@@ -28,7 +28,8 @@
     "more": "More",
     "maps": "Maps",
     "settings": "Settings",
-    "network": "Network list"
+    "network": "Network list",
+    "builds": "Builds"
   },
   "common": {
     "save": "Save",
@@ -310,7 +311,7 @@
     "carry": "Carry",
     "carryHow": "How many to carry (empty = all)",
     "pickUp": "Pick up",
-    "pickUpBox": "Carry this place"
+    "pickUpBox": "Carry this"
   },
   "labels": {
     "title": "Labels",
@@ -360,8 +361,27 @@
     "added_other": "{{count}} added",
     "done": "Done",
     "similar": "Already in the inventory?",
-    "addHere": "Add here instead",
-    "addedHere": "Added to {{name}}"
+    "addedHere": "Added to {{name}}",
+    "existing": "Already in the inventory: pick one to add to it",
+    "unitCount_one": "{{count}} unit",
+    "unitCount_other": "{{count}} units",
+    "noStock": "none in stock",
+    "notThis": "Not this one: a new item",
+    "addHereNext": "Add here & next",
+    "takeFrom": "Take from",
+    "fullestFirst": "Free stock, fullest first",
+    "howMany": "How many",
+    "free_one": "{{count}} free",
+    "free_other": "{{count}} free",
+    "restAsNew_one": "Add the other {{count}} as new stock (bought new, or from a pocket)",
+    "restAsNew_other": "Add the other {{count}} as new stock (bought new, or from a pocket)",
+    "unitsShort_one": "{{count}} more than there are free; register new units on the item's page first.",
+    "unitsShort_other": "{{count}} more than there are free; register new units on the item's page first.",
+    "putIn": "Put in the build & next",
+    "notPutIn_one": "{{count}} not put in: {{reason}}",
+    "notPutIn_other": "{{count}} not put in: {{reason}}",
+    "asNew": "{{amount}} new",
+    "useThis": "Use this"
   },
   "picker": {
     "placeholder": "Type a place name or code…",
@@ -1032,6 +1052,16 @@
     },
     "open": "Open {{name}}",
     "salvageable": "+{{count}} in builds",
-    "builtInto": "built into {{name}}"
+    "builtInto": "built into {{name}}",
+    "title": "Builds",
+    "count_one": "{{count}} build",
+    "count_other": "{{count}} builds",
+    "new": "New build",
+    "create": "Create",
+    "intro": "Things made from parts: grippers, rigs, fixtures. What's in them is built in, not free stock, and comes back when they're dismantled.",
+    "standing": "In use",
+    "dismantledList": "Dismantled",
+    "none": "No builds yet.",
+    "noneDismantled": "Nothing dismantled yet."
   }
 }

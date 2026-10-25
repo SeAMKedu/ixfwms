@@ -1,4 +1,12 @@
-import type { DismantleResult, MakeBuildInput, MakeBuildResult } from '@ixfwms/domain';
+import type {
+  AddToBuildInput,
+  AddToBuildResult,
+  BuildBrief,
+  DismantleResult,
+  MakeBuildInput,
+  MakeBuildResult,
+} from '@ixfwms/domain';
+import { useQuery } from '@tanstack/react-query';
 import { api } from './client';
 import { useChange } from './queries';
 
@@ -10,4 +18,17 @@ export const useMakeBuild = () =>
 export const useDismantle = (code: string) =>
   useChange((to: string | null) =>
     api<DismantleResult>(`/api/locations/${code}/dismantle`, { body: { to } }),
+  );
+
+/** The Builds page: standing builds, or the dismantled ones. */
+export const useBuilds = (dismantled: boolean) =>
+  useQuery({
+    queryKey: ['builds', dismantled],
+    queryFn: () => api<BuildBrief[]>(`/api/builds${dismantled ? '?dismantled=1' : ''}`),
+  });
+
+/** Puts an existing item into a build, from free stock. */
+export const useAddToBuild = (code: string) =>
+  useChange((input: AddToBuildInput) =>
+    api<AddToBuildResult>(`/api/builds/${code}/parts`, { body: input }),
   );

@@ -10,6 +10,7 @@ import {
   ListChecks,
   LogIn,
   MapPin,
+  Blocks,
   Map as MapIcon,
   Network,
   QrCode,
@@ -41,6 +42,7 @@ function useNavItems(): NavItem[] {
     { to: '/inbox', label: t('nav.inbox'), icon: Inbox, badge: drafts + reports },
     { to: '/scan', label: t('nav.scan'), icon: ScanLine },
     { to: '/places', label: t('nav.places'), icon: MapPin },
+    { to: '/builds', label: t('nav.builds'), icon: Blocks },
   ];
 }
 
@@ -248,7 +250,7 @@ export function Layout() {
         <CarryIndicator className="md:hidden fixed bottom-24 left-1/2 z-10 -translate-x-1/2" />
         <nav
           aria-label={t('nav.mainNav')}
-          className="md:hidden fixed inset-x-0 bottom-0 z-10 grid grid-cols-4 border-t border-line bg-surface px-1 pt-1.5 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+          className="md:hidden fixed inset-x-0 bottom-0 z-10 grid grid-cols-5 border-t border-line bg-surface px-1 pt-1.5 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
         >
           {items.map((item) => (
             <NavLink

@@ -11,7 +11,7 @@ export function ChildList({ place: d }: { place: LocationDetail }) {
   return (
     <ul className="-mx-1 flex flex-col">
       {d.children
-        .filter((c) => !c.dismantledAt)
+        .filter((c) => !c.build)
         .map((c) => (
           <li key={c.id}>
             <Link

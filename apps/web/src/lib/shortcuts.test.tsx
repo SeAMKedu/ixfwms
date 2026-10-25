@@ -77,6 +77,7 @@ describe('keyboard shortcuts', () => {
       {
         '/api/parts': {
           total: 2,
+          builds: [],
           rows: [
             { partId: 'K7Q2', unitId: null },
             { partId: 'A3F9', unitId: null },

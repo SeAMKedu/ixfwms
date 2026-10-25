@@ -38,7 +38,7 @@ import { allocateCode, retireCode } from './codes.js';
 import { audit, placeName, requireScope, type Actor } from './context.js';
 import type { FileService } from './files.js';
 import type { LocationService } from './locations.js';
-import { hasItemFilters, PartSearch, type SearchInput } from './part-search.js';
+import { PartSearch, type SearchInput } from './part-search.js';
 import { contains, partSearchText } from './search-text.js';
 import type { StockService } from './stock.js';
 import type { UnitService } from './units.js';
@@ -352,7 +352,7 @@ export class PartService {
   /** A page of search results; see PartSearch for what a row is. */
   async search(input: SearchInput): Promise<PartSearchResult> {
     const { rows, total } = await this.searcher.rows(input);
-    const ids = [...new Set(rows.map((r) => r.partId))];
+    const ids = [...new Set(rows.flatMap((r) => ('partId' in r ? [r.partId] : [])))];
     const found = ids.length
       ? await many(this.db.select().from(parts).where(inArray(parts.id, ids)))
       : [];
@@ -361,9 +361,7 @@ export class PartService {
       rows,
       items: await this.summaries(ids.map((id) => byId.get(id)!)),
       total,
-      // Builds come along when the search is by text or kind only: item filters don't fit them.
-      builds:
-        input.offset || hasItemFilters(input) ? [] : await this.builds.find(input.q, input.kind),
+      builds: await this.builds.briefs(rows.flatMap((r) => ('buildId' in r ? [r.buildId] : []))),
     };
   }
 

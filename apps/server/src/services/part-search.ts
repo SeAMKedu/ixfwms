@@ -39,9 +39,9 @@ type LiveUnit = Pick<
 
 /**
  * Finds parts and lists them as things to open: a bulk item is one row, a tool or device one
- * row per unit that isn't retired. When the query names particular units (own name, serial
- * number, code) only those are listed, otherwise all of them. Pages count these rows, in
- * order of part name, then unit name.
+ * row per unit that isn't retired, a build one row. When the query names particular units (own
+ * name, serial number, code) only those are listed, otherwise all of them. Pages count these
+ * rows, in order of name (part name, then unit name).
  */
 export class PartSearch {
   constructor(
@@ -73,7 +73,7 @@ export class PartSearch {
     const code = input.q ? normalizeCode(input.q) : '';
     const named = (u: LiveUnit) =>
       !!q && ((u.searchText ?? unitSearchText(u)).includes(q) || u.code === code);
-    const all = found.sort(byName).flatMap((part): PartSearchRow[] => {
+    const items = found.sort(byName).flatMap((part): PartSearchRow[] => {
       const own =
         input.byUnit !== false && part.tracking === 'individual' ? (live.get(part.id) ?? []) : [];
       if (!own.length) return [{ partId: part.id, unitId: null }];
@@ -83,7 +83,52 @@ export class PartSearch {
         .sort((a, b) => compare(unitName(a), unitName(b)) || compare(a.code, b.code))
         .map((u) => ({ partId: part.id, unitId: u.id }));
     });
+    // Builds go in among the items by name.
+    const partName = new Map(found.map((p) => [p.id, fold(p.name)]));
+    const builds = await this.builds(input);
+    const all: PartSearchRow[] = [];
+    let b = 0;
+    for (const row of items) {
+      const name = 'partId' in row ? partName.get(row.partId)! : '';
+      while (b < builds.length && compare(builds[b]!.name, name) <= 0)
+        all.push({ buildId: builds[b++]!.id });
+      all.push(row);
+    }
+    for (; b < builds.length; b++) all.push({ buildId: builds[b]!.id });
     return { rows: all.slice(input.offset, input.offset + input.limit), total: all.length };
+  }
+
+  /**
+   * Builds for the results, by folded name: those the text matches (name, description, code;
+   * dismantled ones too), or without text every build still standing. None for an item kind,
+   * item filters, or lists of items (byUnit false: the Inbox, counts, pickers).
+   */
+  private async builds(input: SearchInput): Promise<{ id: string; name: string }[]> {
+    if ((input.kind && input.kind !== 'build') || hasItemFilters(input) || input.byUnit === false)
+      return [];
+    const rows = await many(
+      this.db
+        .select({
+          id: locations.id,
+          name: locations.name,
+          description: locations.description,
+          code: locations.code,
+          dismantledAt: locations.dismantledAt,
+        })
+        .from(locations)
+        .innerJoin(locationTypes, eq(locationTypes.id, locations.typeId))
+        .where(eq(locationTypes.build, true)),
+    );
+    const text = input.q ? fold(input.q) : '';
+    const code = input.q ? normalizeCode(input.q) : '';
+    return rows
+      .filter((l) =>
+        text
+          ? fold(`${l.name} ${l.description ?? ''}`).includes(text) || l.code === code
+          : !l.dismantledAt,
+      )
+      .map((l) => ({ id: l.id, name: fold(l.name) }))
+      .sort((x, y) => compare(x.name, y.name) || compare(x.id, y.id));
   }
 
   /** Units that aren't retired, of the individually tracked parts the search finds. */
@@ -282,7 +327,7 @@ export class PartSearch {
 }
 
 /** Filters only items have (builds have no status, category, stock…). */
-export function hasItemFilters(input: SearchInput): boolean {
+function hasItemFilters(input: SearchInput): boolean {
   return !!(
     input.status ||
     input.category ||

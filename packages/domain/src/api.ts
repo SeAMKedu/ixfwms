@@ -302,16 +302,13 @@ export interface SearchResult<T> {
   total: number;
 }
 
-/** One search result, something to open: a bulk item (no unit), or one unit of a tool or device. */
-export interface PartSearchRow {
-  partId: string;
-  unitId: string | null;
-}
+/** One search result, something to open: a bulk item (no unit), one unit of a tool or device, or a build. */
+export type PartSearchRow = { partId: string; unitId: string | null } | { buildId: string };
 
 /** A page of search results. `items` are the parts its rows belong to; `total` counts rows. */
 export interface PartSearchResult extends SearchResult<PartSummary> {
   rows: PartSearchRow[];
-  /** Builds the text matches (or all of them, for the Builds filter), on the first page. */
+  /** The builds among `rows`. */
   builds: BuildBrief[];
 }
 

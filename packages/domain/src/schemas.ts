@@ -80,6 +80,20 @@ export const MakeBuildInput = z.object({
 });
 export type MakeBuildInput = z.input<typeof MakeBuildInput>;
 
+/** One item into a build, from free stock. */
+export const AddToBuildInput = z.object({
+  part: RefSchema.describe('Part code or id'),
+  quantity: z.number().int().positive().max(100_000).describe('Pieces (or units)'),
+  from: RefSchema.nullish().describe(
+    'Take from this stock lot (id) or unit (code); default the fullest free stock first',
+  ),
+  restAsNew: z
+    .boolean()
+    .default(false)
+    .describe("Add what free stock can't cover as new stock in the build (bought new, say)"),
+});
+export type AddToBuildInput = z.input<typeof AddToBuildInput>;
+
 export const DismantleInput = z.object({
   to: RefSchema.nullish().describe(
     'Put everything on this place (a workstation, say); omit to put everything back where it came from',

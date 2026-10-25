@@ -22,6 +22,12 @@ export interface MakeBuildResult {
   }[];
 }
 
+/** What putting an item into a build did: moved from free stock, added new, or left to do. */
+export interface AddToBuildResult extends Pick<MakeBuildResult, 'moved' | 'left'> {
+  /** What was added as new stock (restAsNew), e.g. "3 pcs". */
+  added: string | null;
+}
+
 /** What dismantling did. The build is marked dismantled once nothing is left in it. */
 export interface DismantleResult extends ClearResult {
   dismantled: boolean;

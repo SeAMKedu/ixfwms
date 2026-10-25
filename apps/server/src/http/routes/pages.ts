@@ -50,8 +50,13 @@ export function registerPageRoutes(app: FastifyInstance, { services }: AppDeps):
     if (q) {
       const found = await parts.search({ q, limit: 50, offset: 0 });
       const byId = new Map(found.items.map((p) => [p.id, p]));
+      const buildById = new Map(found.builds.map((b) => [b.id, b]));
       results = `<h2>${found.total} result(s)</h2><ul>${found.rows
         .map((row) => {
+          if ('buildId' in row) {
+            const b = buildById.get(row.buildId)!;
+            return `<li><span><a href="/l/${esc(b.code)}">${esc(b.name)}</a><br><small>build</small></span><small>${esc(b.in?.name ?? '')}</small></li>`;
+          }
           const p = byId.get(row.partId)!;
           const u = row.unitId ? p.units.find((x) => x.id === row.unitId) : undefined;
           if (u)

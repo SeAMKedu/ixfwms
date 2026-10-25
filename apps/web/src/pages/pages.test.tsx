@@ -46,6 +46,7 @@ describe('search page', () => {
     renderAt('/', [{ path: '/', element: <SearchPage /> }], {
       '/api/parts': {
         total: 2,
+        builds: [],
         rows: [
           { partId: 'K7Q2', unitId: null },
           { partId: 'P2X1', unitId: null },
@@ -109,6 +110,7 @@ describe('search page', () => {
       // The server picked the units the query names; the page shows its rows, no others.
       '/api/parts': {
         total: 3,
+        builds: [],
         rows: [
           { partId: 'M1L1', unitId: 'D2D2' },
           { partId: 'M1L1', unitId: 'D4D4' },

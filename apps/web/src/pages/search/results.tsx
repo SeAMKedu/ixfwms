@@ -29,29 +29,26 @@ const rowKey = (row: Row) =>
   row.kind === 'build' ? row.build.id : row.kind === 'unit' ? row.unit.id : row.part.id;
 
 /**
- * The server's results as links: builds the text matches first, then items; individually
- * tracked items come as their units, so one click lands on the thing itself and where it is.
- * Which rows, and how many, the server decides.
+ * The server's results as links: individually tracked items come as their units, so one click
+ * lands on the thing itself and where it is; builds come among them by name. Which rows, and
+ * how many, the server decides.
  */
 export function resultRows(result: PartSearchResult | undefined): Row[] {
   if (!result) return [];
   const parts = new Map(result.items.map((p) => [p.id, p]));
-  const builds = (result.builds ?? []).map((build): Row => ({
-    kind: 'build',
-    build,
-    href: `/l/${build.code}`,
-  }));
-  return [
-    ...builds,
-    ...result.rows.flatMap((row): Row[] => {
-      const part = parts.get(row.partId);
-      if (!part) return [];
-      const unit = row.unitId ? part.units.find((u) => u.id === row.unitId) : undefined;
-      return unit
-        ? [{ kind: 'unit', part, unit, href: `/u/${unit.code}` }]
-        : [{ kind: 'part', part, href: `/p/${part.code}` }];
-    }),
-  ];
+  const builds = new Map(result.builds.map((b) => [b.id, b]));
+  return result.rows.flatMap((row): Row[] => {
+    if ('buildId' in row) {
+      const build = builds.get(row.buildId);
+      return build ? [{ kind: 'build', build, href: `/l/${build.code}` }] : [];
+    }
+    const part = parts.get(row.partId);
+    if (!part) return [];
+    const unit = row.unitId ? part.units.find((u) => u.id === row.unitId) : undefined;
+    return unit
+      ? [{ kind: 'unit', part, unit, href: `/u/${unit.code}` }]
+      : [{ kind: 'part', part, href: `/p/${part.code}` }];
+  });
 }
 
 function RowName({ row }: { row: Row }) {

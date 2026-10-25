@@ -17,6 +17,7 @@ async function names(input: Parameters<TestEnv['services']['parts']['search']>[0
   return {
     total: r.total,
     rows: r.rows.map((row) => {
+      if ('buildId' in row) return r.builds.find((b) => b.id === row.buildId)!.name;
       const p = byId.get(row.partId)!;
       return row.unitId ? p.units.find((u) => u.id === row.unitId)!.name : p.name;
     }),

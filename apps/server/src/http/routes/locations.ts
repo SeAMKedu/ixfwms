@@ -1,4 +1,5 @@
 import {
+  AddToBuildInput,
   CreateLocationInput,
   DismantleInput,
   DuplicateLocationInput,
@@ -77,6 +78,21 @@ export function registerLocationRoutes(app: FastifyInstance, { config, services 
   /** A build made from a parts list: the parts are moved in from free stock. */
   app.post('/api/builds', async (request, reply) =>
     reply.status(201).send(await builds.make(parse(MakeBuildInput, request.body), request.actor)),
+  );
+
+  /** The Builds page: standing builds, or the dismantled ones. */
+  app.get('/api/builds', async (request) => {
+    const { dismantled } = parse(z.object({ dismantled: QueryBool.optional() }), request.query);
+    return builds.list(dismantled ?? false);
+  });
+
+  /** Puts an item into a build from free stock. */
+  app.post('/api/builds/:ref/parts', async (request) =>
+    builds.addParts(
+      parse(RefParams, request.params).ref,
+      parse(AddToBuildInput, request.body),
+      request.actor,
+    ),
   );
 
   /** Takes a build apart: back where everything came from, or onto `to`. */

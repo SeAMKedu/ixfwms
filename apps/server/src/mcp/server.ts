@@ -97,7 +97,10 @@ export function createMcpServer(
     tool(async (a) => {
       const r = await parts.search({ ...a, limit: a.limit ?? 50, offset: a.offset ?? 0 });
       const byId = new Map(r.items.map((p) => [p.id, p]));
+      const buildCode = new Map(r.builds.map((b) => [b.id, b.code]));
       const results = r.rows.map((row) => {
+        // A build's link is in `builds`.
+        if ('buildId' in row) return { build: buildCode.get(row.buildId)! };
         const p = byId.get(row.partId)!;
         const unit = p.units.find((u) => u.id === row.unitId)?.code ?? null;
         return { part: p.code, unit, url: unit ? `${baseUrl}/u/${unit}` : partUrl(p.code) };

@@ -11,8 +11,8 @@ import { NewPlaceForm } from './location/new-place';
 
 function Node({ node, depth }: { node: LocationNode; depth: number }) {
   const [open, setOpen] = useState(depth < 1);
-  // Dismantled builds are only a record now: found by search or their label.
-  const children = node.children.filter((c) => !c.dismantledAt);
+  // Builds have their own page (Builds), so they're left out here.
+  const children = node.children.filter((c) => !c.build);
   const hasChildren = children.length > 0;
   return (
     <li>
@@ -75,7 +75,7 @@ export function PlacesPage() {
       {adding && <NewPlaceForm parent={null} defaultType="room" onDone={() => setAdding(false)} />}
       <ErrorBox error={tree.error} />
       {tree.data
-        ?.filter((n) => n.kind === 'normal' && !n.dismantledAt)
+        ?.filter((n) => n.kind === 'normal' && !n.build)
         .map((n) => (
           <MapLayers key={n.id} code={n.code} />
         ))}
@@ -88,7 +88,7 @@ export function PlacesPage() {
           )}
           <ul className="-mx-1">
             {tree.data
-              ?.filter((n) => !n.dismantledAt)
+              ?.filter((n) => !n.build)
               .map((n) => (
                 <Node key={n.id} node={n} depth={0} />
               ))}

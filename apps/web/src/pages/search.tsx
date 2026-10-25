@@ -95,10 +95,7 @@ export function SearchPage() {
     <>
       <PageHeader
         title={t('parts.title')}
-        meta={
-          parts.data &&
-          t('parts.total', { count: parts.data.total + (parts.data.builds?.length ?? 0) })
-        }
+        meta={parts.data && t('parts.total', { count: parts.data.total })}
         actions={
           can('inventory') && (
             <ButtonLink to="/parts/new" variant="primary">

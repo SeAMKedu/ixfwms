@@ -1,17 +1,17 @@
 import {
-  fold,
+  AddToBuildInput,
   formatAmount,
   MakeBuildInput,
   normalizeCode,
   USABLE_UNIT_STATUSES,
+  type AddToBuildResult,
   type BuildBrief,
   type DismantleInput,
   type DismantleResult,
   type LocationDetail,
   type MakeBuildResult,
-  type SearchKind,
 } from '@ixfwms/domain';
-import { and, asc, count, eq, inArray, like, or } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, isNotNull, isNull, like, or } from 'drizzle-orm';
 import { many, one, type Db, type Executor } from '../db/client.js';
 import {
   locations,
@@ -23,6 +23,8 @@ import {
   units,
 } from '../db/schema.js';
 import { invalid } from '../lib/errors.js';
+
+type Moved = Pick<MakeBuildResult, 'moved'>;
 import { nowIso } from '../lib/ids.js';
 import { audit, requireScope, type Actor } from './context.js';
 import type { LocationRow, LocationService } from './locations.js';
@@ -88,7 +90,8 @@ export class BuildService {
     build: LocationRow,
     wanted: number,
     who: Actor,
-    result: MakeBuildResult,
+    result: Moved,
+    from: string | null = null,
   ): Promise<{ need: number; byHand: boolean }> {
     const rows = await many(
       tx
@@ -103,6 +106,7 @@ export class BuildService {
       const brief = briefs[i]!;
       if (need === 0) break;
       if (brief.loan || brief.location.inBuild || brief.location.kind !== 'normal') continue;
+      if (from && unit.id !== from && unit.code !== normalizeCode(from)) continue;
       await this.units.moveWithin(tx, unit, build.id, who);
       result.moved.push({
         name: brief.name,
@@ -120,10 +124,15 @@ export class BuildService {
     build: LocationRow,
     wanted: number,
     who: Actor,
-    result: MakeBuildResult,
+    result: Moved,
+    from: string | null = null,
   ): Promise<{ need: number; byHand: boolean }> {
     const lots = (await this.stock.lotsOfPart(part.id, tx)).filter(
-      (l) => !l.location.inBuild && l.location.kind !== 'in_transit' && l.location.kind !== 'away',
+      (l) =>
+        !l.location.inBuild &&
+        l.location.kind !== 'in_transit' &&
+        l.location.kind !== 'away' &&
+        (!from || l.id === from),
     );
     // Counted stock first, the largest lots first, so a list takes from as few places as it can.
     const pieces = (l: (typeof lots)[number]) =>
@@ -161,6 +170,39 @@ export class BuildService {
       need -= take;
     }
     return { need, byHand };
+  }
+
+  /**
+   * Puts an item into a build from free stock: from the lot or unit `from`, or the fullest free
+   * stock first. What free stock can't cover is added as new stock with `restAsNew` (bought new,
+   * or from someone's pocket), otherwise listed. Units can't be made up that way.
+   */
+  async addParts(
+    ref: string,
+    input: AddToBuildInput,
+    actor: Actor | null,
+  ): Promise<AddToBuildResult> {
+    const who = requireScope(actor, 'inventory');
+    const { part: partRef, quantity, from, restAsNew } = AddToBuildInput.parse(input);
+    return this.db.transaction(async (tx) => {
+      const build = this.locations.checkOpen(await this.locations.resolve(ref, tx));
+      if (!(await this.locations.summarize(tx, build)).build)
+        throw invalid('builds.notBuild', { name: build.name });
+      const part = await this.resolver.resolve(partRef, tx);
+      const result: AddToBuildResult = { moved: [], left: [], added: null };
+      const individual = part.tracking === 'individual';
+      const { need, byHand } = individual
+        ? await this.putUnits(tx, part.id, build, quantity, who, result, from ?? null)
+        : await this.putStock(tx, part, build, quantity, who, result, from ?? null);
+      if (need > 0 && restAsNew && !individual) {
+        const amount = { mode: 'count' as const, quantity: need, unit: null, level: null };
+        await this.stock.addWithin(tx, part.id, build.id, amount, who, null);
+        result.added = formatAmount(amount);
+      } else if (need > 0)
+        result.left.push({ name: part.name, quantity: need, reason: byHand ? 'byHand' : 'short' });
+      await audit(tx, who, 'add-to-build', 'location', build.id, { part: part.code, quantity });
+      return result;
+    });
   }
 
   /**
@@ -243,32 +285,30 @@ export class BuildService {
     return !lots?.n && !here?.n && !inside?.n;
   }
 
-  /**
-   * Builds for search: those the text matches (name, description, code; dismantled ones too,
-   * marked), or for the Builds filter without text, every build still standing.
-   */
-  async find(q: string | undefined, kind: SearchKind | undefined): Promise<BuildBrief[]> {
-    if (kind && kind !== 'build') return [];
-    if (!q && kind !== 'build') return [];
+  /** Builds by id, in the order given (search results). */
+  async briefs(ids: string[]): Promise<BuildBrief[]> {
+    if (!ids.length) return [];
+    const rows = await many(this.db.select().from(locations).where(inArray(locations.id, ids)));
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    return Promise.all(ids.map((id) => this.brief(byId.get(id)!)));
+  }
+
+  /** The Builds page: standing builds by name, or the dismantled ones, latest first. */
+  async list(dismantled: boolean): Promise<BuildBrief[]> {
     const rows = await many(
       this.db
         .select({ loc: locations })
         .from(locations)
         .innerJoin(locationTypes, eq(locationTypes.id, locations.typeId))
-        .where(eq(locationTypes.build, true))
-        .orderBy(asc(locations.name)),
+        .where(
+          and(
+            eq(locationTypes.build, true),
+            dismantled ? isNotNull(locations.dismantledAt) : isNull(locations.dismantledAt),
+          ),
+        )
+        .orderBy(dismantled ? desc(locations.dismantledAt) : asc(locations.name)),
     );
-    const text = q ? fold(q) : '';
-    const code = q ? normalizeCode(q) : '';
-    const found = rows
-      .map((r) => r.loc)
-      .filter((l) =>
-        text
-          ? fold(`${l.name} ${l.description ?? ''}`).includes(text) || l.code === code
-          : !l.dismantledAt,
-      )
-      .sort((a, b) => Number(!!a.dismantledAt) - Number(!!b.dismantledAt));
-    return Promise.all(found.map((l) => this.brief(l)));
+    return Promise.all(rows.map((r) => this.brief(r.loc)));
   }
 
   private async brief(loc: LocationRow): Promise<BuildBrief> {

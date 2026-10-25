@@ -31,6 +31,7 @@ import { PlacesPage } from './pages/places';
 import { ScanPage } from './pages/scan';
 import { SearchPage } from './pages/search';
 import { SessionPage } from './pages/session';
+import { BuildsPage } from './pages/builds';
 import { SetupPage } from './pages/setup';
 import { UnitPage } from './pages/unit';
 import { UserPage, UsersPage } from './pages/users';
@@ -53,6 +54,7 @@ const routes = [
       { path: '/p/:code/edit', element: <PartEditPage /> },
       { path: '/u/:code', element: <UnitPage /> },
       { path: '/places', element: <PlacesPage /> },
+      { path: '/builds', element: <BuildsPage /> },
       { path: '/l/:code', element: <LocationPage /> },
       { path: '/l/:code/add', element: <SessionPage /> },
       { path: '/carry', element: <CarryPage /> },

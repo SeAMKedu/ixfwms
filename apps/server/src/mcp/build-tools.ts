@@ -37,6 +37,24 @@ export function registerBuildTools(
   );
 
   server.registerTool(
+    'add_to_build',
+    {
+      title: 'Put an item into a build',
+      description:
+        "Move an item into a build from free stock: from a given stock lot or unit, or the fullest free stock first (weighed stock by count × piece mass). With restAsNew, what free stock can't cover is added as new stock in the build. Returns what moved and what is left.",
+      inputSchema: {
+        ref: z.string().describe('Build code'),
+        part: z.string().describe('Part code'),
+        quantity: z.number().int().positive(),
+        from: z.string().optional().describe('Stock lot id or unit code to take from'),
+        restAsNew: z.boolean().optional(),
+      },
+      annotations: write,
+    },
+    tool(async ({ ref, ...a }) => services.builds.addParts(ref, a, actor)),
+  );
+
+  server.registerTool(
     'dismantle_build',
     {
       title: 'Dismantle a build',

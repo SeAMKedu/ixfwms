@@ -232,8 +232,23 @@ describe('builds', () => {
       },
       env.admin,
     );
-    await builds.make({ name: 'Old test rig', lines: [] }, env.admin);
-    await builds.dismantle((await builds.find('old test', undefined))[0]!.code, {}, env.admin);
+    const rig = await builds.make({ name: 'Old test rig', lines: [] }, env.admin);
+    await builds.dismantle(rig.build.code, {}, env.admin);
+    expect((await builds.list(true)).map((b) => b.name)).toEqual(['Old test rig']);
+    expect((await builds.list(false)).map((b) => b.name)).toEqual(['Gripper v3']);
+
+    // Without text, standing builds are listed among the items by name.
+    const all = await parts.search({ limit: 50, offset: 0 });
+    const names = all.rows.map((row) =>
+      'buildId' in row
+        ? all.builds.find((b) => b.id === row.buildId)!.name
+        : all.items.find((p) => p.id === row.partId)!.name,
+    );
+    expect(names.indexOf('Gripper v3')).toBe(names.indexOf('Hex nut M3') - 1);
+    expect(names).not.toContain('Old test rig');
+    expect(all.total).toBe(names.length);
+    // Lists of items (one row per part) leave builds out.
+    expect((await parts.search({ byUnit: false, limit: 50, offset: 0 })).builds).toEqual([]);
 
     const byText = await parts.search({ q: 'vacuum', limit: 50, offset: 0 });
     expect(byText.builds.map((b) => [b.name, b.in?.name, b.items])).toEqual([
@@ -257,6 +272,48 @@ describe('builds', () => {
     expect(
       (await parts.search({ q: 'gripper', inStock: true, limit: 50, offset: 0 })).builds,
     ).toEqual([]);
+  });
+
+  it('puts an item into a build from the stock chosen, and adds the rest as new', async () => {
+    const { cell, shelf, screw, servo } = await lab();
+    const { builds, stock } = env.services;
+    const drawer = await env.services.locations.create(
+      { name: 'Drawer 9', type: 'drawer' },
+      env.admin,
+    );
+    const moved = await stock.add(
+      { part: screw.code, location: drawer.code, amount: { mode: 'count', quantity: 5 } },
+      env.admin,
+    );
+    const { build } = await builds.make(
+      { name: 'Gripper v3', parent: cell.code, lines: [] },
+      env.admin,
+    );
+
+    // From the drawer's 5, and 3 more bought new.
+    const r = await builds.addParts(
+      build.code,
+      { part: screw.code, quantity: 8, from: moved.id, restAsNew: true },
+      env.admin,
+    );
+    expect(r.moved.map((m) => [m.display, m.from.name])).toEqual([['5 pcs', 'Drawer 9']]);
+    expect(r.added).toBe('3 pcs');
+    expect(r.left).toEqual([]);
+    expect(await lotsOf(screw.code)).toEqual(
+      expect.arrayContaining([
+        ['Gripper v3', 3, null],
+        ['Gripper v3', 5, 'Drawer 9'],
+        ['Shelf 3', 20, null],
+      ]),
+    );
+
+    // Fullest free stock by default; units one by one, the rest only listed.
+    const s = await builds.addParts(build.code, { part: servo.code, quantity: 3 }, env.admin);
+    expect(s.moved.map((m) => m.name)).toEqual(['Servo A', 'Servo B']);
+    expect(s.left).toEqual([{ name: 'Servo MG996R', quantity: 1, reason: 'short' }]);
+    await expect(
+      builds.addParts(shelf.code, { part: screw.code, quantity: 1 }, env.admin),
+    ).rejects.toThrow(/isn't a build/);
   });
 
   it('refuses to make a build of a type that is not a build type', async () => {
