@@ -1,3 +1,4 @@
+import { MoveAmount } from '@ixfwms/domain';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { parse, type AppDeps } from '../context.js';
@@ -12,11 +13,10 @@ export function registerCarryRoutes(app: FastifyInstance, { services }: AppDeps)
 
   app.post('/api/carry/pick', async (request) => {
     const body = parse(
-      z.object({
+      MoveAmount.extend({
         location: z.string().nullish(),
         lotId: z.string().nullish(),
         unit: z.string().nullish(),
-        quantity: z.number().positive().nullish(),
       }),
       request.body,
     );

@@ -13,10 +13,15 @@ import {
   UNIT_STATUSES,
 } from './enums.js';
 import { AttributeFilter } from './attributes.js';
+import { CUT_SHAPES, LEFTOVERS } from './cut.js';
 import { SHORT_NAME_PATTERN } from './addresses.js';
 
 /** A location or part reference: internal id or short code. */
 export const RefSchema = z.string().trim().min(1).max(64);
+
+/** A size in mm: [length] or [width, height]. */
+export const PieceSchema = z.array(z.number().positive().max(1_000_000)).min(1).max(2);
+const PiecesSchema = z.array(PieceSchema).max(1000);
 
 /** A place's short name for its address, e.g. "A" for Cabinet A; empty means guess it from the name. */
 export const ShortNameSchema = z
@@ -61,45 +66,6 @@ export const CreateLocationInput = z.object({
     .describe('Use this code (e.g. from a pre-printed blank label) instead of a new one'),
 });
 export type CreateLocationInput = z.infer<typeof CreateLocationInput>;
-
-/** A build made from a parts list: the parts are moved into it from free stock. */
-export const MakeBuildInput = z.object({
-  name: z.string().trim().min(1).max(200),
-  parent: RefSchema.nullish().describe('Where the build sits (place id or code)'),
-  type: z.string().trim().min(1).max(40).default('build').describe('A build type key'),
-  contact: z.string().trim().max(200).nullish().describe('Who to ask about it'),
-  description: z.string().trim().max(2000).nullish(),
-  lines: z
-    .array(
-      z.object({
-        part: RefSchema.describe('Part code or id'),
-        quantity: z.number().int().positive().max(100_000),
-      }),
-    )
-    .max(1000),
-});
-export type MakeBuildInput = z.input<typeof MakeBuildInput>;
-
-/** One item into a build, from free stock. */
-export const AddToBuildInput = z.object({
-  part: RefSchema.describe('Part code or id'),
-  quantity: z.number().int().positive().max(100_000).describe('Pieces (or units)'),
-  from: RefSchema.nullish().describe(
-    'Take from this stock lot (id) or unit (code); default the fullest free stock first',
-  ),
-  restAsNew: z
-    .boolean()
-    .default(false)
-    .describe("Add what free stock can't cover as new stock in the build (bought new, say)"),
-});
-export type AddToBuildInput = z.input<typeof AddToBuildInput>;
-
-export const DismantleInput = z.object({
-  to: RefSchema.nullish().describe(
-    'Put everything on this place (a workstation, say); omit to put everything back where it came from',
-  ),
-});
-export type DismantleInput = z.infer<typeof DismantleInput>;
 
 export const DuplicateLocationInput = z.object({
   name: z
@@ -149,6 +115,9 @@ export const AmountInput = z
       .nullish()
       .describe("A stock level's key or name, e.g. plenty, low, empty (the lab's own list)"),
     tareG: z.number().nonnegative().nullish(),
+    pieces: PiecesSchema.nullish().describe(
+      'cut mode: each piece in mm, [length] for bars or [width, height] for sheets',
+    ),
     uncounted: z
       .boolean()
       .optional()
@@ -157,6 +126,12 @@ export const AmountInput = z
       ),
   })
   .superRefine((a, ctx) => {
+    if (a.mode === 'cut') {
+      const n = a.pieces?.[0]?.length;
+      if (a.uncounted || !a.pieces || a.pieces.some((p) => p.length !== n))
+        ctx.addIssue({ code: 'custom', message: 'cut mode needs the pieces, all of one shape' });
+      return;
+    }
     if (a.uncounted) {
       if (a.quantity != null || a.level != null)
         ctx.addIssue({ code: 'custom', message: 'an uncounted amount has no quantity or level' });
@@ -203,6 +178,10 @@ export const CreatePartInput = z.object({
     .nullish()
     .describe('Mass of one piece in grams, lets weighed stock show an estimated count'),
   minStock: z.number().nonnegative().nullish(),
+  cut: z
+    .enum(CUT_SHAPES)
+    .nullish()
+    .describe('Cut stock: by length (profiles, rod, tube) or as sheets; pieces keep their sizes'),
   attributes: z.record(z.string(), z.unknown()).default({}),
   notes: z.string().trim().max(5000).nullish(),
   source: z
@@ -423,9 +402,35 @@ export const ReportInput = z.object({
 export type ReportInput = z.infer<typeof ReportInput>;
 
 /** Moving a unit or stock by someone who may not have an account. */
-export const OpenMoveInput = z.object({
+/** How much of a lot to move: all of it, an amount in its own unit, a count of pieces, or a cut. */
+export const MoveAmount = z.object({
+  quantity: z.number().positive().nullish().describe("In the lot's own unit"),
+  pieces: z
+    .number()
+    .int()
+    .positive()
+    .nullish()
+    .describe(
+      'A count of pieces: from a level, stock nobody counted or a length, the lot stays as it is and the pieces arrive counted',
+    ),
+  cut: z
+    .object({
+      size: PieceSchema.describe('mm: [length] or [width, height]'),
+      piece: z
+        .number()
+        .int()
+        .min(0)
+        .nullish()
+        .describe("Which of the lot's pieces; default the smallest it fits in"),
+      leftover: z.enum(LEFTOVERS).nullish().describe('Sheets: which way the rest is kept'),
+    })
+    .nullish()
+    .describe('Cut a piece of this size off (bars and sheets)'),
+});
+export type MoveAmount = z.infer<typeof MoveAmount>;
+
+export const OpenMoveInput = MoveAmount.extend({
   to: RefSchema,
-  quantity: z.number().positive().nullish(),
   name: ReporterName,
 });
 export type OpenMoveInput = z.infer<typeof OpenMoveInput>;

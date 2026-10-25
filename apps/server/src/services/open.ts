@@ -3,6 +3,7 @@ import {
   type AnonymousActions,
   type ClearResult,
   type LotView,
+  type MoveAmount,
   type UnitDetail,
 } from '@ixfwms/domain';
 import { eq } from 'drizzle-orm';
@@ -61,10 +62,11 @@ export class OpenActionService {
   async moveLot(
     lotId: string,
     to: string,
-    quantity: number | null,
+    amount: number | null | MoveAmount,
     guest: string | null,
     actor: Actor | null,
   ): Promise<LotView> {
+    const by = typeof amount === 'object' && amount ? amount : { quantity: amount };
     return this.db.transaction(async (tx) => {
       const lot = await this.lotRow(lotId, tx);
       const dest = await this.locations.resolve(to, tx);
@@ -72,7 +74,7 @@ export class OpenActionService {
       const summary = await this.locations.summarize(tx, dest);
       const back = dest.id === lot.originLocationId;
       const who = await this.allow(actor, back ? 'put_back' : 'workstation', summary.workstation);
-      const destLot = await this.stock.moveWithin(tx, lot.id, dest.id, quantity, who, guest);
+      const destLot = await this.stock.pieces.move(tx, lot.id, dest.id, by, who, guest);
       return this.stock.view(tx, destLot);
     });
   }

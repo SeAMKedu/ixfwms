@@ -104,6 +104,7 @@ export class PartService {
           aliases: cleanAliases(input.aliases),
         }),
         unitMassG: input.unitMassG ?? null,
+        cut: input.cut ?? null,
         minStock: input.minStock ?? null,
         attributes: await this.normalizeAttributes(tx, input.category ?? null, input.attributes),
         notes: input.notes ?? null,
@@ -170,6 +171,7 @@ export class PartService {
     if (input.description !== undefined) patch.description = input.description ?? null;
     if (input.manufacturer !== undefined) patch.manufacturer = input.manufacturer ?? null;
     if (input.unitMassG !== undefined) patch.unitMassG = input.unitMassG ?? null;
+    if (input.cut !== undefined) patch.cut = input.cut ?? null;
     if (input.minStock !== undefined) patch.minStock = input.minStock ?? null;
     if (input.notes !== undefined) patch.notes = input.notes ?? null;
     if (input.source !== undefined) patch.source = input.source ?? null;
@@ -288,6 +290,7 @@ export class PartService {
         'categoryId',
         'unitMassG',
         'minStock',
+        'cut',
         'source',
       ] as const) {
         if (target[key] == null && source[key] != null) Object.assign(fill, { [key]: source[key] });
@@ -353,9 +356,8 @@ export class PartService {
   async search(input: SearchInput): Promise<PartSearchResult> {
     const { rows, total } = await this.searcher.rows(input);
     const ids = [...new Set(rows.flatMap((r) => ('partId' in r ? [r.partId] : [])))];
-    const found = ids.length
-      ? await many(this.db.select().from(parts).where(inArray(parts.id, ids)))
-      : [];
+    // inArray of no ids is plain false.
+    const found = await many(this.db.select().from(parts).where(inArray(parts.id, ids)));
     const byId = new Map(found.map((p) => [p.id, p]));
     return {
       rows,
@@ -469,6 +471,7 @@ export class PartService {
       status: r.status,
       kind: r.kind,
       tracking: r.tracking,
+      cut: r.cut,
       aliases: r.aliases,
       units: unitsByPart.get(r.id) ?? [],
       category: r.categoryId ? (catPath.get(r.categoryId) ?? null) : null,

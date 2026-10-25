@@ -125,10 +125,7 @@ describe('where stock came from', () => {
     vi.restoreAllMocks();
     // Both requests looked before either wrote: this one finds no lot, then hits the one-lot index.
     const race = () =>
-      vi
-        .spyOn(stock as unknown as { matchingLot: () => Promise<undefined> }, 'matchingLot')
-        .mockClear()
-        .mockResolvedValueOnce(undefined);
+      vi.spyOn(stock.lots, 'matching').mockClear().mockResolvedValueOnce(undefined);
     let spy = race();
     await stock.add(
       { part: screw.code, location: shelf3.code, amount: { mode: 'count', quantity: 5 } },

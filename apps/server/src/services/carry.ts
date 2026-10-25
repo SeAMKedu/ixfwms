@@ -1,4 +1,10 @@
-import { formatAmount, type CarriedItem, type CarrySummary, type CarryState } from '@ixfwms/domain';
+import {
+  formatAmount,
+  type CarriedItem,
+  type CarrySummary,
+  type CarryState,
+  type MoveAmount,
+} from '@ixfwms/domain';
 import { asc, eq } from 'drizzle-orm';
 import { many, type Db } from '../db/client.js';
 import { locations, parts, stockLots, units, users } from '../db/schema.js';
@@ -118,6 +124,8 @@ export class CarryService {
       lotId?: string | null;
       unit?: string | null;
       quantity?: number | null;
+      pieces?: number | null;
+      cut?: MoveAmount['cut'];
     },
     actor: Actor | null,
   ): Promise<CarryState> {
@@ -135,7 +143,7 @@ export class CarryService {
           carry.id,
           who,
         );
-      else await this.stock.moveWithin(tx, input.lotId!, carry.id, input.quantity ?? null, who);
+      else await this.stock.pieces.move(tx, input.lotId!, carry.id, input, who);
     });
     return this.state(who);
   }

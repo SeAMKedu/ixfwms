@@ -1,4 +1,4 @@
-import { AddStockInput, AmountInput } from '@ixfwms/domain';
+import { AddStockInput, AmountInput, MoveAmount } from '@ixfwms/domain';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { parse, type AppDeps } from '../context.js';
@@ -32,10 +32,7 @@ export function registerStockRoutes(app: FastifyInstance, { services }: AppDeps)
 
   app.post('/api/stock/:lotId/move', async (request) => {
     const { lotId } = parse(LotParams, request.params);
-    const body = parse(
-      z.object({ to: z.string(), quantity: z.number().positive().nullish() }),
-      request.body,
-    );
-    return stock.move(lotId, body.to, body.quantity ?? null, request.actor);
+    const body = parse(MoveAmount.extend({ to: z.string() }), request.body);
+    return stock.move(lotId, body.to, body, request.actor);
   });
 }

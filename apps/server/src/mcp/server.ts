@@ -1,6 +1,7 @@
 import {
   AddUnitsInput,
   AmountInput,
+  MoveAmount,
   BomLine,
   AttributeFilter,
   ATTACHMENT_KINDS,
@@ -25,7 +26,7 @@ const MCP_INSTRUCTIONS = `ixfwms is the robotics lab's inventory: parts, tools a
 
 Places form a tree (lab › cabinet › shelf › box). Every place, item and unit has a short code like A3F9, printed on its QR label; any tool taking a "ref" accepts that code or the internal id.
 
-Bulk items (screws, suction cups, filament) are tracked per place as a count (pcs), a measure (g, kg, m, mm, ml, l) or a level (the lab's own list, e.g. plenty, low, empty: list_stock_levels). Weighed fasteners show an estimated count when the part's unitMassG is known.
+Bulk items (screws, suction cups, filament) are tracked per place as a count (pcs), a measure (g, kg, m, mm, m2, ml, l) or a level (the lab's own list, e.g. plenty, low, empty: list_stock_levels). Weighed fasteners show an estimated count when the part's unitMassG is known. A known count can be moved out of any amount; an amount nobody counted stays as it is. Cut stock (an item's "cut": length for profiles and tube, sheet for sheet metal and boards) keeps each piece's size in mm, so offcuts stay pieces of their own; move_stock with a cut takes a piece off.
 
 Builds are things made from parts (a gripper, a test rig): places whose parts are built in, not free stock. Parts in a build remember where they came from, so dismantle_build can put them back.
 
@@ -461,15 +462,15 @@ export function createMcpServer(
     {
       title: 'Move stock',
       description:
-        'Move a lot, or part of it, to another place, e.g. from the Inbox into the box where it was found.',
+        'Move a lot, or part of it, to another place, e.g. from the Inbox into the box where it was found. Give nothing to move it all; a quantity in its unit; a count of pieces (also from a level or stock nobody counted, which stays as it is); or a cut for bars and sheets (cut stock).',
       inputSchema: {
         lotId: z.string(),
-        to: z.string().describe('Destination place code'),
-        quantity: z.number().positive().optional().describe('Omit to move the whole lot'),
+        to: z.string().describe('Place code'),
+        ...MoveAmount.shape,
       },
       annotations: write,
     },
-    tool(async (a) => stock.move(a.lotId, a.to, a.quantity ?? null, actor)),
+    tool(async (a) => stock.move(a.lotId, a.to, a, actor)),
   );
 
   server.registerTool(

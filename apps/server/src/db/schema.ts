@@ -11,6 +11,8 @@ import {
 } from 'drizzle-orm/sqlite-core';
 import type {
   AttachmentKind,
+  CutShape,
+  Piece,
   MapKind,
   AttributeField,
   IdentifierKind,
@@ -150,6 +152,8 @@ export const parts = sqliteTable(
       .default(sql`'[]'`),
     unitMassG: real('unit_mass_g'),
     minStock: real('min_stock'),
+    /** Cut stock (see cut.ts): by length or as sheets; its lots keep their pieces' sizes. */
+    cut: text('cut').$type<CutShape>(),
     attributes: text('attributes', { mode: 'json' })
       .$type<Record<string, unknown>>()
       .notNull()
@@ -218,6 +222,8 @@ export const stockLots = sqliteTable(
     unit: text('unit').$type<MeasureUnit>(),
     level: text('level').$type<StockLevel>(),
     tareG: real('tare_g'),
+    /** mode `cut`: the pieces in mm, [length] or [width, height] each; quantity is how many. */
+    pieces: text('pieces', { mode: 'json' }).$type<Piece[]>(),
     note: text('note'),
     lastCheckedAt: text('last_checked_at'),
     /**

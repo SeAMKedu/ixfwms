@@ -1,8 +1,12 @@
 import {
-  isUnknown,
+  cutsFrom,
   levelState,
-  estimateCount,
   isValidCode,
+  parseSize,
+  piecesIn,
+  type Piece,
+  type StockAmount,
+  type StockLevelDef,
   normalizeCode,
   normalizeIdentifier,
   type BomCheck,
@@ -16,6 +20,7 @@ import { many, one, type Db } from '../db/client.js';
 import { partIdentifiers, parts } from '../db/schema.js';
 import { invalid } from '../lib/errors.js';
 import { requireScope, type Actor } from './context.js';
+import { sizeInUnit } from './amounts.js';
 import type { PartRow, PartService } from './parts.js';
 import type { StockService } from './stock.js';
 import type { UnitService } from './units.js';
@@ -74,6 +79,7 @@ export class BomService {
       name: input.name ?? null,
       quantity: input.quantity,
       candidates: [] as BomLineResult['candidates'],
+      size: null as Piece | null,
     };
     let part: PartRow | undefined;
     let match: BomLineResult['match'] = 'none';
@@ -114,22 +120,20 @@ export class BomService {
     let salvageable = 0;
     let uncounted = false;
     let plenty = false;
+    // Cut stock with a size: how many pieces that size could be cut.
+    const size = part.cut && input.size ? parseSize(input.size, part.cut) : null;
+    base.size = size;
     for (const lot of lots) {
-      const n = estimateCount(lot.amount, part.unitMassG);
+      const n = size
+        ? cutsIn(lot.amount, size, levels)
+        : piecesIn(lot.amount, part.unitMassG, levels);
       // Built into something: could be had by taking it apart, but isn't free.
       if (lot.location.inBuild) salvageable += n ?? 0;
       else if (n != null) available += n;
-      else if (isUnknown(lot.amount)) {
-        // There is some, nobody has said how much: it may well be enough.
+      else {
+        // There is some, nobody has said how much: it may well be enough, unless it's low.
         uncounted = true;
-        plenty = true;
-      } else if (
-        lot.amount.mode === 'level'
-          ? levelState(lot.amount.level, levels) !== 'empty'
-          : (lot.amount.quantity ?? 0) > 0
-      ) {
-        uncounted = true;
-        if (lot.amount.mode === 'measure' || levelState(lot.amount.level, levels) === 'ok')
+        if (lot.amount.mode !== 'level' || levelState(lot.amount.level, levels) === 'ok')
           plenty = true;
       }
     }
@@ -196,4 +200,13 @@ export class BomService {
     for (const h of hits) if (!map.has(h.key)) map.set(h.key, h.part);
     return map;
   }
+}
+
+/** Pieces of `size` a lot could give: cut from its pieces or its total; null when nobody measured it. */
+function cutsIn(amount: StockAmount, size: Piece, levels: StockLevelDef[]): number | null {
+  if (amount.mode === 'cut')
+    return (amount.pieces ?? []).reduce((n, p) => n + cutsFrom(p, size), 0);
+  const per = sizeInUnit(amount, size);
+  if (per != null) return Math.floor(amount.quantity! / per);
+  return piecesIn(amount, null, levels) === 0 ? 0 : null;
 }

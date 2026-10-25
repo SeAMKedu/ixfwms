@@ -1,6 +1,8 @@
+import { formatPieces, type Piece } from './cut.js';
 import { fold } from './names.js';
 
-export const STOCK_MODES = ['count', 'measure', 'level'] as const;
+/** count: pieces; measure: weight, length, area or volume; level: plenty/low/empty; cut: pieces with sizes (see cut.ts). */
+export const STOCK_MODES = ['count', 'measure', 'level', 'cut'] as const;
 export type StockMode = (typeof STOCK_MODES)[number];
 
 /**
@@ -56,8 +58,12 @@ export function levelKey(name: string, taken: string[]): string {
   return key;
 }
 
-export const MEASURE_UNITS = ['g', 'kg', 'm', 'mm', 'ml', 'l'] as const;
+export const MEASURE_UNITS = ['g', 'kg', 'm', 'mm', 'm2', 'ml', 'l'] as const;
 export type MeasureUnit = (typeof MEASURE_UNITS)[number];
+
+/** How a unit is written: m2 is "m²". */
+export const unitLabel = (unit: MeasureUnit | null | undefined): string =>
+  unit === 'm2' ? 'm²' : (unit ?? '');
 
 export interface StockAmount {
   mode: StockMode;
@@ -67,6 +73,8 @@ export interface StockAmount {
   level: StockLevel | null;
   /** Container weight to subtract when a lot is weighed. */
   tareG?: number | null;
+  /** `cut`: the pieces, in mm (quantity is how many). */
+  pieces?: Piece[] | null;
 }
 
 const TO_GRAMS: Partial<Record<MeasureUnit, number>> = { g: 1, kg: 1000 };
@@ -89,7 +97,27 @@ export function estimateCount(
  * It counts as in stock and never as low; merging with it stays unknown; a stocktake ends it.
  */
 export function isUnknown(amount: Pick<StockAmount, 'mode' | 'quantity' | 'level'>): boolean {
+  if (amount.mode === 'cut') return false;
   return amount.mode === 'level' ? amount.level == null : amount.quantity == null;
+}
+
+/**
+ * How many whole pieces a lot can give, as far as anyone knows: counted pieces, weighed ones by
+ * piece mass, a cut lot's pieces; 0 when it's empty. Null when the amount doesn't say (a level,
+ * stock nobody counted, a length or volume): any number can come out of those, and they stay as
+ * they are (a known count out of an unknown amount).
+ */
+export function piecesIn(
+  amount: StockAmount,
+  unitMassG: number | null | undefined,
+  levels: StockLevelDef[] = DEFAULT_STOCK_LEVELS,
+): number | null {
+  if (amount.mode === 'level')
+    return amount.level != null && levelState(amount.level, levels) === 'empty' ? 0 : null;
+  if (amount.mode === 'cut') return amount.pieces?.length ?? amount.quantity ?? 0;
+  if (amount.quantity == null) return null;
+  if (amount.mode === 'count') return amount.quantity;
+  return estimateCount(amount, unitMassG);
 }
 
 /** True when a lot should be considered out of stock. */
@@ -115,8 +143,10 @@ export function formatAmount(amount: StockAmount): string {
     case 'count':
       return `${amount.quantity ?? '?'} pcs`;
     case 'measure':
-      return `${amount.quantity ?? '?'} ${amount.unit ?? ''}`.trim();
+      return `${amount.quantity ?? '?'} ${unitLabel(amount.unit)}`.trim();
     case 'level':
       return amount.level ?? 'unknown';
+    case 'cut':
+      return formatPieces(amount.pieces ?? []);
   }
 }

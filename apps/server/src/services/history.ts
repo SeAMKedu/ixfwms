@@ -234,6 +234,9 @@ export class HistoryService {
       if (!move) throw notFound('move', id);
       if (move.reason !== 'move' || !move.lotId || !move.fromLocationId)
         throw invalid('history.onlyMoves');
+      // Pieces gone into an amount nobody counted can't be told apart; nor can a cut be undone.
+      if (move.after?.absorbed) throw invalid('history.absorbed');
+      if (move.after?.cut) throw invalid('history.cut');
       const lot = await one(tx.select().from(stockLots).where(eq(stockLots.id, move.lotId)));
       if (!lot || lot.locationId !== move.toLocationId) throw invalid('history.changedSince');
       // Merged since with stock nobody counted: what was moved can't be told apart any more.

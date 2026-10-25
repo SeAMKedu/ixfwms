@@ -18,6 +18,7 @@ import type {
   UserRole,
 } from './enums.js';
 import type { BuildBrief } from './builds.js';
+import type { CutShape } from './cut.js';
 import type { StockAmount } from './quantity.js';
 
 export interface LocationSummary {
@@ -118,6 +119,8 @@ export interface PartSummary {
   status: PartStatus;
   kind: PartKind;
   tracking: TrackingMode;
+  /** Cut stock: by length or as sheets. */
+  cut: CutShape | null;
   aliases: string[];
   /** Individually tracked items: their units. */
   units: UnitBrief[];

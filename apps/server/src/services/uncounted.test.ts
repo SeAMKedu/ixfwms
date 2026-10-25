@@ -62,10 +62,12 @@ describe('stock nobody has counted', () => {
     ).toBe(40);
   });
 
-  it('moves only as a whole', async () => {
+  it('gives a known count and stays uncounted, or moves as a whole', async () => {
     const { box, lot } = await lab();
     const { stock } = env.services;
-    await expect(stock.move(lot.id, box.code, 3, env.admin)).rejects.toThrow(/move all of it/);
+    const three = await stock.move(lot.id, box.code, 3, env.admin);
+    expect([three.location.name, three.amount.quantity]).toEqual(['Box', 3]);
+    expect((await stock.view(env.database.db, lot.id)).amount.quantity).toBeNull();
     const moved = await stock.move(lot.id, box.code, null, env.admin);
     expect([moved.location.name, moved.amount.quantity]).toEqual(['Box', null]);
   });

@@ -80,12 +80,17 @@ describe('builds', () => {
     });
     expect(made.moved.map((m) => [m.name, m.display])).toEqual([
       ['Socket head screw M3x10', '8 pcs'],
-      ['Hex nut M3', '4 g'],
+      ['Hex nut M3', '8 pcs'],
+      ['Push-in fitting 6 mm', '2 pcs'],
       ['Servo A', '1 pcs'],
       ['Servo B', '1 pcs'],
     ]);
+    // The fittings came out of a box marked plenty, which stays plenty.
+    expect(await lotsOf(fitting.code)).toEqual([
+      ['Gripper v3', 2, 'Shelf 3'],
+      ['Shelf 3', null, null],
+    ]);
     expect(made.left).toEqual([
-      { name: 'Push-in fitting 6 mm', quantity: 2, reason: 'byHand' },
       { name: 'Servo MG996R', quantity: 1, reason: 'short' },
       { name: 'NOPE99', quantity: 1, reason: 'unknown' },
     ]);

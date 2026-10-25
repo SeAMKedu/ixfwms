@@ -2,23 +2,24 @@ import {
   estimateCount,
   findLevel,
   formatAmount,
-  isCompatible,
   isUnknown,
   type StockLevelDef,
   type AddStockInput,
   type AmountInput,
   type LotView,
+  type MoveAmount,
   type MovementReason,
   type StockAmount,
   type StockLevel,
 } from '@ixfwms/domain';
-import { and, eq, isNull } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { many, one, type Db, type Executor } from '../db/client.js';
-import { brokenRule } from '../db/dialect.js';
 import { parts, stockLots, stockMovements } from '../db/schema.js';
 import { invalid, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
-import { amountOf, checkWhole, merge, toAmount } from './amounts.js';
+import { amountOf, checkCut, checkWhole, merge, toAmount } from './amounts.js';
+import { LotStore } from './lots.js';
+import { PieceMoves } from './piece-moves.js';
 import { requireScope, type Actor } from './context.js';
 import type { LocationRow, LocationService } from './locations.js';
 import type { PartResolver } from './parts.js';
@@ -26,16 +27,20 @@ import type { SettingsService } from './settings.js';
 
 export type LotRow = typeof stockLots.$inferSelect;
 
-/** What decides which lot stock goes into: one lot per part, place, kind of amount and origin. */
-type LotKey = Pick<LotRow, 'partId' | 'mode' | 'unit'>;
-
 export class StockService {
   constructor(
     private readonly db: Db,
     private readonly locations: LocationService,
     private readonly parts: PartResolver,
     private readonly settings: SettingsService,
-  ) {}
+  ) {
+    this.pieces = new PieceMoves(this, locations);
+  }
+
+  /** Finding and merging lots (one per part, place, kind of amount and origin). */
+  readonly lots = new LotStore(() => this.levels());
+  /** Moves by a count of pieces or a cut, and counted pieces going back into unknown amounts. */
+  readonly pieces: PieceMoves;
 
   /** The lab's stock levels, best first. */
   async levels(): Promise<StockLevelDef[]> {
@@ -82,19 +87,20 @@ export class StockService {
   ): Promise<string> {
     const part = await one(
       tx
-        .select({ name: parts.name, tracking: parts.tracking })
+        .select({ name: parts.name, tracking: parts.tracking, cut: parts.cut })
         .from(parts)
         .where(eq(parts.id, partId)),
     );
     if (part?.tracking === 'individual')
       throw invalid('stock.trackedOneByOne', { name: part.name });
+    if (part) checkCut(part, amount);
     if (amount.mode === 'level' && amount.level)
       amount = { ...amount, level: await this.levelKey(amount.level) };
     checkWhole(amount.mode, amount.quantity);
     const location = locationRef
       ? this.locations.checkOpen(await this.locations.resolve(locationRef, tx))
       : await this.locations.inbox(tx);
-    const lotId = await this.put(tx, { partId, ...amount }, location.id, null, amount, {
+    const lotId = await this.lots.put(tx, { partId, ...amount }, location.id, null, amount, {
       note,
       // Stock nobody has counted hasn't been checked either.
       lastCheckedAt: isUnknown(amount) ? null : nowIso(),
@@ -114,6 +120,7 @@ export class StockService {
     const who = requireScope(actor, 'inventory');
     return this.db.transaction(async (tx) => {
       const lot = await this.lot(tx, lotId);
+      if (lot.mode === 'cut') throw invalid('stock.cutPieces');
       if (lot.mode === 'level') {
         if (!level) throw invalid('stock.giveLevel');
         await tx
@@ -148,6 +155,7 @@ export class StockService {
       const lot = await this.lot(tx, lotId);
       if (amount.uncounted) throw invalid('stock.countIt');
       const next = toAmount(amount);
+      checkCut(await this.parts.resolve(lot.partId, tx), next);
       if (next.mode === 'level' && next.level) next.level = await this.levelKey(next.level);
       checkWhole(next.mode, next.quantity);
       await tx
@@ -168,16 +176,17 @@ export class StockService {
     });
   }
 
-  /** Moves a whole lot, or `quantity` of it, to another location. Returns the lot at the destination. */
+  /** Moves a whole lot, an amount of it, a count of pieces or a cut (see PieceMoves). Returns the lot at the destination. */
   async move(
     lotId: string,
     toRef: string,
-    quantity: number | null,
+    amount: number | null | MoveAmount,
     actor: Actor | null,
   ): Promise<LotView> {
     const who = requireScope(actor, 'inventory');
+    const by = typeof amount === 'object' && amount ? amount : { quantity: amount };
     return this.db.transaction(async (tx) => {
-      const destId = await this.moveWithin(tx, lotId, toRef, quantity, who);
+      const destId = await this.pieces.move(tx, lotId, toRef, by, who);
       return this.view(tx, destId);
     });
   }
@@ -187,7 +196,7 @@ export class StockService {
    * workstation, a temporary place, in a build or being carried it is visiting, and remembers
    * where it came from; anywhere else is its new home.
    */
-  private async originAfter(tx: Executor, lot: LotRow, dest: LocationRow): Promise<string | null> {
+  async originAfter(tx: Executor, lot: LotRow, dest: LocationRow): Promise<string | null> {
     if (dest.id === lot.originLocationId) return null;
     return (await this.locations.visiting(tx, dest))
       ? (lot.originLocationId ?? lot.locationId)
@@ -212,19 +221,25 @@ export class StockService {
     const dest = await this.locations.resolve(toRef, tx);
     if (dest.id === lot.locationId) return lot.id;
     this.locations.checkOpen(dest);
+    // Part of a count nobody made, or of a cut lot: pieces (PieceMoves) say what comes out.
     if (quantity != null && lot.mode !== 'level' && lot.quantity == null)
-      throw invalid('stock.uncountedPart');
+      if (lot.mode === 'count')
+        return this.pieces.move(tx, lot.id, dest.id, { pieces: quantity }, who, guest);
+      else throw invalid('stock.uncountedPart');
+    if (quantity != null && lot.mode === 'cut') throw invalid('stock.cutPieces');
     const whole = quantity == null || lot.mode === 'level' || quantity >= (lot.quantity ?? 0);
     if (!whole && quantity <= 0) throw invalid('stock.givePositive');
     if (!whole) checkWhole(lot.mode, quantity);
 
     const moved: StockAmount = whole ? amountOf(lot) : { ...amountOf(lot), quantity };
     const belongs = origin !== undefined ? origin : await this.originAfter(tx, lot, dest);
+    const absorbed = await this.pieces.absorb(tx, lot, dest.id, belongs, quantity, who, guest);
+    if (absorbed) return absorbed;
 
     let destLotId: string;
-    if (whole && !(await this.matchingLot(tx, lot, dest.id, belongs, lot.id))) {
+    if (whole && !(await this.lots.matching(tx, lot, dest.id, belongs, lot.id))) {
       // The lot itself moves, keeping its id (and its history).
-      destLotId = await this.orMerge(
+      destLotId = await this.lots.orMerge(
         tx,
         (sp) =>
           sp
@@ -232,11 +247,11 @@ export class StockService {
             .set({ locationId: dest.id, originLocationId: belongs, updatedAt: nowIso() })
             .where(eq(stockLots.id, lot.id))
             .then(() => lot.id),
-        () => this.mergeInto(tx, lot, dest.id, belongs, moved, lot.id),
+        () => this.lots.mergeInto(tx, lot, dest.id, belongs, moved, lot.id),
       );
       if (destLotId !== lot.id) await tx.delete(stockLots).where(eq(stockLots.id, lot.id));
     } else {
-      destLotId = await this.put(tx, lot, dest.id, belongs, moved, {
+      destLotId = await this.lots.put(tx, lot, dest.id, belongs, moved, {
         note: lot.note,
         lastCheckedAt: lot.lastCheckedAt,
         tareG: null,
@@ -260,105 +275,6 @@ export class StockService {
     return destLotId;
   }
 
-  /** The lot at `locationId` that stock like `like`, with this origin, merges into. */
-  private async matchingLot(
-    tx: Executor,
-    like: LotKey,
-    locationId: string,
-    origin: string | null,
-    exceptId: string | null = null,
-  ): Promise<LotRow | undefined> {
-    return (
-      await many(
-        tx
-          .select()
-          .from(stockLots)
-          .where(
-            and(
-              eq(stockLots.partId, like.partId),
-              eq(stockLots.locationId, locationId),
-              origin ? eq(stockLots.originLocationId, origin) : isNull(stockLots.originLocationId),
-            ),
-          ),
-      )
-    ).find((l) => l.id !== exceptId && isCompatible(l, like));
-  }
-
-  /** Adds `amount` to the lot like `like` at the place, if there is one; returns its id. */
-  private async mergeInto(
-    tx: Executor,
-    like: LotKey,
-    locationId: string,
-    origin: string | null,
-    amount: StockAmount,
-    exceptId: string | null = null,
-  ): Promise<string | null> {
-    const target = await this.matchingLot(tx, like, locationId, origin, exceptId);
-    if (!target) return null;
-    const merged = merge(amountOf(target), amount, await this.levels());
-    // Uncounted stock joined it: the last count no longer says how much is there.
-    const unchecked = isUnknown({ mode: target.mode, ...merged }) && { lastCheckedAt: null };
-    await tx
-      .update(stockLots)
-      .set({ ...merged, ...unchecked, updatedAt: nowIso() })
-      .where(eq(stockLots.id, target.id));
-    return target.id;
-  }
-
-  /** Puts `amount` at the place: into the lot like it there, or a new lot. Returns the lot's id. */
-  private async put(
-    tx: Executor,
-    like: LotKey,
-    locationId: string,
-    origin: string | null,
-    amount: StockAmount,
-    fresh: Pick<LotRow, 'note' | 'lastCheckedAt' | 'tareG'>,
-  ): Promise<string> {
-    const merged = await this.mergeInto(tx, like, locationId, origin, amount);
-    if (merged) return merged;
-    const id = newId();
-    return this.orMerge(
-      tx,
-      (sp) =>
-        sp
-          .insert(stockLots)
-          .values({
-            id,
-            partId: like.partId,
-            locationId,
-            originLocationId: origin,
-            mode: amount.mode,
-            quantity: amount.quantity,
-            unit: amount.unit,
-            level: amount.level,
-            ...fresh,
-          })
-          .then(() => id),
-      () => this.mergeInto(tx, like, locationId, origin, amount),
-    );
-  }
-
-  /**
-   * Runs a write that makes a lot somewhere. Two requests adding or moving the same stock at
-   * once can both find no lot there; the second one's write then breaks the one-lot index
-   * (stock_lots_one_per_place) and merges into the lot the first one made instead. The write
-   * runs in a savepoint, so the failed statement leaves the transaction usable.
-   */
-  private async orMerge(
-    tx: Executor,
-    write: (sp: Executor) => Promise<string>,
-    instead: () => Promise<string | null>,
-  ): Promise<string> {
-    try {
-      return await tx.transaction(write);
-    } catch (err) {
-      if (brokenRule(err) !== 'unique') throw err;
-      const merged = await instead();
-      if (!merged) throw err;
-      return merged;
-    }
-  }
-
   /**
    * Gives every lot of one part to another (merging duplicates): where the other part already
    * has a lot like it, at the same place and from the same place, the amounts add up.
@@ -368,7 +284,7 @@ export class StockService {
     for (const lot of await many(
       tx.select().from(stockLots).where(eq(stockLots.partId, fromPartId)),
     )) {
-      const target = await this.matchingLot(
+      const target = await this.lots.matching(
         tx,
         { ...lot, partId: toPartId },
         lot.locationId,
@@ -423,13 +339,13 @@ export class StockService {
     };
   }
 
-  private async lot(ex: Executor, lotId: string): Promise<LotRow> {
+  async lot(ex: Executor, lotId: string): Promise<LotRow> {
     const lot = await one(ex.select().from(stockLots).where(eq(stockLots.id, lotId)));
     if (!lot) throw notFound('stockLot', lotId);
     return lot;
   }
 
-  private async record(
+  async record(
     ex: Executor,
     lotId: string,
     reason: MovementReason,
@@ -443,6 +359,8 @@ export class StockService {
       partId?: string;
       /** Moves: where the stock belonged before, which undo puts back. */
       originBefore?: string | null;
+      /** Kept with the movement for undo: fromUnknown, absorbed, cut (see PieceMoves). */
+      extra?: Record<string, unknown>;
     },
   ): Promise<void> {
     const lot = await one(ex.select().from(stockLots).where(eq(stockLots.id, lotId)));
@@ -460,6 +378,7 @@ export class StockService {
             ...amountOf(lot),
             locationId: lot.locationId,
             ...(m.originBefore !== undefined && { originBefore: m.originBefore }),
+            ...m.extra,
           }
         : null,
       note: m.note ?? null,

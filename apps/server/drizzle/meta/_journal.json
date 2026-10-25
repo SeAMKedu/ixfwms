@@ -120,6 +120,13 @@
       "when": 1792881234199,
       "tag": "0016_builds",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1792927559215,
+      "tag": "0017_cut_stock",
+      "breakpoints": true
     }
   ]
 }

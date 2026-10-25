@@ -60,6 +60,8 @@ export const ERROR_MESSAGES = {
   'history.movedAgain': '{{name}} has been moved again since; undo that first',
   'history.onlyMoves': 'Only moves can be undone',
   'history.changedSince': 'That stock has changed since; it can no longer be undone',
+  'history.absorbed': 'It went back into stock nobody has counted; take it out again by hand',
+  'history.cut': "A cut can't be undone; move the piece back by hand",
   'history.takenSince': 'Some of it has been taken since; move it back by hand',
 
   'parts.mergeSelf': 'A part cannot be merged into itself',
@@ -87,6 +89,12 @@ export const ERROR_MESSAGES = {
   'stock.givePositive': 'Give a positive quantity to move',
   'stock.uncountedPart':
     "Nobody has counted this stock, so part of it can't be moved; move all of it, or count it first",
+  'stock.noneLeft': 'This is marked empty; nothing can come out of it',
+  'stock.notCutStock': "{{name}} isn't cut stock; set it to be cut by length or as sheets first",
+  'stock.wrongShape':
+    'Give each piece as a length, or as width × height for sheets, to match the item',
+  'stock.noPieceFits': 'No piece here is big enough for {{size}}',
+  'stock.cutPieces': 'Say how many pieces to move, or what size to cut',
   'stock.countIt': 'A stocktake says how much there is; give the amount',
   'stock.noLot': 'No stock lot {{id}}',
   'stock.pickUpToCarry': 'Pick it up to carry it',

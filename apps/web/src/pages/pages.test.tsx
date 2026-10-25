@@ -32,6 +32,7 @@ const part = (over: Partial<PartSummary>): PartSummary => ({
   status: 'active',
   kind: 'part',
   tracking: 'bulk',
+  cut: null,
   aliases: [],
   units: [],
   category: null,

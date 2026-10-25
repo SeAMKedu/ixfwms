@@ -1,4 +1,5 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { LEFTOVERS, PieceSchema } from '@ixfwms/domain';
 import { z } from 'zod';
 import type { Actor, Services } from '../services/index.js';
 import { tool, write } from './tool.js';
@@ -20,14 +21,20 @@ export function registerBuildTools(
     {
       title: 'Make a build',
       description:
-        'Make a build (a thing made from parts: a gripper, a test rig) and move the listed parts into it from free stock. Counted stock moves by count, weighed stock by count × piece mass, units one by one. Returns what moved and what is left to do by hand (unknown part, not enough free stock, or stock tracked as a level or not counted). Parts in a build remember where they came from. Use check_availability first to match a parts list to part codes.',
+        'Make a build (a thing made from parts: a gripper, a test rig) and move the listed parts into it from free stock. Counted stock moves by count, weighed stock by count × piece mass, units one by one; a count can also come out of a level or stock nobody counted, which stays as it is. Cut stock lines with a size are cut. Returns what moved and what is left (unknown part, not enough free stock). Parts in a build remember where they came from. Use check_availability first to match a parts list to part codes.',
       inputSchema: {
         name: z.string().describe('e.g. "Gripper v3"'),
         parent: z.string().optional().describe('Where the build sits (place code)'),
         contact: z.string().optional().describe('Who to ask about it'),
         description: z.string().optional(),
         lines: z
-          .array(z.object({ part: z.string(), quantity: z.number().int().positive() }))
+          .array(
+            z.object({
+              part: z.string(),
+              quantity: z.number().int().positive(),
+              size: PieceSchema.optional().describe('Cut stock: each piece this size (mm)'),
+            }),
+          )
           .max(1000)
           .describe('Part codes and how many of each go in'),
       },
@@ -48,6 +55,8 @@ export function registerBuildTools(
         quantity: z.number().int().positive(),
         from: z.string().optional().describe('Stock lot id or unit code to take from'),
         restAsNew: z.boolean().optional(),
+        size: PieceSchema.optional().describe('Cut stock: cut each piece to this size (mm)'),
+        leftover: z.enum(LEFTOVERS).optional().describe('Sheets: which way the rest is kept'),
       },
       annotations: write,
     },

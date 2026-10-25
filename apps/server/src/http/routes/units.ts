@@ -119,7 +119,7 @@ export function registerUnitRoutes(app: FastifyInstance, { services }: AppDeps):
   app.post('/api/stock/:lotId/open-move', async (request) => {
     const { lotId } = parse(z.object({ lotId: z.string() }), request.params);
     const body = parse(OpenMoveInput, request.body);
-    return open.moveLot(lotId, body.to, body.quantity ?? null, body.name ?? null, request.actor);
+    return open.moveLot(lotId, body.to, body, body.name ?? null, request.actor);
   });
 
   app.post('/api/stock/:lotId/put-back', async (request) => {

@@ -2,8 +2,6 @@ import {
   AddToBuildInput,
   formatAmount,
   MakeBuildInput,
-  normalizeCode,
-  USABLE_UNIT_STATUSES,
   type AddToBuildResult,
   type BuildBrief,
   type DismantleInput,
@@ -24,7 +22,6 @@ import {
 } from '../db/schema.js';
 import { invalid } from '../lib/errors.js';
 
-type Moved = Pick<MakeBuildResult, 'moved'>;
 import { nowIso } from '../lib/ids.js';
 import { audit, requireScope, type Actor } from './context.js';
 import type { LocationRow, LocationService } from './locations.js';
@@ -32,6 +29,8 @@ import type { OpenActionService } from './open.js';
 import type { PartResolver } from './parts.js';
 import type { StockService } from './stock.js';
 import type { UnitService } from './units.js';
+import { countAmount, cutAmount } from './amounts.js';
+import { BuildFill } from './build-fill.js';
 
 /**
  * Builds: places that are things made from parts (a gripper, a test rig). Parts go in by
@@ -45,7 +44,12 @@ export class BuildService {
     private readonly units: UnitService,
     private readonly open: OpenActionService,
     private readonly resolver: PartResolver,
-  ) {}
+  ) {
+    this.fill = new BuildFill(stock, units);
+  }
+
+  /** Taking stock and units into a build. */
+  private readonly fill: BuildFill;
 
   /**
    * Makes a build and moves the listed parts into it from free stock: counted stock by count,
@@ -65,15 +69,17 @@ export class BuildService {
           result.left.push({ name: line.part, quantity: line.quantity, reason: 'unknown' });
           continue;
         }
-        const { need, byHand } =
+        const need =
           part.tracking === 'individual'
-            ? await this.putUnits(tx, part.id, row, line.quantity, who, result)
-            : await this.putStock(tx, part, row, line.quantity, who, result);
+            ? await this.fill.putUnits(tx, part.id, row, line.quantity, who, result)
+            : await this.fill.putStock(tx, part, row, line.quantity, who, result, {
+                size: line.size,
+              });
         if (need > 0)
           result.left.push({
             name: part.name,
             quantity: need,
-            reason: byHand ? 'byHand' : 'short',
+            reason: 'short',
           });
       }
       await audit(tx, who, 'make-build', 'location', row.id, {
@@ -82,94 +88,6 @@ export class BuildService {
       });
       return result;
     });
-  }
-
-  private async putUnits(
-    tx: Executor,
-    partId: string,
-    build: LocationRow,
-    wanted: number,
-    who: Actor,
-    result: Moved,
-    from: string | null = null,
-  ): Promise<{ need: number; byHand: boolean }> {
-    const rows = await many(
-      tx
-        .select()
-        .from(units)
-        .where(and(eq(units.partId, partId), inArray(units.status, USABLE_UNIT_STATUSES)))
-        .orderBy(asc(units.name), asc(units.code)),
-    );
-    const briefs = await this.units.briefs(rows, tx);
-    let need = wanted;
-    for (const [i, unit] of rows.entries()) {
-      const brief = briefs[i]!;
-      if (need === 0) break;
-      if (brief.loan || brief.location.inBuild || brief.location.kind !== 'normal') continue;
-      if (from && unit.id !== from && unit.code !== normalizeCode(from)) continue;
-      await this.units.moveWithin(tx, unit, build.id, who);
-      result.moved.push({
-        name: brief.name,
-        display: formatAmount({ mode: 'count', quantity: 1, unit: null, level: null }),
-        from: brief.location,
-      });
-      need--;
-    }
-    return { need, byHand: false };
-  }
-
-  private async putStock(
-    tx: Executor,
-    part: { id: string; name: string; unitMassG: number | null },
-    build: LocationRow,
-    wanted: number,
-    who: Actor,
-    result: Moved,
-    from: string | null = null,
-  ): Promise<{ need: number; byHand: boolean }> {
-    const lots = (await this.stock.lotsOfPart(part.id, tx)).filter(
-      (l) =>
-        !l.location.inBuild &&
-        l.location.kind !== 'in_transit' &&
-        l.location.kind !== 'away' &&
-        (!from || l.id === from),
-    );
-    // Counted stock first, the largest lots first, so a list takes from as few places as it can.
-    const pieces = (l: (typeof lots)[number]) =>
-      l.amount.mode === 'count'
-        ? (l.amount.quantity ?? 0)
-        : l.amount.mode === 'measure' && l.amount.unit === 'g' && part.unitMassG
-          ? Math.floor((l.amount.quantity ?? 0) / part.unitMassG)
-          : 0;
-    lots.sort(
-      (a, b) =>
-        Number(b.amount.mode === 'count') - Number(a.amount.mode === 'count') ||
-        pieces(b) - pieces(a),
-    );
-    let need = wanted;
-    let byHand = false;
-    for (const lot of lots) {
-      if (need === 0) break;
-      const have = pieces(lot);
-      if (have === 0) {
-        // Levels, lengths, stock nobody has counted: someone has to take it by hand.
-        if (lot.amount.quantity == null || lot.amount.mode !== 'count') byHand = true;
-        continue;
-      }
-      const take = Math.min(need, have);
-      const amount =
-        lot.amount.mode === 'count'
-          ? take
-          : Math.min(lot.amount.quantity!, Math.round(take * part.unitMassG! * 10) / 10);
-      await this.stock.moveWithin(tx, lot.id, build.id, amount, who);
-      result.moved.push({
-        name: part.name,
-        display: formatAmount({ ...lot.amount, quantity: amount }),
-        from: lot.location,
-      });
-      need -= take;
-    }
-    return { need, byHand };
   }
 
   /**
@@ -183,7 +101,14 @@ export class BuildService {
     actor: Actor | null,
   ): Promise<AddToBuildResult> {
     const who = requireScope(actor, 'inventory');
-    const { part: partRef, quantity, from, restAsNew } = AddToBuildInput.parse(input);
+    const {
+      part: partRef,
+      quantity,
+      from,
+      restAsNew,
+      size,
+      leftover,
+    } = AddToBuildInput.parse(input);
     return this.db.transaction(async (tx) => {
       const build = this.locations.checkOpen(await this.locations.resolve(ref, tx));
       if (!(await this.locations.summarize(tx, build)).build)
@@ -191,15 +116,20 @@ export class BuildService {
       const part = await this.resolver.resolve(partRef, tx);
       const result: AddToBuildResult = { moved: [], left: [], added: null };
       const individual = part.tracking === 'individual';
-      const { need, byHand } = individual
-        ? await this.putUnits(tx, part.id, build, quantity, who, result, from ?? null)
-        : await this.putStock(tx, part, build, quantity, who, result, from ?? null);
+      const need = individual
+        ? await this.fill.putUnits(tx, part.id, build, quantity, who, result, from ?? null)
+        : await this.fill.putStock(tx, part, build, quantity, who, result, {
+            from,
+            size,
+            leftover,
+          });
       if (need > 0 && restAsNew && !individual) {
-        const amount = { mode: 'count' as const, quantity: need, unit: null, level: null };
+        const amount = size
+          ? cutAmount(Array.from({ length: need }, () => size))
+          : countAmount(need);
         await this.stock.addWithin(tx, part.id, build.id, amount, who, null);
         result.added = formatAmount(amount);
-      } else if (need > 0)
-        result.left.push({ name: part.name, quantity: need, reason: byHand ? 'byHand' : 'short' });
+      } else if (need > 0) result.left.push({ name: part.name, quantity: need, reason: 'short' });
       await audit(tx, who, 'add-to-build', 'location', build.id, { part: part.code, quantity });
       return result;
     });
