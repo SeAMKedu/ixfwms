@@ -17,6 +17,15 @@ const Guest = z.object({ name: z.string().trim().max(80).nullish() });
 export function registerUnitRoutes(app: FastifyInstance, { services }: AppDeps): void {
   const { units, reports, open, where } = services;
 
+  /** Deletes a unit made by mistake; not while it's lent out. */
+  app.delete('/api/units/:ref', async (request, reply) => {
+    await services.deletes.unit(
+      parse(z.object({ ref: z.string() }), request.params).ref,
+      request.actor,
+    );
+    return reply.status(204).send();
+  });
+
   app.post('/api/units', async (request, reply) =>
     reply.status(201).send(await units.add(parse(AddUnitsInput, request.body), request.actor)),
   );

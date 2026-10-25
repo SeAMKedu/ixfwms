@@ -2,9 +2,11 @@ import { UNIT_STATUSES, normalizeCode, type UnitDetail, type UnitStatus } from '
 import { Pencil } from 'lucide-react';
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
+import { useDelete } from '../../api/builds';
 import { useUpdateUnit } from '../../api/queries';
 import { useSession } from '../../auth/session';
+import { DeleteButton } from '../../components/delete-button';
 import { PlacePicker } from '../../components/place-picker';
 import { Button, Card, ErrorBox, Field, Select, TextArea, TextInput } from '../../components/ui';
 import { UnitStatusPill } from '../../components/units';
@@ -89,7 +91,10 @@ export function Details({ unit }: { unit: UnitDetail }) {
 
 function EditDetails({ unit, onDone }: { unit: UnitDetail; onDone: () => void }) {
   const { t } = useTranslation();
+  const { can } = useSession();
+  const navigate = useNavigate();
   const update = useUpdateUnit(unit.code);
+  const remove = useDelete();
   const [form, setForm] = useState({
     name: unit.ownName ?? '',
     serialNo: unit.serialNo ?? '',
@@ -192,6 +197,15 @@ function EditDetails({ unit, onDone }: { unit: UnitDetail; onDone: () => void })
           </Button>
           <Button onClick={onDone}>{t('common.cancel')}</Button>
         </div>
+        {can('write') && (
+          <DeleteButton
+            hint={t('delete.unitHint')}
+            onDelete={async () => {
+              await remove.mutateAsync(`/api/units/${unit.code}`);
+              void navigate(`/p/${unit.part.code}`, { replace: true });
+            }}
+          />
+        )}
       </form>
     </Card>
   );

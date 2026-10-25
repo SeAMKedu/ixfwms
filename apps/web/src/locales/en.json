@@ -1094,5 +1094,14 @@
     "keepBest": "Keep the biggest piece whole",
     "keepAcross": "Cut across first",
     "keepAlong": "Cut along first"
+  },
+  "delete": {
+    "delete": "Delete",
+    "again": "Press again to delete",
+    "partHint": "For an item made by mistake: it goes with its stock, files and history. Not once it has units, has been moved, or is in a build; archive or merge it then.",
+    "unitHint": "For a unit made by mistake: it goes with its log. Not while it's lent out. A unit that's gone for real is better retired.",
+    "placeHint": "For a place made by mistake. Only when it's empty and no unit has it as home.",
+    "buildHint": "For a build made by mistake. Only when it's empty; dismantle it first.",
+    "dismantledHint": "Delete the record of this build, with what was in it. Its parts' own history stays."
   }
 }

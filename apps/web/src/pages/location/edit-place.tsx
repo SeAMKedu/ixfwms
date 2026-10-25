@@ -1,13 +1,20 @@
 import { autoShortName, normalizeCode, type LocationDetail } from '@ixfwms/domain';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router';
+import { useDelete } from '../../api/builds';
 import { useMoveLocation, useUpdateLocation } from '../../api/queries';
+import { useSession } from '../../auth/session';
+import { DeleteButton } from '../../components/delete-button';
 import { PlacePicker } from '../../components/place-picker';
 import { Button, ErrorBox, Field, Select, TextArea, TextInput } from '../../components/ui';
 
 /** Name, short name, expected stay, contact and description of a place. */
 export function EditPlaceForm({ place: d, onDone }: { place: LocationDetail; onDone: () => void }) {
   const { t } = useTranslation();
+  const { can } = useSession();
+  const navigate = useNavigate();
+  const remove = useDelete();
   const update = useUpdateLocation(d.code);
   const [name, setName] = useState(d.name);
   const [description, setDescription] = useState(d.description ?? '');
@@ -98,6 +105,18 @@ export function EditPlaceForm({ place: d, onDone }: { place: LocationDetail; onD
         </Button>
         <Button onClick={onDone}>{t('common.cancel')}</Button>
       </div>
+      {can('write') && (
+        <DeleteButton
+          hint={t(d.build ? 'delete.buildHint' : 'delete.placeHint')}
+          onDelete={async () => {
+            await remove.mutateAsync(`/api/locations/${d.code}`);
+            const parent = d.path.at(-2);
+            void navigate(parent ? `/l/${parent.code}` : d.build ? '/builds' : '/places', {
+              replace: true,
+            });
+          }}
+        />
+      )}
     </form>
   );
 }

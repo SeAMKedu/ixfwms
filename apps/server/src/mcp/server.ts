@@ -20,6 +20,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { Actor, Services } from '../services/index.js';
 import { registerBuildTools } from './build-tools.js';
+import { registerDeleteTools } from './delete-tools.js';
 import { read, tool, write } from './tool.js';
 
 const MCP_INSTRUCTIONS = `ixfwms is the robotics lab's inventory: parts, tools and devices we own, how much, and where they are. ("Parts" in tool names means all items.)
@@ -730,5 +731,6 @@ export function createMcpServer(
   );
 
   registerBuildTools(server, services, actor, baseUrl);
+  registerDeleteTools(server, services, actor);
   return server;
 }

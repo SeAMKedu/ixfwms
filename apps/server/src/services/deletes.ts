@@ -1,0 +1,119 @@
+import { and, count, eq, like, type SQL } from 'drizzle-orm';
+import { one, type Db, type Executor } from '../db/client.js';
+import {
+  attachments,
+  locationMoves,
+  locations,
+  loans,
+  parts,
+  reports,
+  stockLots,
+  stockMovements,
+  units,
+} from '../db/schema.js';
+import { invalid } from '../lib/errors.js';
+import { retireCode } from './codes.js';
+import { audit, requireScope, type Actor } from './context.js';
+import type { LocationService } from './locations.js';
+import type { PartResolver } from './parts.js';
+import type { StockService } from './stock.js';
+import type { UnitService } from './units.js';
+
+/**
+ * Deleting what was made by mistake (a typo, a duplicate nobody used), completely: the thing,
+ * its stock, files and history. Only while nothing real depends on it; anything with a past
+ * is archived, retired or dismantled instead. The code is retired, since a label may have
+ * been printed: scanning it says what was deleted. The change log keeps one line.
+ */
+export class DeleteService {
+  constructor(
+    private readonly db: Db,
+    private readonly resolver: PartResolver,
+    private readonly locations: LocationService,
+    private readonly stock: StockService,
+    private readonly units: UnitService,
+  ) {}
+
+  /** An item with no units, not built into anything, and never moved since it was added. */
+  async part(ref: string, actor: Actor | null): Promise<void> {
+    const who = requireScope(actor, 'write');
+    await this.db.transaction(async (tx) => {
+      const part = await this.resolver.resolve(ref, tx);
+      if (await this.any(tx, units, eq(units.partId, part.id)))
+        throw invalid('delete.hasUnits', { name: part.name });
+      if ((await this.stock.lotsOfPart(part.id, tx)).some((l) => l.location.inBuild))
+        throw invalid('delete.inBuild', { name: part.name });
+      const moved = and(eq(stockMovements.partId, part.id), eq(stockMovements.reason, 'move'));
+      if (await this.any(tx, stockMovements, moved))
+        throw invalid('delete.hasHistory', { name: part.name });
+      await tx.delete(stockLots).where(eq(stockLots.partId, part.id));
+      await tx.delete(stockMovements).where(eq(stockMovements.partId, part.id));
+      await this.dropOwned(tx, 'part', part.id);
+      await retireCode(tx, part.code, `deleted item ${part.name}`);
+      await tx.delete(parts).where(eq(parts.id, part.id));
+      await audit(tx, who, 'delete', 'part', part.id, { code: part.code, name: part.name });
+    });
+  }
+
+  /** A unit that isn't lent out right now (one lent and returned may go). */
+  async unit(ref: string, actor: Actor | null): Promise<void> {
+    const who = requireScope(actor, 'write');
+    await this.db.transaction(async (tx) => {
+      const unit = await this.units.resolve(ref, tx);
+      const [brief] = await this.units.briefs([unit], tx);
+      if (await this.units.openLoan(tx, unit.id))
+        throw invalid('delete.lent', { name: brief!.name });
+      await tx.delete(loans).where(eq(loans.unitId, unit.id));
+      await this.dropOwned(tx, 'unit', unit.id);
+      await retireCode(tx, unit.code, `deleted unit ${brief!.name}`);
+      // Its log goes with it (unit_events cascade).
+      await tx.delete(units).where(eq(units.id, unit.id));
+      await audit(tx, who, 'delete', 'unit', unit.id, { code: unit.code, name: brief!.name });
+    });
+  }
+
+  /** An empty place or build: nothing in it, nothing inside it, and no unit's home. */
+  async location(ref: string, actor: Actor | null): Promise<void> {
+    const who = requireScope(actor, 'write');
+    await this.db.transaction(async (tx) => {
+      const loc = await this.locations.resolve(ref, tx);
+      if (loc.kind !== 'normal') throw invalid('places.cantDelete', { name: loc.name });
+      const inside = like(locations.path, `${loc.path}_%`);
+      if (
+        (await this.any(tx, locations, inside)) ||
+        (await this.any(tx, stockLots, eq(stockLots.locationId, loc.id))) ||
+        (await this.any(tx, units, eq(units.locationId, loc.id)))
+      )
+        throw invalid('delete.notEmpty', { name: loc.name });
+      const homes = await one(
+        tx.select({ n: count() }).from(units).where(eq(units.homeLocationId, loc.id)),
+      );
+      if (homes?.n) throw invalid('delete.homeOf', { name: loc.name, count: homes.n });
+      await tx.delete(locationMoves).where(eq(locationMoves.locationId, loc.id));
+      await this.dropOwned(tx, 'location', loc.id);
+      // Stock that belonged back here forgets it (origin_location_id: on delete set null).
+      await retireCode(tx, loc.code, `deleted place ${loc.name}`);
+      await tx.delete(locations).where(eq(locations.id, loc.id));
+      await this.locations.touch(tx, [loc.parentId]);
+      await audit(tx, who, 'delete', 'location', loc.id, { code: loc.code, name: loc.name });
+    });
+  }
+
+  /** Files and problem reports attached to the thing. */
+  private async dropOwned(tx: Executor, owner: 'part' | 'unit' | 'location', id: string) {
+    if (owner !== 'unit')
+      await tx
+        .delete(attachments)
+        .where(and(eq(attachments.ownerType, owner), eq(attachments.ownerId, id)));
+    await tx.delete(reports).where(and(eq(reports.ownerType, owner), eq(reports.ownerId, id)));
+  }
+
+  private async any(
+    tx: Executor,
+    table: typeof units | typeof stockLots | typeof stockMovements | typeof locations,
+    where: SQL | undefined,
+  ): Promise<boolean> {
+    const row = await one(tx.select({ n: count() }).from(table).where(where));
+    return !!row?.n;
+  }
+}

@@ -69,6 +69,15 @@ export function registerPartRoutes(app: FastifyInstance, { services }: AppDeps):
     return parts.setStatus(ref, status, request.actor);
   });
 
+  /** Deletes an item made by mistake (see DeleteService for when it may go). */
+  app.delete('/api/parts/:ref', async (request, reply) => {
+    await services.deletes.part(
+      parse(z.object({ ref: z.string() }), request.params).ref,
+      request.actor,
+    );
+    return reply.status(204).send();
+  });
+
   app.post('/api/parts/:ref/merge', async (request) => {
     const { ref } = parse(RefParams, request.params);
     const { into } = parse(z.object({ into: z.string() }), request.body);

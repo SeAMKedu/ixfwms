@@ -2,8 +2,10 @@ import { type LocationDetail } from '@ixfwms/domain';
 import { PackageOpen } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router';
-import { useDismantle } from '../../api/builds';
+import { Link, useNavigate } from 'react-router';
+import { useDelete, useDismantle } from '../../api/builds';
+import { useSession } from '../../auth/session';
+import { DeleteButton } from '../../components/delete-button';
 import { PlacePicker } from '../../components/place-picker';
 import { Button, Card, CodeLabel, ErrorBox, PlaceTag } from '../../components/ui';
 import { formatDate } from '../../lib/format';
@@ -12,6 +14,9 @@ import { formatDate } from '../../lib/format';
 export function BuildPanel({ place, canEdit }: { place: LocationDetail; canEdit: boolean }) {
   const { t } = useTranslation();
   const dismantle = useDismantle(place.code);
+  const { can } = useSession();
+  const navigate = useNavigate();
+  const remove = useDelete();
   const [onto, setOnto] = useState('');
   const result = dismantle.data;
   // What the last dismantle moved where, shown until the page is left.
@@ -55,6 +60,15 @@ export function BuildPanel({ place, canEdit }: { place: LocationDetail; canEdit:
             </li>
           ))}
         </ul>
+        {can('write') && (
+          <DeleteButton
+            hint={t('delete.dismantledHint')}
+            onDelete={async () => {
+              await remove.mutateAsync(`/api/locations/${place.code}`);
+              void navigate('/builds', { replace: true });
+            }}
+          />
+        )}
       </Card>
     );
   if (!canEdit) return null;

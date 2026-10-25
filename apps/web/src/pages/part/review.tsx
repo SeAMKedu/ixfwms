@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { useShortcut } from '../../lib/shortcuts';
 import { useMergePart, useSetStatus } from '../../api/queries';
+import { useDelete } from '../../api/builds';
+import { DeleteButton } from '../../components/delete-button';
 import { Button, Card, ErrorBox, Field, TextInput } from '../../components/ui';
 
 export function Review({ part }: { part: PartDetail }) {
@@ -11,6 +13,7 @@ export function Review({ part }: { part: PartDetail }) {
   const navigate = useNavigate();
   const setStatus = useSetStatus(part.code);
   const merge = useMergePart(part.code);
+  const remove = useDelete();
   const [target, setTarget] = useState('');
   const [mergeOpen, setMergeOpen] = useState(false);
   useShortcut(
@@ -65,6 +68,13 @@ export function Review({ part }: { part: PartDetail }) {
         </form>
       )}
       <ErrorBox error={setStatus.error ?? merge.error} />
+      <DeleteButton
+        hint={t('delete.partHint')}
+        onDelete={async () => {
+          await remove.mutateAsync(`/api/parts/${part.code}`);
+          void navigate('/', { replace: true });
+        }}
+      />
     </Card>
   );
 }

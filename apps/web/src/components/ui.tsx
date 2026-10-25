@@ -16,12 +16,13 @@ import { placeTag } from '../lib/places';
 
 const cx = (...classes: (string | false | null | undefined)[]) => classes.filter(Boolean).join(' ');
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'dark';
+type Variant = 'primary' | 'secondary' | 'ghost' | 'dark' | 'danger';
 const VARIANTS: Record<Variant, string> = {
   primary: 'bg-link text-surface border-link hover:opacity-90',
   secondary: 'bg-surface text-ink border-line hover:bg-surface-2',
   ghost: 'bg-transparent text-link border-transparent hover:bg-link-soft',
   dark: 'bg-ink text-bg border-ink hover:opacity-90',
+  danger: 'bg-crit text-white border-crit hover:opacity-90',
 };
 const buttonClass = (variant: Variant, small?: boolean) =>
   cx(

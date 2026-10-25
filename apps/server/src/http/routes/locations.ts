@@ -104,6 +104,12 @@ export function registerLocationRoutes(app: FastifyInstance, { config, services 
     ),
   );
 
+  /** Deletes an empty place or build made by mistake. */
+  app.delete('/api/locations/:ref', async (request, reply) => {
+    await services.deletes.location(parse(RefParams, request.params).ref, request.actor);
+    return reply.status(204).send();
+  });
+
   app.patch('/api/locations/:ref', async (request) => {
     const { ref } = parse(RefParams, request.params);
     return locations.update(ref, parse(UpdateLocationInput, request.body), request.actor);

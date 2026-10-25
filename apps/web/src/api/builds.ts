@@ -32,3 +32,6 @@ export const useAddToBuild = (code: string) =>
   useChange((input: AddToBuildInput) =>
     api<AddToBuildResult>(`/api/builds/${code}/parts`, { body: input }),
   );
+
+/** Deletes what was made by mistake: `/api/parts/X`, `/api/units/X` or `/api/locations/X`. */
+export const useDelete = () => useChange((path: string) => api(path, { method: 'DELETE' }));

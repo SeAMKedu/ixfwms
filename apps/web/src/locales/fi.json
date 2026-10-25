@@ -1112,7 +1112,8 @@
       "typeInUse": "Tyypin {{type}} paikkoja on olemassa; vaihda ensin niiden tyyppi",
       "shortNameTaken": "Viereisellä paikalla {{name}} on jo lyhenne {{short}}",
       "unknownType": "Tuntematon paikkatyyppi \"{{key}}\". Tunnetut tyypit: {{known}}",
-      "cantCreateInside": "Paikan {{name}} sisään ei voi luoda paikkoja"
+      "cantCreateInside": "Paikan {{name}} sisään ei voi luoda paikkoja",
+      "cantDelete": "Paikkaa {{name}} ei voi poistaa"
     },
     "levels": {
       "inUse": "Saldoa on tasolla {{levels}}; vaihda ne toiselle tasolle ennen poistamista"
@@ -1196,6 +1197,14 @@
       "svgTooLarge": "Piirros on liian suuri kartaksi (enintään 10 Mt)",
       "glbTooLarge": "Malli on liian suuri kartaksi (enintään 100 Mt)",
       "wrongFormat": "Kartat ovat SVG-piirroksia (.svg) tai binäärisiä glTF-malleja (.glb)"
+    },
+    "delete": {
+      "hasUnits": "Tavaralla {{name}} on yksilöitä; poista tai poista käytöstä ne ensin",
+      "inBuild": "{{name}} on rakennettu johonkin; ota se ensin pois",
+      "hasHistory": "{{name}} on siirretty lisäämisen jälkeen; arkistoi se sen sijaan",
+      "lent": "{{name}} on lainassa; palauta se ensin",
+      "notEmpty": "{{name}} ei ole tyhjä; siirrä sen sisältö ensin",
+      "homeOf": "{{count}} yksilö(ä) kuuluu paikkaan {{name}}; anna niille ensin toinen kotipaikka"
     }
   },
   "builds": {
@@ -1269,5 +1278,14 @@
     "keepBest": "Isoin pala jää ehjäksi",
     "keepAcross": "Ensin poikki",
     "keepAlong": "Ensin pitkittäin"
+  },
+  "delete": {
+    "delete": "Poista",
+    "again": "Paina uudelleen poistaaksesi",
+    "partHint": "Vahingossa tehdylle tavaralle: se poistuu varastoineen, tiedostoineen ja historioineen. Ei, jos sillä on yksilöitä, sitä on siirretty tai se on rakennelmassa; arkistoi tai yhdistä se silloin.",
+    "unitHint": "Vahingossa tehdylle yksilölle: se poistuu lokeineen. Ei lainassa ollessaan. Oikeasti poistunut yksilö kannattaa poistaa käytöstä.",
+    "placeHint": "Vahingossa tehdylle paikalle. Vain kun se on tyhjä eikä se ole minkään yksilön kotipaikka.",
+    "buildHint": "Vahingossa tehdylle rakennelmalle. Vain kun se on tyhjä; pura se ensin.",
+    "dismantledHint": "Poista tämän rakennelman tiedot ja luettelo siitä, mitä siinä oli. Osien oma historia säilyy."
   }
 }

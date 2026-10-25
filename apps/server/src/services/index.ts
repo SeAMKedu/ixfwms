@@ -8,6 +8,7 @@ import { BomService } from './bom.js';
 import { BuildService } from './builds.js';
 import { CarryService } from './carry.js';
 import { CategoryService } from './categories.js';
+import { DeleteService } from './deletes.js';
 import { ExportService } from './export.js';
 import { FileService } from './files.js';
 import { HistoryService } from './history.js';
@@ -34,6 +35,7 @@ export interface Services {
   bom: BomService;
   builds: BuildService;
   categories: CategoryService;
+  deletes: DeleteService;
   carry: CarryService;
   export: ExportService;
   files: FileService;
@@ -74,6 +76,7 @@ export function createServices(
     bom: new BomService(db, parts, stock, units),
     builds,
     categories,
+    deletes: new DeleteService(db, resolver, locations, stock, units),
     carry: new CarryService(db, locations, stock, units),
     export: new ExportService(db),
     files,
