@@ -1,5 +1,5 @@
 import type { BuildBrief, PartSearchResult, PartSummary, UnitBrief } from '@ixfwms/domain';
-import { Blocks } from 'lucide-react';
+import { Blocks, Cpu, Package, Ruler, Wrench, createLucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { AmountPill, Pill, PlaceTag, StatusPill } from '../../components/ui';
@@ -51,6 +51,33 @@ export function resultRows(result: PartSearchResult | undefined): Row[] {
   });
 }
 
+/** A sheet of material seen at an angle, with its edge: Lucide has no single plate. */
+const Sheet = createLucideIcon('sheet', [
+  ['path', { d: 'M2 11 14 5l8 4-12 6Z', key: 'top' }],
+  ['path', { d: 'M2 11v3l8 4 12-6V9', key: 'edge' }],
+  ['path', { d: 'M10 15v3', key: 'corner' }],
+]);
+
+/** What kind of item a row is: a tool, a device, or stock counted, cut by length or as sheets. */
+function KindIcon({ part }: { part: PartSummary }) {
+  const { t } = useTranslation();
+  const [Icon, label] =
+    part.kind === 'tool'
+      ? [Wrench, t('partKinds.tool')]
+      : part.kind === 'device'
+        ? [Cpu, t('partKinds.device')]
+        : part.cut === 'length'
+          ? [Ruler, t('cut.length')]
+          : part.cut === 'sheet'
+            ? [Sheet, t('cut.sheet')]
+            : [Package, t('partKinds.part')];
+  return (
+    <span title={label} className="inline-flex shrink-0">
+      <Icon className="size-4 text-muted" aria-hidden />
+    </span>
+  );
+}
+
 function RowName({ row }: { row: Row }) {
   const { t } = useTranslation();
   if (row.kind === 'build')
@@ -66,12 +93,14 @@ function RowName({ row }: { row: Row }) {
   if (row.kind === 'part')
     return (
       <>
+        <KindIcon part={row.part} />
         <span className="truncate font-medium">{row.part.name}</span>
         <StatusPill status={row.part.status} />
       </>
     );
   return (
     <>
+      <KindIcon part={row.part} />
       <span className="truncate font-medium">{row.unit.name}</span>
       <UnitStatusPill status={row.unit.status} />
     </>
