@@ -11,9 +11,9 @@ export function registerDeleteTools(server: McpServer, services: Services, actor
   server.registerTool(
     'delete_part',
     {
-      title: 'Delete an item made by mistake',
+      title: 'Delete an item',
       description:
-        'Delete an item completely (a typo, a duplicate nobody used): its stock, files and history go too. Only while it has no units, is in no build, and has never been moved; otherwise archive it (update_part status archived) or merge it. Its code is retired. Ask the person before deleting.',
+        'Delete an item completely: its stock, units, files and history go too. Not while any of it is built into a build or one of its units is lent out (return it, or set its status to lost). To keep it on record, archive it instead (update_part status archived) or merge it. Its code is retired. Ask the person before deleting.',
       inputSchema: { ref: z.string().describe('Item code') },
       annotations: destructive,
     },
@@ -22,9 +22,9 @@ export function registerDeleteTools(server: McpServer, services: Services, actor
   server.registerTool(
     'delete_unit',
     {
-      title: 'Delete a unit made by mistake',
+      title: 'Delete a unit',
       description:
-        'Delete a unit completely, with its log. Not while it is lent out. For a unit that is gone for real, set its status to retired instead. Ask the person before deleting.',
+        'Delete a unit completely, with its log. Not while it is built into a build, or lent out (unless its status is lost). For a unit that is gone for real, set its status to retired instead. Ask the person before deleting.',
       inputSchema: { ref: z.string().describe('Unit code') },
       annotations: destructive,
     },

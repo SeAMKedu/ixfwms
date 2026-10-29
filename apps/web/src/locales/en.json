@@ -1100,8 +1100,8 @@
   "delete": {
     "delete": "Delete",
     "again": "Press again to delete",
-    "partHint": "For an item made by mistake: it goes with its stock, files and history. Not once it has units, has been moved, or is in a build; archive or merge it then.",
-    "unitHint": "For a unit made by mistake: it goes with its log. Not while it's lent out. A unit that's gone for real is better retired.",
+    "partHint": "The item goes completely: its stock, units, files and history. Not while it's in a build or one of its units is lent out (return it or mark it lost). To keep it on record, archive it.",
+    "unitHint": "The unit goes with its log. Not while it's in a build or lent out (return it or mark it lost). A unit that's gone for real is better retired.",
     "placeHint": "For a place made by mistake. Only when it's empty and no unit has it as home.",
     "buildHint": "For a build made by mistake. Only when it's empty; dismantle it first.",
     "dismantledHint": "Delete the record of this build, with what was in it. Its parts' own history stays."

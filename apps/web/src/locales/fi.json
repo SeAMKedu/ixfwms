@@ -1202,10 +1202,9 @@
       "wrongFormat": "Kartat ovat SVG-piirroksia (.svg) tai binäärisiä glTF-malleja (.glb)"
     },
     "delete": {
-      "hasUnits": "Tavaralla {{name}} on yksilöitä; poista tai poista käytöstä ne ensin",
       "inBuild": "{{name}} on rakennettu johonkin; ota se ensin pois",
-      "hasHistory": "{{name}} on siirretty lisäämisen jälkeen; arkistoi se sen sijaan",
-      "lent": "{{name}} on lainassa; palauta se ensin",
+      "unitLent": "Tavaran {{name}} yksilö {{unit}} on lainassa; palauta se tai merkitse kadonneeksi ensin",
+      "lent": "{{name}} on lainassa; palauta se tai merkitse kadonneeksi ensin",
       "notEmpty": "{{name}} ei ole tyhjä; siirrä sen sisältö ensin",
       "homeOf": "{{count}} yksilö(ä) kuuluu paikkaan {{name}}; anna niille ensin toinen kotipaikka"
     }
@@ -1285,8 +1284,8 @@
   "delete": {
     "delete": "Poista",
     "again": "Paina uudelleen poistaaksesi",
-    "partHint": "Vahingossa tehdylle tavaralle: se poistuu varastoineen, tiedostoineen ja historioineen. Ei, jos sillä on yksilöitä, sitä on siirretty tai se on rakennelmassa; arkistoi tai yhdistä se silloin.",
-    "unitHint": "Vahingossa tehdylle yksilölle: se poistuu lokeineen. Ei lainassa ollessaan. Oikeasti poistunut yksilö kannattaa poistaa käytöstä.",
+    "partHint": "Tavara poistuu kokonaan: varasto, yksilöt, tiedostot ja historia. Ei, jos se on rakennelmassa tai sen yksilö on lainassa (palauta tai merkitse kadonneeksi). Jos se pitää säilyttää, arkistoi se.",
+    "unitHint": "Yksilö poistuu lokeineen. Ei rakennelmassa eikä lainassa ollessaan (palauta tai merkitse kadonneeksi). Oikeasti poistunut yksilö kannattaa poistaa käytöstä.",
     "placeHint": "Vahingossa tehdylle paikalle. Vain kun se on tyhjä eikä se ole minkään yksilön kotipaikka.",
     "buildHint": "Vahingossa tehdylle rakennelmalle. Vain kun se on tyhjä; pura se ensin.",
     "dismantledHint": "Poista tämän rakennelman tiedot ja luettelo siitä, mitä siinä oli. Osien oma historia säilyy."

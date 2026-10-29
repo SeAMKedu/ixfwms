@@ -29,8 +29,8 @@ describe('deleting what was made by mistake', () => {
     expect((await labels.lookup(typo.code)).retired?.note).toBe('deleted item Hex nutt M3');
   });
 
-  it('keeps items that were moved, have units or are built in', async () => {
-    const { locations, parts, stock, units, builds, deletes } = env.services;
+  it('deletes items that were moved or have units, with their units', async () => {
+    const { locations, parts, stock, units, deletes, labels } = env.services;
     const shelf = await locations.create({ name: 'Shelf 3', type: 'shelf' }, env.admin);
     const box = await locations.create({ name: 'Box', type: 'box' }, env.admin);
     const moved = await parts.create(
@@ -42,19 +42,34 @@ describe('deleting what was made by mistake', () => {
       env.admin,
     );
     await stock.move(moved.lots[0]!.id, box.code, 2, env.admin);
-    await expect(deletes.part(moved.code, env.admin)).rejects.toThrow(/archive it instead/);
+    await deletes.part(moved.code, env.admin);
+    await expect(parts.get(moved.code)).rejects.toThrow(/not found/);
 
     const drill = await parts.create({ ...base, name: 'Drill', kind: 'tool' }, env.admin);
     const [unit] = await units.add(
       { part: drill.code, units: [{ name: 'Drill 1' }], home: shelf.code },
       env.admin,
     );
-    await expect(deletes.part(drill.code, env.admin)).rejects.toThrow(/has units/);
+    await units.move(unit!.code, box.code, env.admin);
+    await deletes.part(drill.code, env.admin);
+    await expect(units.resolve(unit!.code)).rejects.toThrow(/not found/);
+    expect((await labels.lookup(unit!.code)).retired?.note).toBe('deleted unit Drill 1');
+  });
 
-    // A unit lent out stays; once it's back it can go, and then the item too.
+  it('keeps what is in use: lent out or built in', async () => {
+    const { locations, parts, units, builds, deletes } = env.services;
+    const shelf = await locations.create({ name: 'Shelf 3', type: 'shelf' }, env.admin);
+    const drill = await parts.create({ ...base, name: 'Drill', kind: 'tool' }, env.admin);
+    const [unit] = await units.add(
+      { part: drill.code, units: [{ name: 'Drill 1' }], home: shelf.code },
+      env.admin,
+    );
+
+    // Lent out it stays; marked lost (it never came back) it can go, and the item too.
     await units.lend(unit!.code, { description: 'thesis tests' }, env.admin);
+    await expect(deletes.part(drill.code, env.admin)).rejects.toThrow(/Drill 1 of Drill is lent/);
     await expect(deletes.unit(unit!.code, env.admin)).rejects.toThrow(/lent out/);
-    await units.returnUnit(unit!.code, null, env.admin);
+    await units.update(unit!.code, { status: 'lost' }, env.admin);
     await deletes.unit(unit!.code, env.admin);
     await deletes.part(drill.code, env.admin);
 
@@ -68,6 +83,13 @@ describe('deleting what was made by mistake', () => {
     );
     await builds.make({ name: 'Rig', lines: [{ part: bolt.code, quantity: 2 }] }, env.admin);
     await expect(deletes.part(bolt.code, env.admin)).rejects.toThrow(/built into/);
+
+    const scope = await parts.create({ ...base, name: 'Scope', kind: 'tool' }, env.admin);
+    const [one] = await units.add({ part: scope.code, units: [{ name: 'Scope 1' }] }, env.admin);
+    const rig = await builds.make({ name: 'Bench rig', lines: [] }, env.admin);
+    await units.move(one!.code, rig.build.code, env.admin);
+    await expect(deletes.unit(one!.code, env.admin)).rejects.toThrow(/built into/);
+    await expect(deletes.part(scope.code, env.admin)).rejects.toThrow(/built into/);
   });
 
   it('deletes empty places and builds only', async () => {
