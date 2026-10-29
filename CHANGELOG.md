@@ -1,6 +1,19 @@
 # Changelog
 
 All notable changes to ixfwms.
+## 0.15.0 (2026-10-29)
+
+### Features
+- delete items and units unless they're in use
+- archive items, units and old containers, and bring them back
+- lend a whole container out of the lab, and get it back
+- **web:** show what kind each item is in the item list
+
+### Fixes
+- **web:** keep add stock and report a problem out of the where box
+
+### Documentation
+- notes for Claude on splitting files and the KUKA fleet plan
 ## 0.14.0 (2026-10-25)
 
 ### Features
