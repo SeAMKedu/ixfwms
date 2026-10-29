@@ -39,7 +39,7 @@ type LiveUnit = Pick<
 
 /**
  * Finds parts and lists them as things to open: a bulk item is one row, a tool or device one
- * row per unit that isn't retired, a build one row. When the query names particular units (own
+ * row per unit that isn't archived, a build one row. When the query names particular units (own
  * name, serial number, code) only those are listed, otherwise all of them. Pages count these
  * rows, in order of name (part name, then unit name).
  */
@@ -131,7 +131,7 @@ export class PartSearch {
       .sort((x, y) => compare(x.name, y.name) || compare(x.id, y.id));
   }
 
-  /** Units that aren't retired, of the individually tracked parts the search finds. */
+  /** Units that aren't archived, of the individually tracked parts the search finds. */
   private async liveUnits(condition: SQL | undefined): Promise<Map<string, LiveUnit[]>> {
     const rows = await many(
       this.db
@@ -146,7 +146,7 @@ export class PartSearch {
         .from(units)
         .where(
           and(
-            ne(units.status, 'retired'),
+            ne(units.status, 'archived'),
             inArray(
               units.partId,
               this.db
@@ -167,6 +167,14 @@ export class PartSearch {
     const where: SQL[] = [];
     if (input.q) where.push(this.matchesText(input.q));
     if (input.status) where.push(eq(parts.status, input.status));
+    // Archived items only on asking for them, or by their own code.
+    else
+      where.push(
+        or(
+          ne(parts.status, 'archived'),
+          input.q ? eq(parts.code, normalizeCode(input.q)) : NOTHING,
+        )!,
+      );
     if (input.kind === 'build') where.push(NOTHING);
     else if (input.kind) where.push(eq(parts.kind, input.kind));
     if (input.category) {
@@ -221,7 +229,7 @@ export class PartSearch {
     const built = await this.builtPlaces();
     const freeLot = built.length ? notInArray(stockLots.locationId, built) : sql`1 = 1`;
     const freeUnit = built.length ? notInArray(units.locationId, built) : sql`1 = 1`;
-    // Units that can be used now: not retired, broken or in repair, lent out or built in.
+    // Units that can be used now: not archived, broken or in repair, lent out or built in.
     const usableUnits = sql`(select count(*) from ${units} inner join ${locations} on ${locations.id} = ${units.locationId}
       where ${units.partId} = ${parts.id} and ${inArray(units.status, USABLE_UNIT_STATUSES)} and ${locations.kind} <> 'away' and ${freeUnit})`;
     const levels = await this.stock.levels();
@@ -301,7 +309,7 @@ export class PartSearch {
           .where(
             and(
               eq(units.partId, parts.id),
-              ne(units.status, 'retired'),
+              ne(units.status, 'archived'),
               or(contains(units.searchText, text), eq(units.code, code)),
             ),
           ),

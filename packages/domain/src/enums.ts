@@ -16,14 +16,14 @@ export type SearchKind = (typeof SEARCH_KINDS)[number];
 export const TRACKING_MODES = ['bulk', 'individual'] as const;
 export type TrackingMode = (typeof TRACKING_MODES)[number];
 
-/** `lost`: nobody can find it (it may turn up: "Found it"); `retired`: gone for good. */
+/** `lost`: nobody can find it (it may turn up: "Found it"); `archived`: gone for good, kept on record. */
 export const UNIT_STATUSES = [
   'ok',
   'needs_attention',
   'broken',
   'in_repair',
   'lost',
-  'retired',
+  'archived',
 ] as const;
 export type UnitStatus = (typeof UNIT_STATUSES)[number];
 /** Unit states that count as having the thing (in stock, low stock, "Can we build it?"). */

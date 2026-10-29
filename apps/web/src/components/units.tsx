@@ -19,7 +19,7 @@ const STATUS_TONE: Record<UnitStatus, 'ok' | 'warn' | 'crit' | 'muted'> = {
   broken: 'crit',
   in_repair: 'warn',
   lost: 'crit',
-  retired: 'muted',
+  archived: 'muted',
 };
 
 /** Nothing for OK units (the usual case); a coloured pill otherwise, or always with `always`. */
@@ -33,7 +33,7 @@ export function UnitStatusPill({ status, always }: { status: UnitStatus; always?
 export function UnitCount({ units }: { units: UnitBrief[] }) {
   const { t } = useTranslation();
   const out = units.filter((u) => u.loan).length;
-  const trouble = units.filter((u) => u.status !== 'ok' && u.status !== 'retired').length;
+  const trouble = units.filter((u) => u.status !== 'ok' && u.status !== 'archived').length;
   return (
     <span className="flex flex-wrap justify-end gap-1">
       <Pill tone={units.length ? 'info' : 'crit'}>{t('units.count', { count: units.length })}</Pill>

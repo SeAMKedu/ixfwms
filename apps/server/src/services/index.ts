@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import type { Config } from '../config.js';
 import type { Database } from '../db/client.js';
 import { pendingMigrations, runMigrations } from '../db/migrate.js';
+import { ArchiveService } from './archives.js';
 import { AuthService } from './auth.js';
 import { BackupService } from './backup.js';
 import { BomService } from './bom.js';
@@ -30,6 +31,7 @@ import { WhereService } from './where.js';
 export type { Actor } from './context.js';
 
 export interface Services {
+  archives: ArchiveService;
   auth: AuthService;
   backup: BackupService;
   bom: BomService;
@@ -71,6 +73,7 @@ export function createServices(
   const builds = new BuildService(db, locations, stock, units, open, resolver);
   const parts = new PartService(db, resolver, locations, stock, files, units, categories, builds);
   return {
+    archives: new ArchiveService(db, locations),
     auth: new AuthService(db),
     backup: new BackupService(database.client, join(config.dataDir, 'backups'), config.backupKeep),
     bom: new BomService(db, parts, stock, units),

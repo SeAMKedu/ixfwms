@@ -19,7 +19,7 @@ Parts inventory for the robotics lab: pneumatics, electrical parts, fasteners, f
 - **Spreadsheet import:** CSV or Excel, with column mappings you can save.
 - **AI assistants (MCP):** Claude and other assistants can search, answer "where is the impact drill?" in short sentences (a voice client can read them out), check parts lists, make and dismantle builds, lend and log units, and do the initial inventory from order emails and photos.
 - **Lost and found:** a unit can be marked lost: it doesn't count as available and shows in the Inbox; whoever scans it when it turns up presses **Found it**.
-- **Deleting:** an item, unit, place or build can be deleted (press twice) while it isn't in use: nothing built in or lent out (a lent unit that never came back is marked lost first), places empty. What should stay on record is archived, retired or dismantled instead.
+- **Deleting:** an item, unit, place or build can be deleted (press twice) while it isn't in use: nothing built in or lent out (a lent unit that never came back is marked lost first), places empty. What should stay on record is archived (items, units, old containers; Unarchive brings it back) or dismantled (builds).
 - **Everyday use:** login for changes (reading is open on the lab network), users and API tokens, history with undo for moves, nightly backups, English and Finnish, keyboard shortcuts.
 
 See [PLAN.md](PLAN.md) for the background and roadmap, and [CHANGELOG.md](CHANGELOG.md) for releases. How-tos: [labels](docs/labels.md), [spreadsheets](docs/import.md), [lab maps](docs/maps.md), [initial inventory with an AI assistant](docs/inventory-with-mcp.md).

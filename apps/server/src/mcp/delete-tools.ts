@@ -24,7 +24,7 @@ export function registerDeleteTools(server: McpServer, services: Services, actor
     {
       title: 'Delete a unit',
       description:
-        'Delete a unit completely, with its log. Not while it is built into a build, or lent out (unless its status is lost). For a unit that is gone for real, set its status to retired instead. Ask the person before deleting.',
+        'Delete a unit completely, with its log. Not while it is built into a build, or lent out (unless its status is lost). For a unit that is gone for real, set its status to archived instead (it can be set back). Ask the person before deleting.',
       inputSchema: { ref: z.string().describe('Unit code') },
       annotations: destructive,
     },

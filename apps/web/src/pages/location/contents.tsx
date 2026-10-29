@@ -4,6 +4,10 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { AmountPill, CodeLabel, Empty, PlaceTag, StatusPill } from '../../components/ui';
 import { UnitStatusPill } from '../../components/units';
+import { archivePlace } from '../../api/builds';
+import { useSession } from '../../auth/session';
+import { ArchiveButton } from '../../components/archive-button';
+import { formatDate } from '../../lib/format';
 
 /** The places directly inside this one. */
 export function ChildList({ place: d }: { place: LocationDetail }) {
@@ -28,6 +32,48 @@ export function ChildList({ place: d }: { place: LocationDetail }) {
           </li>
         ))}
     </ul>
+  );
+}
+
+/** Archived containers here, folded away: open one to bring it back. */
+export function ArchivedList({ place: d }: { place: LocationDetail }) {
+  const { t } = useTranslation();
+  return (
+    <details className="text-sm">
+      <summary className="cursor-pointer text-[13px] text-muted">
+        {t('archive.here', { count: d.archived.length })}
+      </summary>
+      <ul className="-mx-1 mt-1 flex flex-col">
+        {d.archived.map((c) => (
+          <li key={c.id}>
+            <Link
+              to={`/l/${c.code}`}
+              className="flex items-center justify-between gap-2 rounded-md px-1 py-1.5 text-muted hover:bg-surface-2"
+            >
+              <span className="min-w-0 truncate">{c.name}</span>
+              <span className="flex shrink-0 items-center gap-2 text-[12px]">
+                <PlaceTag place={c} />
+                <ChevronRight className="size-4" aria-hidden />
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
+/** An archived container: what that means, and the way back. */
+export function ArchivedNote({ place: d }: { place: LocationDetail }) {
+  const { t } = useTranslation();
+  const { can } = useSession();
+  return (
+    <div className="flex max-w-prose flex-col gap-2 rounded-lg bg-surface-2 px-3 py-2 text-sm">
+      <p>{t('archive.placeNote', { date: formatDate(d.archivedAt!) })}</p>
+      {can('inventory') && (
+        <ArchiveButton archived onChange={(archive) => archivePlace(d.code, archive)} />
+      )}
+    </div>
   );
 }
 

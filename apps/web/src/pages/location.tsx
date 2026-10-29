@@ -28,7 +28,7 @@ import { NewPlaceForm, Missing, NEXT_TYPE } from './location/new-place';
 import { TemporaryNote } from './location/temporary-note';
 import { CopyPlaceForm } from './location/copy-place';
 import { EditPlaceForm, MovePlaceForm } from './location/edit-place';
-import { ChildList, ContentList } from './location/contents';
+import { ArchivedList, ArchivedNote, ChildList, ContentList } from './location/contents';
 
 type Panel = 'new' | 'edit' | 'move' | 'copy' | null;
 
@@ -49,7 +49,11 @@ export function LocationPage() {
     setPanel((cur) => (cur === p ? null : p));
   };
   const navigate = useNavigate();
-  const editable = can('inventory') && loc.data?.kind === 'normal' && !loc.data.dismantledAt;
+  const editable =
+    can('inventory') &&
+    loc.data?.kind === 'normal' &&
+    !loc.data.dismantledAt &&
+    !loc.data.archivedAt;
   useShortcut('a', t('shortcuts.addItems'), () => void navigate(`/l/${code}/add`), editable);
   useShortcut('e', t('shortcuts.editPlace'), () => openPanel('edit'), editable);
   useShortcut('m', t('shortcuts.movePlace'), () => openPanel('move'), editable);
@@ -59,7 +63,7 @@ export function LocationPage() {
   if (isNotFound(loc.error)) return <Missing code={code} />;
   if (!loc.data) return <ErrorBox error={loc.error} />;
   const d = loc.data;
-  const canEdit = can('inventory') && d.kind === 'normal' && !d.dismantledAt;
+  const canEdit = can('inventory') && d.kind === 'normal' && !d.dismantledAt && !d.archivedAt;
   const hasMap = (layers.data?.length ?? 0) > 0;
 
   return (
@@ -74,6 +78,7 @@ export function LocationPage() {
             {d.movable && d.within && <span>{t('places.within', { address: d.within })}</span>}
             <span>{typeName(d.type)}</span>
             {d.dismantledAt && <Pill tone="warn">{t('builds.dismantledPill')}</Pill>}
+            {d.archivedAt && <Pill tone="muted">{t('archive.archivedPill')}</Pill>}
             {placeTag(d) !== d.code && (
               <span className="font-mono text-[12px]" title={t('places.codeHint')}>
                 {d.code}
@@ -116,6 +121,7 @@ export function LocationPage() {
           )
         }
       />
+      {d.archivedAt && <ArchivedNote place={d} />}
       {d.description && <p className="max-w-prose whitespace-pre-wrap text-sm">{d.description}</p>}
       {d.stayDays !== null && <TemporaryNote place={d} canEdit={canEdit} />}
       {d.clashes.length > 0 && (
@@ -171,6 +177,7 @@ export function LocationPage() {
             ) : (
               <ChildList place={d} />
             )}
+            {d.archived.length > 0 && <ArchivedList place={d} />}
           </Card>
           <Card
             title={t('places.contents')}

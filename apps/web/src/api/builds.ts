@@ -37,6 +37,10 @@ export const useAddToBuild = (code: string) =>
 /** Deletes what was made by mistake: `/api/parts/X`, `/api/units/X` or `/api/locations/X`. */
 export const useDelete = () => useChange((path: string) => api(path, { method: 'DELETE' }));
 
+/** Archives an old container (`true`) or brings it back (`false`). */
+export const archivePlace = (code: string, archive: boolean) =>
+  api(`/api/locations/${code}/${archive ? 'archive' : 'unarchive'}`, { body: {} });
+
 /** A lost unit turned up: at `to`, or back home. */
 export const useFoundUnit = (code: string) =>
   useChange((to: string | null) =>

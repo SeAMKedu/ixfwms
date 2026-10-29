@@ -69,7 +69,7 @@ export function PartPage() {
           )
         }
       />
-      {can('write') && p.status === 'draft' && <Review part={p} />}
+      {can('write') && p.status !== 'active' && <Review part={p} />}
       <div className="grid gap-4 md:grid-cols-2">
         {p.tracking === 'individual' ? (
           <Card title={t('units.title')} className="md:col-span-2">

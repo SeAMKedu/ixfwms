@@ -107,6 +107,8 @@ export const locations = sqliteTable(
     lastActivityAt: text('last_activity_at'),
     /** A build taken apart: kept so its code still scans and what was in it can be looked up. */
     dismantledAt: text('dismantled_at'),
+    /** An old container put away (only movable ones, only empty): hidden, nothing goes in it. */
+    archivedAt: text('archived_at'),
     description: text('description'),
     /** Materialised path of ids, e.g. "/a/b/c/" (includes this location), for subtree queries. */
     path: text('path').notNull(),

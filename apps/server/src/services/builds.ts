@@ -201,7 +201,7 @@ export class BuildService {
     return result;
   }
 
-  /** Nothing left in it: no stock, no units (retired ones too), no places inside. */
+  /** Nothing left in it: no stock, no units (archived ones too), no places inside. */
   private async isEmpty(tx: Executor, build: LocationRow): Promise<boolean> {
     const lots = await one(
       tx.select({ n: count() }).from(stockLots).where(eq(stockLots.locationId, build.id)),

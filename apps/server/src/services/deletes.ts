@@ -89,17 +89,7 @@ export class DeleteService {
     await this.db.transaction(async (tx) => {
       const loc = await this.locations.resolve(ref, tx);
       if (loc.kind !== 'normal') throw invalid('places.cantDelete', { name: loc.name });
-      const inside = like(locations.path, `${loc.path}_%`);
-      if (
-        (await this.any(tx, locations, inside)) ||
-        (await this.any(tx, stockLots, eq(stockLots.locationId, loc.id))) ||
-        (await this.any(tx, units, eq(units.locationId, loc.id)))
-      )
-        throw invalid('delete.notEmpty', { name: loc.name });
-      const homes = await one(
-        tx.select({ n: count() }).from(units).where(eq(units.homeLocationId, loc.id)),
-      );
-      if (homes?.n) throw invalid('delete.homeOf', { name: loc.name, count: homes.n });
+      await checkEmpty(tx, loc);
       await tx.delete(locationMoves).where(eq(locationMoves.locationId, loc.id));
       await this.dropOwned(tx, 'location', loc.id);
       // Stock that belonged back here forgets it (origin_location_id: on delete set null).
@@ -118,13 +108,30 @@ export class DeleteService {
         .where(and(eq(attachments.ownerType, owner), eq(attachments.ownerId, id)));
     await tx.delete(reports).where(and(eq(reports.ownerType, owner), eq(reports.ownerId, id)));
   }
+}
 
-  private async any(
-    tx: Executor,
-    table: typeof units | typeof stockLots | typeof locations,
-    where: SQL | undefined,
-  ): Promise<boolean> {
-    const row = await one(tx.select({ n: count() }).from(table).where(where));
-    return !!row?.n;
-  }
+/**
+ * Nothing in the place (no stock, units or places inside, archived ones too) and no unit's
+ * home, as a place must be to be deleted or archived.
+ */
+export async function checkEmpty(tx: Executor, loc: typeof locations.$inferSelect): Promise<void> {
+  if (
+    (await any(tx, locations, like(locations.path, `${loc.path}_%`))) ||
+    (await any(tx, stockLots, eq(stockLots.locationId, loc.id))) ||
+    (await any(tx, units, eq(units.locationId, loc.id)))
+  )
+    throw invalid('delete.notEmpty', { name: loc.name });
+  const homes = await one(
+    tx.select({ n: count() }).from(units).where(eq(units.homeLocationId, loc.id)),
+  );
+  if (homes?.n) throw invalid('delete.homeOf', { name: loc.name, count: homes.n });
+}
+
+async function any(
+  tx: Executor,
+  table: typeof units | typeof stockLots | typeof locations,
+  where: SQL | undefined,
+): Promise<boolean> {
+  const row = await one(tx.select({ n: count() }).from(table).where(where));
+  return !!row?.n;
 }

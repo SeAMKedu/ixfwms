@@ -20,6 +20,7 @@ const place = (code: string, ...path: string[]): PlaceOption => ({
   build: false,
   inBuild: null,
   dismantledAt: null,
+  archivedAt: null,
   path,
   pathCodes: [],
 });

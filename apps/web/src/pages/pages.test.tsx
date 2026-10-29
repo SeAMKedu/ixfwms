@@ -22,6 +22,7 @@ const NO_ADDRESS = {
   build: false,
   inBuild: null,
   dismantledAt: null,
+  archivedAt: null,
 };
 
 const part = (over: Partial<PartSummary>): PartSummary => ({
@@ -94,7 +95,7 @@ describe('search page', () => {
       kind: 'normal' as const,
       ...NO_ADDRESS,
     });
-    const unit = (code: string, name: string, at: string, status: 'ok' | 'retired' = 'ok') => ({
+    const unit = (code: string, name: string, at: string, status: 'ok' | 'archived' = 'ok') => ({
       id: code,
       code,
       name,
@@ -126,7 +127,7 @@ describe('search page', () => {
             units: [
               unit('D1D1', 'Impact drill D1D1', 'S1S1'),
               unit('D2D2', 'Impact drill D2D2', 'S2S2'),
-              unit('D3D3', 'Impact drill D3D3', 'S3S3', 'retired'),
+              unit('D3D3', 'Impact drill D3D3', 'S3S3', 'archived'),
               unit('D4D4', 'Impact drill D4D4', 'S4S4'),
             ],
           }),
@@ -207,6 +208,7 @@ describe('location page', () => {
         },
       ],
       children: [],
+      archived: [],
       contents: [
         {
           lotId: 'l1',
@@ -288,6 +290,7 @@ describe('carry page', () => {
         },
       ],
       children: [],
+      archived: [],
       contents: [],
       attachments: [],
     };

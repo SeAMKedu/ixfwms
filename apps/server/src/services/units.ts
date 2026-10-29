@@ -420,7 +420,7 @@ export class UnitService {
         .innerJoin(parts, eq(parts.id, units.partId))
         .where(
           and(
-            ne(units.status, 'retired'),
+            ne(units.status, 'archived'),
             or(inArray(units.status, ATTENTION), lte(units.nextCheckAt, today())),
           ),
         )
@@ -573,13 +573,13 @@ export class UnitService {
     });
   }
 
-  /** Units directly at a place (not inside things there), retired ones left out. */
+  /** Units directly at a place (not inside things there), archived ones left out. */
   async directlyAt(locId: string, ex: Executor = this.db): Promise<UnitRow[]> {
     return many(
       ex
         .select()
         .from(units)
-        .where(and(eq(units.locationId, locId), notInArray(units.status, ['retired']))),
+        .where(and(eq(units.locationId, locId), notInArray(units.status, ['archived']))),
     );
   }
 

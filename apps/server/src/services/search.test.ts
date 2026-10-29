@@ -41,10 +41,10 @@ describe('search results', () => {
       },
       env.admin,
     );
-    await units.update(added[3]!.code, { status: 'retired' }, env.admin);
+    await units.update(added[3]!.code, { status: 'archived' }, env.admin);
     await parts.create({ ...active, name: 'Zip ties' }, env.admin);
 
-    // Part name, then unit name; the retired drill isn't listed. A page may end mid-tool.
+    // Part name, then unit name; the archived drill isn't listed. A page may end mid-tool.
     const all = ['Allen keys', 'Drill A', 'Drill B', 'Drill C', 'Zip ties'];
     expect(await names({ limit: 50, offset: 0 })).toEqual({ total: 5, rows: all });
     expect(await names({ limit: 2, offset: 0 })).toEqual({ total: 5, rows: all.slice(0, 2) });

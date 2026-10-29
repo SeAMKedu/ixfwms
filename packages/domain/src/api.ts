@@ -50,6 +50,8 @@ export interface LocationSummary {
   inBuild: { code: string; name: string } | null;
   /** When a build was taken apart; nothing can be put in it after that. */
   dismantledAt: string | null;
+  /** An old container put away: hidden from lists and pickers, nothing can go in it. */
+  archivedAt: string | null;
 }
 
 /** A temporary place left untouched longer than expected. */
@@ -283,6 +285,8 @@ export interface LocationDetail extends LocationSummary {
   description: string | null;
   path: LocationSummary[];
   children: (LocationSummary & { partCount: number })[];
+  /** Archived containers here, listed apart so they can be brought back. */
+  archived: LocationSummary[];
   contents: LocationContentItem[];
   /** Individually tracked things here or inside (with `in` set for the latter). */
   units: (UnitBrief & { part: { code: string; name: string }; in: LocationSummary | null })[];

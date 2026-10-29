@@ -92,6 +92,7 @@
       "all": "Kaikki",
       "drafts": "Luonnokset",
       "active": "Tarkistetut",
+      "archived": "Arkistoidut",
       "inStock": "Varastossa",
       "category": "Kategoria",
       "tag": "Tunniste",
@@ -146,6 +147,7 @@
     "takeQuantity": "Montako otettiin",
     "takeAmount": "Paljonko otettiin ({{unit}})",
     "duplicates": "Kaksoiskappaleet",
+    "manage": "Yhdistä, arkistoi tai poista",
     "newLevel": "Uusi taso",
     "stocktake": "Laskettu määrä",
     "checked": "tarkistettu {{date}}",
@@ -905,7 +907,7 @@
     "needs_attention": "Vaatii huomiota",
     "broken": "Rikki",
     "in_repair": "Korjattavana",
-    "retired": "Poistettu käytöstä",
+    "archived": "Arkistoitu",
     "lost": "Kadonnut"
   },
   "unitEvents": {
@@ -1115,7 +1117,10 @@
       "shortNameTaken": "Viereisellä paikalla {{name}} on jo lyhenne {{short}}",
       "unknownType": "Tuntematon paikkatyyppi \"{{key}}\". Tunnetut tyypit: {{known}}",
       "cantCreateInside": "Paikan {{name}} sisään ei voi luoda paikkoja",
-      "cantDelete": "Paikkaa {{name}} ei voi poistaa"
+      "cantDelete": "Paikkaa {{name}} ei voi poistaa",
+      "archived": "{{name}} on arkistoitu; palauta se ensin arkistosta",
+      "cantArchive": "Paikkaa {{name}} ei voi arkistoida; vain siirrettävät säilytysastiat voi",
+      "notArchived": "{{name}} ei ole arkistoitu"
     },
     "levels": {
       "inUse": "Saldoa on tasolla {{levels}}; vaihda ne toiselle tasolle ennen poistamista"
@@ -1285,7 +1290,7 @@
     "delete": "Poista",
     "again": "Paina uudelleen poistaaksesi",
     "partHint": "Tavara poistuu kokonaan: varasto, yksilöt, tiedostot ja historia. Ei, jos se on rakennelmassa tai sen yksilö on lainassa (palauta tai merkitse kadonneeksi). Jos se pitää säilyttää, arkistoi se.",
-    "unitHint": "Yksilö poistuu lokeineen. Ei rakennelmassa eikä lainassa ollessaan (palauta tai merkitse kadonneeksi). Oikeasti poistunut yksilö kannattaa poistaa käytöstä.",
+    "unitHint": "Yksilö poistuu lokeineen. Ei rakennelmassa eikä lainassa ollessaan (palauta tai merkitse kadonneeksi). Oikeasti poistunut yksilö kannattaa arkistoida.",
     "placeHint": "Vahingossa tehdylle paikalle. Vain kun se on tyhjä eikä se ole minkään yksilön kotipaikka.",
     "buildHint": "Vahingossa tehdylle rakennelmalle. Vain kun se on tyhjä; pura se ensin.",
     "dismantledHint": "Poista tämän rakennelman tiedot ja luettelo siitä, mitä siinä oli. Osien oma historia säilyy."
@@ -1295,5 +1300,16 @@
     "foundHome": "Löytyi: vie se takaisin paikkaan {{place}}",
     "foundAt": "Löytyi muualta",
     "foundHere": "Löytyi täältä"
+  },
+  "archive": {
+    "archive": "Arkistoi",
+    "unarchive": "Palauta arkistosta",
+    "archivedPill": "Arkistoitu",
+    "partHint": "Arkistoi tavara, jota ei enää käytetä mutta joka halutaan pitää tallessa: se jää pois hausta ja listoista (Arkistoidut-suodatin löytää sen), sen koodi toimii yhä, ja Palauta arkistosta tuo sen takaisin.",
+    "partNote": "Arkistoitu: ei näy haussa eikä listoissa. Varasto, yksilöt ja historia säilyvät.",
+    "placeHint": "Arkistoi vanha säilytysastia pois näkyvistä: se jää pois paikkalistoista ja -valinnoista eikä siihen voi laittaa mitään, mutta sen koodi toimii yhä. Vain kun se on tyhjä eikä se ole minkään yksilön kotipaikka.",
+    "placeNote": "Arkistoitu {{date}}: ei näy paikkalistoissa, eikä siihen voi laittaa mitään. Historia säilyy.",
+    "here_one": "{{count}} arkistoitu",
+    "here_other": "{{count}} arkistoitua"
   }
 }

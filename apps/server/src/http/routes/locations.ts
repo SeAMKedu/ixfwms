@@ -64,6 +64,14 @@ export function registerLocationRoutes(app: FastifyInstance, { config, services 
     locations.stillNeeded(parse(RefParams, request.params).ref, request.actor),
   );
 
+  /** Archiving an old container, and bringing it back (see ArchiveService). */
+  app.post('/api/locations/:ref/archive', async (request) =>
+    services.archives.place(parse(RefParams, request.params).ref, request.actor),
+  );
+  app.post('/api/locations/:ref/unarchive', async (request) =>
+    services.archives.unarchivePlace(parse(RefParams, request.params).ref, request.actor),
+  );
+
   app.get('/api/locations/:ref', async (request) => {
     const { ref } = parse(RefParams, request.params);
     const { recursive } = parse(z.object({ recursive: QueryBool.optional() }), request.query);

@@ -14,7 +14,7 @@ const STATUS_TEXT: Record<string, string> = {
   broken: 'Marked broken.',
   in_repair: 'In repair.',
   lost: 'Marked lost; that is where it was last seen.',
-  retired: 'Retired.',
+  archived: 'Archived.',
 };
 
 const place = (p: LocationSummary) => p.address || p.name;

@@ -2,12 +2,9 @@ import {
   addressOf,
   BUILT_IN_LOCATION_TYPES,
   DEFAULT_LOCATION_TYPES,
-  nextShortName,
   type OverduePlace,
   isValidCode,
   normalizeCode,
-  nextFreeName,
-  DuplicateLocationInput,
   type CreateLocationInput,
   type LocationKind,
   type LocationNode,
@@ -22,6 +19,7 @@ import { invalid, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
 import { allocateCode, claimCode } from './codes.js';
 import { audit, placeName, requireScope, type Actor } from './context.js';
+import { PlaceCopy } from './place-copy.js';
 
 export type LocationRow = typeof locations.$inferSelect;
 export type { LocationNode, LocationSummary };
@@ -180,75 +178,9 @@ export class LocationService {
     });
   }
 
-  /**
-   * Copies a place with everything below it (names, types, descriptions; not stock), each copy
-   * with a new code. Copies are named on from the original (Cabinet A → Cabinet B, C…) unless a
-   * name is given. `afterCopy` gets original → copy ids, for copying maps along.
-   */
-  async duplicate(
-    ref: string,
-    input: DuplicateLocationInput,
-    actor: Actor | null,
-    afterCopy?: (tx: Executor, pairs: Map<string, string>) => Promise<void>,
-  ): Promise<LocationSummary[]> {
-    const who = requireScope(actor, 'inventory');
-    const { name, parent, count } = DuplicateLocationInput.parse(input);
-    return this.db.transaction(async (tx) => {
-      const original = await this.resolve(ref, tx);
-      if (original.kind !== 'normal') throw invalid('places.cantCopy', { name: original.name });
-      const parentId =
-        parent === undefined ? original.parentId : parent && (await this.resolve(parent, tx)).id;
-      const inside = await many(
-        tx
-          .select()
-          .from(locations)
-          .where(like(locations.path, `${original.path}%`)),
-      );
-      const types = new Map(
-        (await many(tx.select().from(locationTypes))).map((t) => [t.id, t.key]),
-      );
-      const copies: LocationSummary[] = [];
-      let previous = original.name;
-      let shortRoot = original.shortName;
-      for (let n = 0; n < count; n++) {
-        const siblingRows = await many(
-          tx
-            .select()
-            .from(locations)
-            .where(parentId ? eq(locations.parentId, parentId) : isNull(locations.parentId)),
-        );
-        const taken = siblingRows.map((s) => s.name);
-        const copyName = name && n === 0 ? name : nextFreeName(previous, taken);
-        previous = copyName;
-        // A set short name steps on too (A → B); a guessed one follows the new name by itself.
-        if (shortRoot) {
-          const shorts = (await this.summaries(tx, siblingRows)).map((x) => x.short.toLowerCase());
-          do shortRoot = nextShortName(shortRoot);
-          while (shorts.includes(shortRoot.toLowerCase()));
-        }
-        const pairs = new Map<string, string>();
-        // Parents come before children when sorted by path length.
-        for (const row of [...inside].sort((a, b) => a.path.length - b.path.length)) {
-          const isRoot = row.id === original.id;
-          const copy = await this.insert(tx, {
-            name: isRoot ? copyName : row.name,
-            parent: isRoot ? parentId : pairs.get(row.parentId!)!,
-            typeKey: types.get(row.typeId) ?? 'box',
-            kind: 'normal',
-            description: row.description,
-            shortName: isRoot ? shortRoot : row.shortName,
-          });
-          pairs.set(row.id, copy.id);
-          if (isRoot) copies.push(await this.summarize(tx, copy));
-        }
-        await afterCopy?.(tx, pairs);
-        await audit(tx, who, 'duplicate', 'location', pairs.get(original.id)!, {
-          from: original.id,
-          places: pairs.size,
-        });
-      }
-      return copies;
-    });
+  /** Copies a place with everything below it; see PlaceCopy. */
+  async duplicate(...args: Parameters<PlaceCopy['duplicate']>): Promise<LocationSummary[]> {
+    return new PlaceCopy(this.db, this).duplicate(...args);
   }
 
   /** Move logic for callers that already hold a transaction. */
@@ -315,6 +247,7 @@ export class LocationService {
     return ids.map((id) => byId.get(id)).filter((r): r is LocationSummary => r != null);
   }
 
+  /** Places directly inside, archived ones left out. */
   async children(parentRef: string | null, ex: Executor = this.db): Promise<LocationSummary[]> {
     const parentId = parentRef ? (await this.resolve(parentRef, ex)).id : null;
     const rows = await many(
@@ -324,19 +257,24 @@ export class LocationService {
         .where(parentId ? eq(locations.parentId, parentId) : isNull(locations.parentId))
         .orderBy(asc(locations.name)),
     );
-    return this.summaries(ex, rows);
+    return this.summaries(
+      ex,
+      rows.filter((r) => !r.archivedAt),
+    );
   }
 
   /** Location tree below `rootRef` (or everything), limited to `depth` levels. */
   async tree(rootRef: string | null, depth = 10): Promise<LocationNode[]> {
     const root = rootRef ? await this.resolve(rootRef) : null;
-    const rows = await many(
-      this.db
-        .select()
-        .from(locations)
-        .where(root ? like(locations.path, `${root.path}%`) : undefined)
-        .orderBy(asc(locations.name)),
-    );
+    const rows = (
+      await many(
+        this.db
+          .select()
+          .from(locations)
+          .where(root ? like(locations.path, `${root.path}%`) : undefined)
+          .orderBy(asc(locations.name)),
+      )
+    ).filter((r) => !r.archivedAt);
     const summaries = await this.summaries(this.db, rows);
     const nodes = new Map(summaries.map((s) => [s.id, { ...s, children: [] as LocationNode[] }]));
     const top: LocationNode[] = [];
@@ -352,12 +290,16 @@ export class LocationService {
     return top;
   }
 
-  /** Every place with its path of names, so a client can search "cab a › shelf 3" without more requests. */
+  /**
+   * Every place with its path of names, so a client can search "cab a › shelf 3" without more
+   * requests. Archived ones are left out: nothing can go in them.
+   */
   async allWithPaths(): Promise<PlaceOption[]> {
     const rows = await many(this.db.select().from(locations));
-    const summaries = await this.summaries(this.db, rows);
     const byId = new Map(rows.map((r) => [r.id, r]));
-    return rows
+    const open = rows.filter((r) => !r.archivedAt);
+    const summaries = await this.summaries(this.db, open);
+    return open
       .map((row, i) => {
         const ids = row.path.split('/').filter(Boolean);
         return {
@@ -424,6 +366,7 @@ export class LocationService {
         build: types.get(r.typeId)?.build ?? false,
         inBuild: build ? { code: build.code, name: build.name } : null,
         dismantledAt: r.dismantledAt,
+        archivedAt: r.archivedAt,
       };
     });
   }
@@ -434,9 +377,13 @@ export class LocationService {
     return s.kind === 'in_transit' || s.workstation || s.stayDays !== null || s.inBuild !== null;
   }
 
-  /** Refuses to put anything in a dismantled build (dismantling empties it, places inside too). */
-  checkOpen<T extends Pick<LocationRow, 'dismantledAt' | 'name'>>(dest: T): T {
+  /**
+   * Refuses to put anything in a dismantled build (dismantling empties it, places inside too)
+   * or an archived container (archived only while empty).
+   */
+  checkOpen<T extends Pick<LocationRow, 'dismantledAt' | 'archivedAt' | 'name'>>(dest: T): T {
     if (dest.dismantledAt) throw invalid('builds.dismantled', { name: dest.name });
+    if (dest.archivedAt) throw invalid('places.archived', { name: dest.name });
     return dest;
   }
 
@@ -530,7 +477,8 @@ export class LocationService {
     return type;
   }
 
-  private async insert(
+  /** A new place row (with its code), checked against its type and parent. */
+  async insert(
     ex: Executor,
     input: {
       name: string;

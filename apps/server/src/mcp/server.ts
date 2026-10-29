@@ -22,6 +22,7 @@ import type { Actor, Services } from '../services/index.js';
 import { registerBuildTools } from './build-tools.js';
 import { registerDeleteTools } from './delete-tools.js';
 import { registerLostTools } from './lost-tools.js';
+import { registerPlaceTools } from './place-tools.js';
 import { read, tool, write } from './tool.js';
 
 const MCP_INSTRUCTIONS = `ixfwms is the robotics lab's inventory: parts, tools and devices we own, how much, and where they are. ("Parts" in tool names means all items.)
@@ -52,7 +53,7 @@ export function createMcpServer(
   version: string,
 ): McpServer {
   const server = new McpServer({ name: 'ixfwms', version }, { instructions: MCP_INSTRUCTIONS });
-  const { parts, categories, locations, locationViews, stock, files } = services;
+  const { parts, categories, stock, files } = services;
   const abs = (href: string) => (href.startsWith('/') ? `${baseUrl}${href}` : href);
   const partUrl = (code: string) => `${baseUrl}/p/${code}`;
 
@@ -145,18 +146,6 @@ export function createMcpServer(
   );
 
   server.registerTool(
-    'list_location_types',
-    {
-      title: 'List place types',
-      description:
-        'Place types for create_location. Movable ones (boxes, bins, pallets) are containers that get carried around; the others make up addresses like "Robolab-A-C".',
-      inputSchema: {},
-      annotations: read,
-    },
-    tool(async () => services.placeTypes.types()),
-  );
-
-  server.registerTool(
     'list_stock_levels',
     {
       title: 'List stock levels',
@@ -166,54 +155,6 @@ export function createMcpServer(
       annotations: read,
     },
     tool(async () => stock.levels()),
-  );
-
-  server.registerTool(
-    'list_overdue_places',
-    {
-      title: 'Overdue temporary places',
-      description:
-        'Temporary places (pallets, deliveries…) nobody has touched for longer than expected, with who to ask.',
-      inputSchema: {},
-      annotations: read,
-    },
-    tool(async () => locations.overdue()),
-  );
-
-  server.registerTool(
-    'list_locations',
-    {
-      title: 'List places',
-      description: 'The tree of places (lab › cabinet › shelf › box) with their codes.',
-      inputSchema: {
-        root: z.string().optional().describe('Start from this place; omit for everything'),
-        depth: z.number().int().min(1).max(20).optional(),
-      },
-      annotations: read,
-    },
-    tool(async ({ root, depth }) => locations.tree(root ?? null, depth ?? 10)),
-  );
-
-  server.registerTool(
-    'get_location',
-    {
-      title: 'Get place',
-      description:
-        'A place with its path, sub-places and contents. Use recursive to include everything inside sub-places.',
-      inputSchema: {
-        ref: z.string().describe('Place code or id'),
-        recursive: z.boolean().optional(),
-      },
-      annotations: read,
-    },
-    tool(async ({ ref, recursive }) => {
-      const d = await locationViews.detail(ref, { recursive: recursive ?? false });
-      return {
-        ...d,
-        url: `${baseUrl}/l/${d.code}`,
-        attachments: d.attachments.map((a) => ({ ...a, href: abs(a.href) })),
-      };
-    }),
   );
 
   server.registerTool(
@@ -284,62 +225,6 @@ export function createMcpServer(
         note: 'The response JSON has an "id"; pass it as fileId to attach_file. Use the same API token as this MCP connection.',
       }),
     ),
-  );
-
-  server.registerTool(
-    'create_location',
-    {
-      title: 'Create place',
-      description:
-        'Create a place (room, cabinet, shelf, box, …) and get its short code for the label.',
-      inputSchema: {
-        name: z.string().describe('e.g. "Box: vacuum parts" or "Shelf 3"'),
-        parent: z.string().optional().describe('Parent place code; omit for a top-level place'),
-        type: z
-          .string()
-          .optional()
-          .describe(
-            'Place type key: building, floor, room, zone, cabinet, shelf, pallet, drawer, box, bin, device (the lab may have more; list_location_types)',
-          ),
-        shortName: z
-          .string()
-          .optional()
-          .describe(
-            'Short name for the address, e.g. "A" for Cabinet A; omit to guess it from the name',
-          ),
-        description: z.string().optional(),
-        stayDays: z
-          .number()
-          .int()
-          .min(0)
-          .optional()
-          .describe(
-            'Temporary place (e.g. a delivery pallet): expected stay in days; 0 = not temporary',
-          ),
-        contact: z.string().optional().describe('Who to ask about a temporary place'),
-        code: z
-          .string()
-          .optional()
-          .describe('Code from a pre-printed blank QR label on the box, if it has one'),
-      },
-      annotations: write,
-    },
-    tool(async (a) => {
-      const loc = await locations.create(
-        {
-          name: a.name,
-          parent: a.parent ?? null,
-          type: a.type ?? 'box',
-          description: a.description ?? null,
-          code: a.code ?? null,
-          shortName: a.shortName ?? null,
-          stayDays: a.stayDays,
-          contact: a.contact ?? null,
-        },
-        actor,
-      );
-      return { ...loc, url: `${baseUrl}/l/${loc.code}` };
-    }),
   );
 
   server.registerTool(
@@ -473,48 +358,6 @@ export function createMcpServer(
       annotations: write,
     },
     tool(async (a) => stock.move(a.lotId, a.to, a, actor)),
-  );
-
-  server.registerTool(
-    'move_location',
-    {
-      title: 'Move place',
-      description: 'Move a place (box, shelf, …) with everything inside it under another place.',
-      inputSchema: {
-        ref: z.string(),
-        parent: z.string().nullable().describe('New parent code, or null for top level'),
-      },
-      annotations: write,
-    },
-    tool(async (a) => locations.move(a.ref, a.parent, actor)),
-  );
-
-  server.registerTool(
-    'duplicate_location',
-    {
-      title: 'Copy place',
-      description:
-        'Copy a place with all places inside it (not stock), each copy with a new code, e.g. six more cabinets like this one. Copies are named on (Cabinet A → Cabinet B) unless a name is given, and share its maps.',
-      inputSchema: {
-        ref: z.string(),
-        count: z.number().int().min(1).max(20).optional(),
-        name: z.string().optional().describe('Name of the first copy'),
-        parent: z
-          .string()
-          .nullable()
-          .optional()
-          .describe('Where to put the copies; default next to the original'),
-      },
-      annotations: write,
-    },
-    tool(async (a) =>
-      locations.duplicate(
-        a.ref,
-        { count: a.count, name: a.name, parent: a.parent },
-        actor,
-        (tx, pairs) => services.maps.copyMapsFor(tx, pairs),
-      ),
-    ),
   );
 
   server.registerTool(
@@ -734,5 +577,6 @@ export function createMcpServer(
   registerBuildTools(server, services, actor, baseUrl);
   registerDeleteTools(server, services, actor);
   registerLostTools(server, services, actor);
+  registerPlaceTools(server, services, actor, baseUrl);
   return server;
 }

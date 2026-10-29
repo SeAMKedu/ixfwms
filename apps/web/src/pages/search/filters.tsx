@@ -52,6 +52,13 @@ export function SearchFilters({
       </button>
       <button
         type="button"
+        className={chip(status === 'archived')}
+        onClick={() => setParam('status', 'archived')}
+      >
+        {t('parts.filters.archived')}
+      </button>
+      <button
+        type="button"
         className={chip(!!inStock)}
         onClick={() => setParam('inStock', inStock ? undefined : '1')}
       >

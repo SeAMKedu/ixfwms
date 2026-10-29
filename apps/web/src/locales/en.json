@@ -92,6 +92,7 @@
       "all": "All",
       "drafts": "Drafts",
       "active": "Reviewed",
+      "archived": "Archived",
       "inStock": "In stock",
       "category": "Category",
       "tag": "Tag",
@@ -146,6 +147,7 @@
     "takeQuantity": "How many were taken",
     "takeAmount": "How much was taken ({{unit}})",
     "duplicates": "Duplicates",
+    "manage": "Merge, archive or delete",
     "newLevel": "New level",
     "stocktake": "Counted amount",
     "checked": "checked {{date}}",
@@ -905,7 +907,7 @@
     "needs_attention": "Needs attention",
     "broken": "Broken",
     "in_repair": "In repair",
-    "retired": "Retired",
+    "archived": "Archived",
     "lost": "Lost"
   },
   "unitEvents": {
@@ -1101,7 +1103,7 @@
     "delete": "Delete",
     "again": "Press again to delete",
     "partHint": "The item goes completely: its stock, units, files and history. Not while it's in a build or one of its units is lent out (return it or mark it lost). To keep it on record, archive it.",
-    "unitHint": "The unit goes with its log. Not while it's in a build or lent out (return it or mark it lost). A unit that's gone for real is better retired.",
+    "unitHint": "The unit goes with its log. Not while it's in a build or lent out (return it or mark it lost). A unit that's gone for real is better archived.",
     "placeHint": "For a place made by mistake. Only when it's empty and no unit has it as home.",
     "buildHint": "For a build made by mistake. Only when it's empty; dismantle it first.",
     "dismantledHint": "Delete the record of this build, with what was in it. Its parts' own history stays."
@@ -1111,5 +1113,16 @@
     "foundHome": "Found it: put it back at {{place}}",
     "foundAt": "Found it somewhere else",
     "foundHere": "Found it here"
+  },
+  "archive": {
+    "archive": "Archive",
+    "unarchive": "Unarchive",
+    "archivedPill": "Archived",
+    "partHint": "Archive an item you don't use any more but want to keep on record: it's left out of search and lists (the Archived filter finds it), its code still scans, and Unarchive brings it back.",
+    "partNote": "Archived: left out of search and lists. Its stock, units and history are kept.",
+    "placeHint": "Archive an old container to put it out of sight: it's left out of place lists and pickers and nothing can go in it, but its code still scans. Only when it's empty and no unit has it as home.",
+    "placeNote": "Archived {{date}}: left out of place lists, and nothing can go in it. Its history is kept.",
+    "here_one": "{{count}} archived",
+    "here_other": "{{count}} archived"
   }
 }

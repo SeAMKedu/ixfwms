@@ -23,6 +23,7 @@ const place = (code: string, name: string, workstation = false): LocationSummary
   build: false,
   inBuild: null,
   dismantledAt: null,
+  archivedAt: null,
 });
 
 const shelf = place('S3S3', 'Shelf 3');

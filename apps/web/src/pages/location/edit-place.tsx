@@ -2,9 +2,10 @@ import { autoShortName, normalizeCode, type LocationDetail } from '@ixfwms/domai
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
-import { useDelete } from '../../api/builds';
+import { archivePlace, useDelete } from '../../api/builds';
 import { useMoveLocation, useUpdateLocation } from '../../api/queries';
 import { useSession } from '../../auth/session';
+import { ArchiveButton } from '../../components/archive-button';
 import { DeleteButton } from '../../components/delete-button';
 import { PlacePicker } from '../../components/place-picker';
 import { Button, ErrorBox, Field, Select, TextArea, TextInput } from '../../components/ui';
@@ -105,6 +106,16 @@ export function EditPlaceForm({ place: d, onDone }: { place: LocationDetail; onD
         </Button>
         <Button onClick={onDone}>{t('common.cancel')}</Button>
       </div>
+      {d.movable && !d.build && d.kind === 'normal' && (
+        <ArchiveButton
+          archived={false}
+          hint={t('archive.placeHint')}
+          onChange={async (archive) => {
+            await archivePlace(d.code, archive);
+            onDone();
+          }}
+        />
+      )}
       {can('write') && (
         <DeleteButton
           hint={t(d.build ? 'delete.buildHint' : 'delete.placeHint')}

@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router';
 import { useShortcut } from '../../lib/shortcuts';
 import { useMergePart, useSetStatus } from '../../api/queries';
 import { useDelete } from '../../api/builds';
+import { ArchiveButton } from '../../components/archive-button';
 import { DeleteButton } from '../../components/delete-button';
 import { Button, Card, ErrorBox, Field, TextInput } from '../../components/ui';
 
@@ -30,9 +31,10 @@ export function Review({ part }: { part: PartDetail }) {
   return (
     <Card
       className={part.status === 'draft' ? 'border-link/40 bg-link-soft/40' : undefined}
-      title={part.status === 'draft' ? undefined : t('part.duplicates')}
+      title={part.status === 'draft' ? undefined : t('part.manage')}
     >
       {part.status === 'draft' && <p className="text-sm">{t('part.confirmHint')}</p>}
+      {part.status === 'archived' && <p className="text-sm">{t('archive.partNote')}</p>}
       <div className="flex flex-wrap gap-2">
         {part.status === 'draft' && (
           <Button
@@ -68,6 +70,13 @@ export function Review({ part }: { part: PartDetail }) {
         </form>
       )}
       <ErrorBox error={setStatus.error ?? merge.error} />
+      {part.status !== 'draft' && (
+        <ArchiveButton
+          archived={part.status === 'archived'}
+          hint={t('archive.partHint')}
+          onChange={(archive) => setStatus.mutateAsync(archive ? 'archived' : 'active')}
+        />
+      )}
       <DeleteButton
         hint={t('delete.partHint')}
         onDelete={async () => {

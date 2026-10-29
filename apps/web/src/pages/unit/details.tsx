@@ -1,5 +1,5 @@
 import { UNIT_STATUSES, normalizeCode, type UnitDetail, type UnitStatus } from '@ixfwms/domain';
-import { Pencil } from 'lucide-react';
+import { ArchiveRestore, Pencil } from 'lucide-react';
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
@@ -39,7 +39,13 @@ export function Details({ unit }: { unit: UnitDetail }) {
       }
     >
       <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-sm">
-        {row(t('units.status'), <UnitStatusPill status={unit.status} always />)}
+        {row(
+          t('units.status'),
+          <span className="flex flex-wrap items-center gap-2">
+            <UnitStatusPill status={unit.status} always />
+            {unit.status === 'archived' && can('inventory') && <Unarchive code={unit.code} />}
+          </span>,
+        )}
         {row(
           t('units.serial'),
           unit.serialNo && <span className="font-mono">{unit.serialNo}</span>,
@@ -86,6 +92,21 @@ export function Details({ unit }: { unit: UnitDetail }) {
         </p>
       )}
     </Card>
+  );
+}
+
+/** An archived unit back in use, as OK. */
+function Unarchive({ code }: { code: string }) {
+  const { t } = useTranslation();
+  const update = useUpdateUnit(code);
+  return (
+    <>
+      <Button small busy={update.isPending} onClick={() => update.mutate({ status: 'ok' })}>
+        <ArchiveRestore className="size-4" aria-hidden />
+        {t('archive.unarchive')}
+      </Button>
+      <ErrorBox error={update.error} />
+    </>
   );
 }
 

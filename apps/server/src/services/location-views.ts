@@ -1,5 +1,5 @@
 import { formatAmount, type LocationDetail } from '@ixfwms/domain';
-import { eq, inArray, like, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNotNull, like, sql } from 'drizzle-orm';
 import { many, one, type Db } from '../db/client.js';
 import { locations, locationTypes, parts, stockLots } from '../db/schema.js';
 import type { BuildService } from './builds.js';
@@ -83,6 +83,16 @@ export class LocationViews {
       description: loc.description,
       path,
       children: children.map((c) => ({ ...c, partCount: counts.get(c.id) ?? 0 })),
+      archived: await this.locations.summaries(
+        this.db,
+        await many(
+          this.db
+            .select()
+            .from(locations)
+            .where(and(eq(locations.parentId, loc.id), isNotNull(locations.archivedAt)))
+            .orderBy(asc(locations.name)),
+        ),
+      ),
       contents,
       units: await this.units.at(loc, opts.recursive ?? false),
       attachments: await this.files.attachmentsOf('location', loc.id),
