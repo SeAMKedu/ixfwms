@@ -1,4 +1,4 @@
-import { Copy, Hand, Pencil, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
@@ -8,11 +8,11 @@ import { useShortcut } from '../lib/shortcuts';
 import { useTypeName } from '../lib/place-types';
 import { placeTag } from '../lib/places';
 import { LabelPanel } from '../components/label-panel';
+import { LoanNote } from '../components/loans';
 import { MapManager } from '../components/map-manager';
 import { MapLayers } from '../components/svg-map';
 import {
   Button,
-  ButtonLink,
   Card,
   ErrorBox,
   Loading,
@@ -28,9 +28,9 @@ import { NewPlaceForm, Missing, NEXT_TYPE } from './location/new-place';
 import { TemporaryNote } from './location/temporary-note';
 import { CopyPlaceForm } from './location/copy-place';
 import { EditPlaceForm, MovePlaceForm } from './location/edit-place';
+import { PlaceActions, type Panel } from './location/actions';
 import { ArchivedList, ArchivedNote, ChildList, ContentList } from './location/contents';
-
-type Panel = 'new' | 'edit' | 'move' | 'copy' | null;
+import { LendPlaceForm, ReturnPlaceForm } from './location/loan';
 
 export function LocationPage() {
   const { t } = useTranslation();
@@ -54,16 +54,20 @@ export function LocationPage() {
     loc.data?.kind === 'normal' &&
     !loc.data.dismantledAt &&
     !loc.data.archivedAt;
-  useShortcut('a', t('shortcuts.addItems'), () => void navigate(`/l/${code}/add`), editable);
+  // Nothing goes into or out of a container lent out of the lab.
+  const inLab = editable && !loc.data?.outOfLab;
+  useShortcut('a', t('shortcuts.addItems'), () => void navigate(`/l/${code}/add`), inLab);
   useShortcut('e', t('shortcuts.editPlace'), () => openPanel('edit'), editable);
-  useShortcut('m', t('shortcuts.movePlace'), () => openPanel('move'), editable);
+  useShortcut('m', t('shortcuts.movePlace'), () => openPanel('move'), inLab);
   useShortcut('d', t('shortcuts.copyPlace'), () => openPanel('copy'), editable);
-  useShortcut('p', t('shortcuts.pickUp'), () => pick.mutate({ location: code }), editable);
+  useShortcut('p', t('shortcuts.pickUp'), () => pick.mutate({ location: code }), inLab);
   if (loc.isPending) return <Loading />;
   if (isNotFound(loc.error)) return <Missing code={code} />;
   if (!loc.data) return <ErrorBox error={loc.error} />;
   const d = loc.data;
   const canEdit = can('inventory') && d.kind === 'normal' && !d.dismantledAt && !d.archivedAt;
+  const canChange = canEdit && !d.outOfLab;
+  const lentHere = can('inventory') && d.loan?.place?.code === d.code;
   const hasMap = (layers.data?.length ?? 0) > 0;
 
   return (
@@ -88,39 +92,18 @@ export function LocationPage() {
         }
         actions={
           canEdit && (
-            <>
-              <ButtonLink to={`/l/${d.code}/add`} variant="primary">
-                <Plus className="size-4" aria-hidden />
-                {t('places.addItems')}
-              </ButtonLink>
-              <Button onClick={() => pick.mutate({ location: d.code })} busy={pick.isPending}>
-                <Hand className="size-4" aria-hidden />
-                {t('carry.pickUpBox')}
-              </Button>
-              <Button
-                onClick={() => openPanel('edit')}
-                variant={panel === 'edit' ? 'dark' : 'secondary'}
-                aria-label={t('common.edit')}
-              >
-                <Pencil className="size-4" aria-hidden />
-              </Button>
-              <Button
-                onClick={() => openPanel('move')}
-                variant={panel === 'move' ? 'dark' : 'secondary'}
-              >
-                {t('common.move')}
-              </Button>
-              <Button
-                onClick={() => openPanel('copy')}
-                variant={panel === 'copy' ? 'dark' : 'secondary'}
-              >
-                <Copy className="size-4" aria-hidden />
-                {t('places.copy')}
-              </Button>
-            </>
+            <PlaceActions
+              place={d}
+              panel={panel}
+              openPanel={openPanel}
+              canChange={canChange}
+              lentHere={lentHere}
+              pick={pick}
+            />
           )
         }
       />
+      {d.loan && <LoanNote loan={d.loan} code={d.code} />}
       {d.archivedAt && <ArchivedNote place={d} />}
       {d.description && <p className="max-w-prose whitespace-pre-wrap text-sm">{d.description}</p>}
       {d.stayDays !== null && <TemporaryNote place={d} canEdit={canEdit} />}
@@ -137,6 +120,8 @@ export function LocationPage() {
       {panel === 'edit' && <EditPlaceForm place={d} onDone={() => setPanel(null)} />}
       {panel === 'move' && <MovePlaceForm place={d} onDone={() => setPanel(null)} />}
       {panel === 'copy' && <CopyPlaceForm place={d} onDone={() => setPanel(null)} />}
+      {panel === 'lend' && <LendPlaceForm place={d} onDone={() => setPanel(null)} />}
+      {panel === 'return' && <ReturnPlaceForm place={d} onDone={() => setPanel(null)} />}
 
       <div
         className={
@@ -153,7 +138,7 @@ export function LocationPage() {
           <Card
             title={t('places.inside')}
             actions={
-              canEdit && (
+              canChange && (
                 <Button
                   small
                   variant="ghost"
@@ -207,7 +192,7 @@ export function LocationPage() {
         )}
       </div>
       {d.workstation && <ClearBench place={d} />}
-      {d.build && <BuildPanel place={d} canEdit={canEdit} />}
+      {d.build && <BuildPanel place={d} canEdit={canChange} />}
       {canEdit && layers.data && (
         <MapManager code={d.code} layers={layers.data.filter((l) => l.location.code === d.code)} />
       )}

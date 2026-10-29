@@ -19,7 +19,9 @@ import { invalid, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
 import { allocateCode, claimCode } from './codes.js';
 import { audit, placeName, requireScope, type Actor } from './context.js';
+import { checkNotLent } from './loans.js';
 import { PlaceCopy } from './place-copy.js';
+import { TemporaryPlaces } from './temporary.js';
 
 export type LocationRow = typeof locations.$inferSelect;
 export type { LocationNode, LocationSummary };
@@ -191,11 +193,17 @@ export class LocationService {
     who: Actor,
   ): Promise<void> {
     if (loc.kind !== 'normal') throw invalid('places.cantMove', { name: loc.name });
+    await checkNotLent(tx, loc);
     const parent = newParentRef ? await this.resolve(newParentRef, tx) : null;
     if (parent && parent.path.startsWith(loc.path)) {
       throw invalid('places.intoItself', { name: loc.name });
     }
-    if (parent) this.checkOpen(parent);
+    if (parent) await this.checkOpen(parent, tx);
+    await this.relink(tx, loc, parent, who);
+  }
+
+  /** Puts `loc` under `parent` with no questions asked; lending and returning go through here. */
+  async relink(tx: Executor, loc: LocationRow, parent: LocationRow | null, who: Actor) {
     if ((parent?.id ?? null) === loc.parentId) return;
     const newPath = `${parent?.path ?? '/'}${loc.id}/`;
     await tx
@@ -367,6 +375,7 @@ export class LocationService {
         inBuild: build ? { code: build.code, name: build.name } : null,
         dismantledAt: r.dismantledAt,
         archivedAt: r.archivedAt,
+        outOfLab: path[0]?.kind === 'away',
       };
     });
   }
@@ -378,12 +387,14 @@ export class LocationService {
   }
 
   /**
-   * Refuses to put anything in a dismantled build (dismantling empties it, places inside too)
-   * or an archived container (archived only while empty).
+   * Refuses to put anything in a dismantled build (dismantling empties it, places inside too),
+   * an archived container (archived only while empty), or out of the lab (lend it instead).
    */
-  checkOpen<T extends Pick<LocationRow, 'dismantledAt' | 'archivedAt' | 'name'>>(dest: T): T {
+  async checkOpen<T extends LocationRow>(dest: T, ex: Executor = this.db): Promise<T> {
     if (dest.dismantledAt) throw invalid('builds.dismantled', { name: dest.name });
     if (dest.archivedAt) throw invalid('places.archived', { name: dest.name });
+    if (dest.kind === 'away') throw invalid('units.lendInstead');
+    await checkNotLent(ex, dest);
     return dest;
   }
 
@@ -405,31 +416,14 @@ export class LocationService {
         .where(inArray(locations.id, all));
   }
 
-  /** "Still needed": restarts a temporary place's clock. */
+  /** "Still needed": restarts a temporary place's clock; see TemporaryPlaces. */
   async stillNeeded(ref: string, actor: Actor | null): Promise<LocationSummary> {
-    const who = requireScope(actor, 'inventory');
-    const loc = await this.resolve(ref);
-    await this.touch(this.db, [loc.id]);
-    await audit(this.db, who, 'still-needed', 'location', loc.id);
-    return this.summarize(this.db, await this.resolve(loc.id));
+    return new TemporaryPlaces(this.db, this).stillNeeded(ref, actor);
   }
 
-  /** Temporary places left untouched longer than expected, longest overdue first. */
+  /** Temporary places left untouched longer than expected; see TemporaryPlaces. */
   async overdue(): Promise<OverduePlace[]> {
-    const rows = await many(this.db.select().from(locations).where(eq(locations.kind, 'normal')));
-    const summaries = await this.summaries(this.db, rows);
-    const late = summaries
-      .map((s, i) => ({ s, row: rows[i]! }))
-      .filter(({ s }) => s.overdue)
-      .sort((a, b) => a.s.dueAt!.localeCompare(b.s.dueAt!));
-    return Promise.all(
-      late.map(async ({ s, row }) => ({
-        place: s,
-        path: await this.pathOf(row),
-        contact: row.contact,
-        lastActivityAt: row.lastActivityAt ?? row.updatedAt,
-      })),
-    );
+    return new TemporaryPlaces(this.db, this).overdue();
   }
 
   /** Fixed places next to `loc` whose short name is the same, so their addresses are too. */
@@ -498,7 +492,7 @@ export class LocationService {
     if (parent && parent.kind !== 'normal' && input.kind === 'normal') {
       throw invalid('places.cantCreateInside', { name: parent.name });
     }
-    if (parent) this.checkOpen(parent);
+    if (parent) await this.checkOpen(parent, ex);
     if (type.movable === false)
       await this.checkShortName(ex, parent?.id ?? null, input.shortName ?? null, null);
     const id = newId();

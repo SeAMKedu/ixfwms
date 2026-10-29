@@ -2,27 +2,13 @@ import { normalizeCode, type UnitDetail } from '@ixfwms/domain';
 import { Hand, Map as MapIcon, Undo2 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  useLendUnit,
-  useMoveUnit,
-  usePick,
-  usePutBackUnit,
-  useReturnUnit,
-} from '../../api/queries';
+import { useLendUnit, useReturnUnit } from '../../api/loans';
+import { useMoveUnit, usePick, usePutBackUnit } from '../../api/queries';
+import { emptyLend, LendFields, lendInput, LoanNote } from '../../components/loans';
 import { PlacePicker } from '../../components/place-picker';
 import { MapLayers } from '../../components/svg-map';
-import {
-  Button,
-  Card,
-  ErrorBox,
-  Field,
-  LocationPath,
-  Pill,
-  TextArea,
-  TextInput,
-} from '../../components/ui';
+import { Button, Card, ErrorBox, Field, LocationPath, Pill } from '../../components/ui';
 import { GuestName, useOpenActions } from '../../components/units';
-import { formatDate, formatDay } from '../../lib/format';
 import { useShortcut } from '../../lib/shortcuts';
 
 type Action = 'move' | 'lend' | 'return' | null;
@@ -33,9 +19,7 @@ export function Where({ unit }: { unit: UnitDetail }) {
   const [action, setAction] = useState<Action>(null);
   const [showMap, setShowMap] = useState(false);
   const [dest, setDest] = useState('');
-  const [responsible, setResponsible] = useState('');
-  const [description, setDescription] = useState('');
-  const [due, setDue] = useState('');
+  const [draft, setDraft] = useState(emptyLend);
   const move = useMoveUnit(unit.code);
   const putBack = usePutBackUnit(unit.code);
   const pick = usePick();
@@ -57,33 +41,14 @@ export function Where({ unit }: { unit: UnitDetail }) {
     e.preventDefault();
     if (action === 'move') await move.mutateAsync(normalizeCode(dest));
     if (action === 'return') await back.mutateAsync(dest ? normalizeCode(dest) : null);
-    if (action === 'lend')
-      await lend.mutateAsync({
-        responsible: responsible.trim() || null,
-        description,
-        dueAt: due || null,
-      });
+    if (action === 'lend') await lend.mutateAsync(lendInput(draft));
     setAction(null);
   };
 
   return (
     <Card title={t('part.where')} className="md:col-span-2">
       {loan ? (
-        <div
-          className={`flex flex-col gap-1 rounded-lg px-3 py-2 text-sm ${loan.overdue ? 'bg-crit-soft text-crit' : 'bg-warn-soft text-warn'}`}
-        >
-          <strong>{t('units.lentOutSince', { date: formatDate(loan.outAt) })}</strong>
-          <span className="text-ink">{loan.description}</span>
-          <span className="text-ink">
-            {[
-              loan.responsible && t('units.responsible', { name: loan.responsible }),
-              loan.dueAt && t('units.dueBack', { date: formatDay(loan.dueAt) }),
-              loan.overdue && t('units.overdue'),
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-          </span>
-        </div>
+        <LoanNote loan={loan} code={unit.code} />
       ) : (
         <dl className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2 text-sm">
           <dt className="text-muted">{t('units.now')}</dt>
@@ -132,7 +97,7 @@ export function Where({ unit }: { unit: UnitDetail }) {
             {t('units.lend')}
           </Button>
         )}
-        {actions.member && loan && (
+        {actions.member && loan && !loan.place && (
           <Button
             small
             variant={action === 'return' ? 'dark' : 'primary'}
@@ -164,7 +129,7 @@ export function Where({ unit }: { unit: UnitDetail }) {
                     value={dest}
                     onChange={setDest}
                     autoFocus
-                    exclude={(p) => p.kind === 'away' || (actions.excludeDestination?.(p) ?? false)}
+                    exclude={(p) => p.outOfLab || (actions.excludeDestination?.(p) ?? false)}
                   />
                 )}
               </Field>
@@ -179,47 +144,12 @@ export function Where({ unit }: { unit: UnitDetail }) {
                   value={dest}
                   onChange={setDest}
                   autoFocus
-                  exclude={(p) => p.kind === 'away'}
+                  exclude={(p) => p.outOfLab}
                 />
               )}
             </Field>
           )}
-          {action === 'lend' && (
-            <>
-              <Field label={t('units.lendWhat')} hint={t('units.lendWhatHint')}>
-                {(id) => (
-                  <TextArea
-                    id={id}
-                    required
-                    autoFocus
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                  />
-                )}
-              </Field>
-              <div className="grid gap-2 md:grid-cols-2">
-                <Field label={t('units.responsibleField')} hint={t('units.responsibleHint')}>
-                  {(id) => (
-                    <TextInput
-                      id={id}
-                      value={responsible}
-                      onChange={(e) => setResponsible(e.target.value)}
-                    />
-                  )}
-                </Field>
-                <Field label={t('units.dueField')} hint={t('common.optional')}>
-                  {(id) => (
-                    <TextInput
-                      id={id}
-                      type="date"
-                      value={due}
-                      onChange={(e) => setDue(e.target.value)}
-                    />
-                  )}
-                </Field>
-              </div>
-            </>
-          )}
+          {action === 'lend' && <LendFields draft={draft} onChange={setDraft} />}
           <div className="flex gap-2">
             <Button
               type="submit"

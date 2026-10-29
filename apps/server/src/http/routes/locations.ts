@@ -3,8 +3,10 @@ import {
   CreateLocationInput,
   DismantleInput,
   DuplicateLocationInput,
+  LendInput,
   MakeBuildInput,
   LocationTypeInput,
+  ReturnPlaceInput,
   UpdateLocationInput,
   buildCodeUrl,
 } from '@ixfwms/domain';
@@ -70,6 +72,22 @@ export function registerLocationRoutes(app: FastifyInstance, { config, services 
   );
   app.post('/api/locations/:ref/unarchive', async (request) =>
     services.archives.unarchivePlace(parse(RefParams, request.params).ref, request.actor),
+  );
+
+  /** Lending a container out of the lab with everything in it, and getting it back. */
+  app.post('/api/locations/:ref/lend', async (request) =>
+    services.loans.lendPlace(
+      parse(RefParams, request.params).ref,
+      parse(LendInput, request.body),
+      request.actor,
+    ),
+  );
+  app.post('/api/locations/:ref/return', async (request) =>
+    services.loans.returnPlace(
+      parse(RefParams, request.params).ref,
+      parse(ReturnPlaceInput, request.body ?? {}),
+      request.actor,
+    ),
   );
 
   app.get('/api/locations/:ref', async (request) => {

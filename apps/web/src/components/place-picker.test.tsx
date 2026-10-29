@@ -25,6 +25,7 @@ const place = (code: string, path: string[], pathCodes: string[]): PlaceOption =
   inBuild: null,
   dismantledAt: null,
   archivedAt: null,
+  outOfLab: false,
   path,
   pathCodes,
 });

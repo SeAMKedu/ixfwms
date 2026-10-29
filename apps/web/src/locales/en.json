@@ -1027,6 +1027,16 @@
     "onLoanTitle_other": "{{count}} lent out of the lab",
     "attentionTitle": "Units needing attention"
   },
+  "loans": {
+    "inside": "Went out inside",
+    "with": "with {{name}}",
+    "lendPlaceIntro": "Everything in it goes along. Nothing can be taken out or put in until it's back.",
+    "cameBack": "What came back",
+    "cameBackHint": "Untick anything that didn't come back; it's marked lost.",
+    "returnToHint": "Leave empty to put it back where it was.",
+    "backMissing_one": "Back, {{count}} missing",
+    "backMissing_other": "Back, {{count}} missing"
+  },
   "builds": {
     "kindFilter": "Builds",
     "build": "Build",

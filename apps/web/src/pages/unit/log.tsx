@@ -37,6 +37,8 @@ function eventText(t: ReturnType<typeof useTranslation>['t'], e: UnitEventView):
     parts.push(t(`reportKinds.${e.value}`, { defaultValue: e.value }));
   if (e.kind === 'status' && e.value)
     parts.push(t(`unitStatus.${e.value}`, { defaultValue: e.value }));
+  if (e.value && ['lent', 'returned'].includes(e.kind))
+    parts.push(t('loans.with', { name: e.value }));
   if (e.to && ['moved', 'returned', 'created'].includes(e.kind))
     parts.push(t('units.toPlace', { place: e.to.address || e.to.name }));
   if (e.text) parts.push(e.text);

@@ -16,6 +16,7 @@ import { HistoryService } from './history.js';
 import { ImportService } from './import.js';
 import { LabelService } from './labels.js';
 import { LocationViews } from './location-views.js';
+import { LoanService } from './loans.js';
 import { LocationService } from './locations.js';
 import { MapService } from './maps.js';
 import { OpenActionService } from './open.js';
@@ -44,6 +45,7 @@ export interface Services {
   history: HistoryService;
   import: ImportService;
   labels: LabelService;
+  loans: LoanService;
   locations: LocationService;
   locationViews: LocationViews;
   maps: MapService;
@@ -68,6 +70,7 @@ export function createServices(
   const settings = new SettingsService(db);
   const stock = new StockService(db, locations, resolver, settings);
   const units = new UnitService(db, locations, resolver);
+  const loans = new LoanService(db, locations, units);
   const categories = new CategoryService(db);
   const open = new OpenActionService(db, locations, stock, units, settings);
   const builds = new BuildService(db, locations, stock, units, open, resolver);
@@ -86,8 +89,9 @@ export function createServices(
     history: new HistoryService(db, locations, stock),
     import: new ImportService(db, locations, parts, stock),
     labels: new LabelService(db, locations),
+    loans,
     locations,
-    locationViews: new LocationViews(db, locations, parts, files, units, builds),
+    locationViews: new LocationViews(db, locations, parts, files, units, builds, loans),
     maps: new MapService(db, locations, files),
     open,
     parts,

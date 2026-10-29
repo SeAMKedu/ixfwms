@@ -20,8 +20,12 @@ async function ulla() {
   const box = await locations.create({ name: 'Box', type: 'box' }, actor);
   const drill = await parts.create({ name: 'Impact drill', kind: 'tool', status: 'active' }, actor);
   const [unit] = await units.add({ part: drill.code, units: [{ name: 'Drill 2' }] }, actor);
-  await units.lend(unit!.code, { responsible: 'Ulla', description: 'Thesis tests' }, env.admin);
-  await units.returnUnit(unit!.code, shelf.code, actor);
+  await env.services.loans.lendUnit(
+    unit!.code,
+    { responsible: 'Ulla', description: 'Thesis tests' },
+    env.admin,
+  );
+  await env.services.loans.returnUnit(unit!.code, shelf.code, actor);
   await reports.create({ owner: 'unit', ref: unit!.code, kind: 'broken', note: 'Slips' }, actor);
   await carry.pick({ location: box.code }, actor);
   await carry.drop(shelf.code, null, actor);
@@ -88,7 +92,11 @@ describe('erasing a person', () => {
     await auth.createUser('Ulla', 'member');
     const drill = await parts.create({ name: 'Drill', kind: 'tool', status: 'active' }, env.admin);
     const [unit] = await units.add({ part: drill.code, units: [{ name: 'D' }] }, env.admin);
-    await units.lend(unit!.code, { responsible: 'Ulla', description: 'Fair' }, env.admin);
+    await env.services.loans.lendUnit(
+      unit!.code,
+      { responsible: 'Ulla', description: 'Fair' },
+      env.admin,
+    );
     await expect(auth.erase('Ulla', env.admin)).rejects.toThrow(/loan/);
 
     const asInventory = await env.app.inject({

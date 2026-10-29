@@ -24,6 +24,7 @@ const place = (code: string, name: string, workstation = false): LocationSummary
   inBuild: null,
   dismantledAt: null,
   archivedAt: null,
+  outOfLab: false,
 });
 
 const shelf = place('S3S3', 'Shelf 3');
@@ -101,6 +102,7 @@ describe('unit page', () => {
         loan: {
           id: 'l',
           unit: { code: 'D2D2', name: 'Drill 2' },
+          place: null,
           responsible: 'teacher',
           description: 'Thesis tests at Company X',
           outAt: '2026-10-01T08:00:00.000Z',
@@ -115,5 +117,28 @@ describe('unit page', () => {
     expect(await screen.findByText('Thesis tests at Company X')).toBeTruthy();
     expect(screen.getByText(/teacher is responsible/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Put back' })).toBeNull();
+  });
+
+  it('links to the case a unit went out in, which is returned as a whole', async () => {
+    renderAt('/u/D2D2', [{ path: '/u/:code', element: <UnitPage /> }], {
+      '/api/units/D2D2': unit({
+        loan: {
+          id: 'l',
+          unit: null,
+          place: { code: 'CASE', name: 'Drone case' },
+          responsible: 'teacher',
+          description: 'Field tests',
+          outAt: '2026-10-01T08:00:00.000Z',
+          dueAt: null,
+          overdue: false,
+          returnedAt: null,
+          returnedBy: null,
+        },
+      }),
+      '/api/settings': { carryForgottenHours: 4, labelTape: '12', anonymousActions: 'workstation' },
+    });
+    const link = await screen.findByRole('link', { name: 'Drone case' });
+    expect(link.getAttribute('href')).toBe('/l/CASE');
+    expect(screen.queryByRole('button', { name: 'Back from loan' })).toBeNull();
   });
 });

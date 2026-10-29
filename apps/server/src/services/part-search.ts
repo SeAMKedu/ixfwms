@@ -225,13 +225,13 @@ export class PartSearch {
         )!,
       );
     }
-    // What's built into something isn't free stock.
-    const built = await this.builtPlaces();
+    // What's built into something or out of the lab isn't free stock.
+    const built = await this.unavailablePlaces();
     const freeLot = built.length ? notInArray(stockLots.locationId, built) : sql`1 = 1`;
     const freeUnit = built.length ? notInArray(units.locationId, built) : sql`1 = 1`;
     // Units that can be used now: not archived, broken or in repair, lent out or built in.
-    const usableUnits = sql`(select count(*) from ${units} inner join ${locations} on ${locations.id} = ${units.locationId}
-      where ${units.partId} = ${parts.id} and ${inArray(units.status, USABLE_UNIT_STATUSES)} and ${locations.kind} <> 'away' and ${freeUnit})`;
+    const usableUnits = sql`(select count(*) from ${units}
+      where ${units.partId} = ${parts.id} and ${inArray(units.status, USABLE_UNIT_STATUSES)} and ${freeUnit})`;
     const levels = await this.stock.levels();
     const keysWhere = (ok: (state: string) => boolean) => {
       const keys = levels.filter((l) => ok(l.state)).map((l) => l.key);
@@ -276,14 +276,14 @@ export class PartSearch {
     return where.length ? and(...where) : undefined;
   }
 
-  /** Ids of the places that are builds or inside one (a few, next to the whole lab). */
-  private async builtPlaces(): Promise<string[]> {
+  /** Ids of builds and "Out of the lab", with everything inside them (a few, next to the whole lab). */
+  private async unavailablePlaces(): Promise<string[]> {
     const builds = await many(
       this.db
         .select({ path: locations.path })
         .from(locations)
         .innerJoin(locationTypes, eq(locationTypes.id, locations.typeId))
-        .where(eq(locationTypes.build, true)),
+        .where(or(eq(locationTypes.build, true), eq(locations.kind, 'away'))),
     );
     if (!builds.length) return [];
     const inside = await many(

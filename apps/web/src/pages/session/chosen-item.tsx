@@ -27,7 +27,7 @@ export interface Added {
 
 /** Free stock: not built into anything, not being carried, not lent out. */
 const isFree = (l: LotView) =>
-  !l.location.inBuild && l.location.kind !== 'in_transit' && l.location.kind !== 'away';
+  !l.location.inBuild && l.location.kind !== 'in_transit' && !l.location.outOfLab;
 
 /**
  * An existing item picked on the Add items page. At an ordinary place the amount is added there

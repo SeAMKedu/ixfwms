@@ -25,7 +25,7 @@ type Part = { id: string; name: string; unitMassG: number | null };
 
 /** Free stock: not built into anything, not being carried, not lent out. */
 const isFree = (l: LotView) =>
-  !l.location.inBuild && l.location.kind !== 'in_transit' && l.location.kind !== 'away';
+  !l.location.inBuild && l.location.kind !== 'in_transit' && !l.location.outOfLab;
 
 /**
  * Puts parts into a build from free stock. Counted stock goes first (the fullest lot first, so a

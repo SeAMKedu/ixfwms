@@ -25,7 +25,11 @@ async function named() {
     env.admin,
   );
   const [unit] = await units.add({ part: drill.code, units: [{ name: 'Drill 2' }] }, ulla);
-  await units.lend(unit!.code, { responsible: 'Ulla', description: 'Thesis tests' }, ulla);
+  await env.services.loans.lendUnit(
+    unit!.code,
+    { responsible: 'Ulla', description: 'Thesis tests' },
+    ulla,
+  );
   const report = await env.app.inject({
     method: 'POST',
     url: '/api/reports',

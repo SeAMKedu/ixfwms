@@ -23,6 +23,7 @@ const NO_ADDRESS = {
   inBuild: null,
   dismantledAt: null,
   archivedAt: null,
+  outOfLab: false,
 };
 
 const part = (over: Partial<PartSummary>): PartSummary => ({
@@ -188,6 +189,7 @@ describe('location page', () => {
       lastActivityAt: '2026-10-23T08:00:00.000Z',
       createdAt: '2026-10-01T08:00:00.000Z',
       wasInIt: [],
+      loan: null,
       description: null,
       path: [
         {
@@ -278,6 +280,7 @@ describe('carry page', () => {
       lastActivityAt: '2026-10-23T08:00:00.000Z',
       createdAt: '2026-10-01T08:00:00.000Z',
       wasInIt: [],
+      loan: null,
       description: null,
       path: [
         {

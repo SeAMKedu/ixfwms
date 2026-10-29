@@ -94,23 +94,27 @@ describe('units of individually tracked items', () => {
     const { unit, shelf } = await lab();
     const { units, auth } = env.services;
     await auth.createUser('teacher', 'member');
-    const lent = await units.lend(
+    const lent = await env.services.loans.lendUnit(
       unit.code,
       { responsible: 'teacher', description: 'Thesis tests at Company X', dueAt: '2020-01-31' },
       env.admin,
     );
     expect(lent.location.kind).toBe('away');
     expect(lent.loan).toMatchObject({ responsible: 'teacher', overdue: true });
-    expect((await units.loanList(true)).map((l) => l.unit.code)).toEqual([unit.code]);
+    expect((await env.services.loans.list(true)).map((l) => l.unit?.code)).toEqual([unit.code]);
     await expect(units.move(unit.code, shelf.code, env.admin)).rejects.toThrow(/return it/);
     await expect(
-      units.lend(unit.code, { responsible: 'nobody', description: 'x' }, env.admin),
+      env.services.loans.lendUnit(
+        unit.code,
+        { responsible: 'nobody', description: 'x' },
+        env.admin,
+      ),
     ).rejects.toThrow(/already lent/);
 
-    const back = await units.returnUnit(unit.code, null, env.admin);
+    const back = await env.services.loans.returnUnit(unit.code, null, env.admin);
     expect(back).toMatchObject({ atHome: true, loan: null });
     expect(back.events.map((e) => e.kind).slice(0, 2)).toEqual(['returned', 'lent']);
-    expect(await units.loanList(true)).toHaveLength(0);
+    expect(await env.services.loans.list(true)).toHaveLength(0);
   });
 
   it('keeps a log with firmware versions and the next check date', async () => {
@@ -178,7 +182,11 @@ describe('units in the item list filters', () => {
 
     // Lent out or broken, a unit isn't stock any more.
     await auth.createUser('teacher', 'member');
-    await units.lend(unit.code, { responsible: 'teacher', description: 'Thesis' }, env.admin);
+    await env.services.loans.lendUnit(
+      unit.code,
+      { responsible: 'teacher', description: 'Thesis' },
+      env.admin,
+    );
     expect(await search({ lowStock: true })).toEqual([drill.code]);
     const other = (await parts.get(drill.code)).units.find((u) => u.code !== unit.code)!;
     await units.update(other.code, { status: 'broken' }, env.admin);

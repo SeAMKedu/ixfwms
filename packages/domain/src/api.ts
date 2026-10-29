@@ -52,6 +52,8 @@ export interface LocationSummary {
   dismantledAt: string | null;
   /** An old container put away: hidden from lists and pickers, nothing can go in it. */
   archivedAt: string | null;
+  /** "Out of the lab" itself, or inside a container lent out: nothing goes in or out. */
+  outOfLab: boolean;
 }
 
 /** A temporary place left untouched longer than expected. */
@@ -193,9 +195,11 @@ export interface UnitEventView {
   at: string;
 }
 
+/** A unit or a whole container (`place`, with everything in it) lent out of the lab. */
 export interface LoanView {
   id: string;
-  unit: { code: string; name: string };
+  unit: { code: string; name: string } | null;
+  place: { code: string; name: string } | null;
   /** User name; null for readers without a login. */
   responsible: string | null;
   description: string;
@@ -300,6 +304,8 @@ export interface LocationDetail extends LocationSummary {
   contact: string | null;
   lastActivityAt: string;
   createdAt: string;
+  /** Its loan, or the loan of the container it's in, while out of the lab. */
+  loan: LoanView | null;
   /** Builds: everything that has been in it (parts and units), for after it's dismantled. */
   wasInIt: { kind: 'part' | 'unit'; code: string; name: string }[];
 }

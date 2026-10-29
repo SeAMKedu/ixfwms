@@ -41,7 +41,7 @@ export class OpenActionService {
     await this.db.transaction(async (tx) => {
       const unit = await this.units.resolve(ref, tx);
       const dest = await this.locations.resolve(to, tx);
-      this.units.checkDestination(dest);
+      await this.units.checkDestination(dest, tx);
       const summary = await this.locations.summarize(tx, dest);
       const who = await this.allow(
         actor,
@@ -70,7 +70,7 @@ export class OpenActionService {
         ? (await this.locations.resolve(to, tx)).id
         : (unit.homeLocationId ?? unit.locationId);
       const dest = await this.locations.resolve(destId, tx);
-      this.units.checkDestination(dest);
+      await this.units.checkDestination(dest, tx);
       const summary = await this.locations.summarize(tx, dest);
       const back = dest.id === unit.homeLocationId || dest.id === unit.locationId;
       const who = await this.allow(actor, back ? 'put_back' : 'workstation', summary.workstation);

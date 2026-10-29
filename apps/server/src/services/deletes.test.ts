@@ -66,7 +66,7 @@ describe('deleting what was made by mistake', () => {
     );
 
     // Lent out it stays; marked lost (it never came back) it can go, and the item too.
-    await units.lend(unit!.code, { description: 'thesis tests' }, env.admin);
+    await env.services.loans.lendUnit(unit!.code, { description: 'thesis tests' }, env.admin);
     await expect(deletes.part(drill.code, env.admin)).rejects.toThrow(/Drill 1 of Drill is lent/);
     await expect(deletes.unit(unit!.code, env.admin)).rejects.toThrow(/lent out/);
     await units.update(unit!.code, { status: 'lost' }, env.admin);

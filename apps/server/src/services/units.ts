@@ -1,10 +1,7 @@
 import {
-  fold,
   normalizeCode,
   isValidCode,
   type AddUnitsInput,
-  type LendInput,
-  type LoanView,
   type LocationSummary,
   type NetworkEntry,
   type UnitAttention,
@@ -49,10 +46,10 @@ import { audit, personName, requireScope, type Actor } from './context.js';
 import type { LocationRow, LocationService } from './locations.js';
 import type { PartResolver } from './parts.js';
 import { unitSearchText } from './search-text.js';
+import { checkNotLent, loanViews, openLoan, placeLoans } from './loans.js';
 import { eventView, ipKey } from './unit-views.js';
 
 export type UnitRow = typeof units.$inferSelect;
-type LoanRow = typeof loans.$inferSelect;
 
 /** Statuses that need someone to look at the unit. */
 const ATTENTION: UnitStatus[] = ['needs_attention', 'broken', 'in_repair', 'lost'];
@@ -61,7 +58,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 /**
  * Individually tracked things: each has its own code, where it is now and where it belongs,
- * a log (moves, maintenance, firmware), loans out of the lab and a status.
+ * a log (moves, maintenance, firmware) and a status. Lending them is LoanService.
  */
 export class UnitService {
   constructor(
@@ -104,7 +101,7 @@ export class UnitService {
       const where = location
         ? await this.locations.resolve(location, tx)
         : (homeRow ?? (await this.locations.inbox(tx)));
-      this.checkDestination(where);
+      await this.checkDestination(where, tx);
       const created: string[] = [];
       for (const entry of entries) {
         const id = newId();
@@ -199,7 +196,7 @@ export class UnitService {
     await this.db.transaction(async (tx) => {
       const unit = await this.resolve(ref, tx);
       const dest = await this.locations.resolve(to, tx);
-      this.checkDestination(dest);
+      await this.checkDestination(dest, tx);
       await this.moveWithin(tx, unit, dest.id, who);
     });
     return this.detail(ref, actor);
@@ -215,7 +212,8 @@ export class UnitService {
     kind: UnitEventKind = 'moved',
     text: string | null = null,
   ): Promise<void> {
-    if (await this.openLoan(tx, unit.id)) throw invalid('units.lentReturnFirst');
+    if (await openLoan(tx, unit.id)) throw invalid('units.lentReturnFirst');
+    await checkNotLent(tx, await this.locations.resolve(unit.locationId, tx));
     if (destId === unit.locationId && kind === 'moved') return;
     await tx
       .update(units)
@@ -223,57 +221,6 @@ export class UnitService {
       .where(eq(units.id, unit.id));
     await this.event(tx, unit.id, kind, { from: unit.locationId, to: destId, who, guest, text });
     await this.locations.touch(tx, [unit.locationId, destId]);
-  }
-
-  /** Lends a unit out of the lab: it moves to "Out of the lab" with the person responsible for it. */
-  async lend(ref: string, input: LendInput, actor: Actor | null): Promise<UnitDetail> {
-    const who = requireScope(actor, 'inventory');
-    await this.db.transaction(async (tx) => {
-      const unit = await this.resolve(ref, tx);
-      if (await this.openLoan(tx, unit.id)) throw invalid('units.alreadyLent');
-      const responsible = input.responsible
-        ? (await many(tx.select().from(users))).find(
-            (u) => fold(u.name) === fold(input.responsible!),
-          )
-        : { id: who.userId, name: who.name };
-      if (!responsible) throw invalid('units.noResponsible', { name: input.responsible ?? '' });
-      if ('disabledAt' in responsible && responsible.disabledAt)
-        throw invalid('users.accountOff', { name: responsible.name });
-      const away = await this.locations.away(tx);
-      await this.moveWithin(tx, unit, away.id, who, null, 'lent', input.description);
-      await tx.insert(loans).values({
-        id: newId(),
-        unitId: unit.id,
-        responsibleUserId: responsible.id,
-        description: input.description,
-        dueAt: input.dueAt ?? null,
-        createdBy: who.userId,
-      });
-      await audit(tx, who, 'lend', 'unit', unit.id, { responsible: responsible.name });
-    });
-    return this.detail(ref, actor);
-  }
-
-  /** Back from a loan: to `to`, else its home place, else the Inbox. */
-  async returnUnit(ref: string, to: string | null, actor: Actor | null): Promise<UnitDetail> {
-    const who = requireScope(actor, 'inventory');
-    await this.db.transaction(async (tx) => {
-      const unit = await this.resolve(ref, tx);
-      const loan = await this.openLoan(tx, unit.id);
-      if (!loan) throw invalid('units.notLent');
-      await tx
-        .update(loans)
-        .set({ returnedAt: nowIso(), returnedBy: who.userId })
-        .where(eq(loans.id, loan.id));
-      const dest = to
-        ? await this.locations.resolve(to, tx)
-        : unit.homeLocationId
-          ? await this.locations.resolve(unit.homeLocationId, tx)
-          : await this.locations.inbox(tx);
-      this.checkDestination(dest);
-      await this.moveWithin(tx, unit, dest.id, who, null, 'returned');
-    });
-    return this.detail(ref, actor);
   }
 
   async detail(ref: string, actor: Actor | null): Promise<UnitDetail> {
@@ -298,7 +245,7 @@ export class UnitService {
         .from(unitEvents)
         .leftJoin(users, eq(users.id, unitEvents.userId))
         .where(eq(unitEvents.unitId, unit.id))
-        .orderBy(desc(unitEvents.at))
+        .orderBy(desc(unitEvents.at), desc(unitEvents.id))
         .limit(100),
     );
     const placeIds = [
@@ -345,7 +292,7 @@ export class UnitService {
       firmware: firmware ? { version: firmware.e.value!, at: firmware.e.at } : null,
       createdAt: unit.createdAt,
       events: events.map(({ e, user }) => eventView(e, user, places)),
-      loans: await this.loanViews(loanRows),
+      loans: await loanViews(this.db, loanRows),
       reports: openReports.map(({ r, user }) => ({
         id: r.id,
         owner: 'unit' as const,
@@ -397,18 +344,6 @@ export class UnitService {
       part: { code: r.partCode, name: r.partName },
       in: r.u.locationId === loc.id ? null : briefs[i]!.location,
     }));
-  }
-
-  async loanList(open: boolean): Promise<LoanView[]> {
-    const rows = await many(
-      this.db
-        .select()
-        .from(loans)
-        .where(open ? isNull(loans.returnedAt) : undefined)
-        .orderBy(asc(loans.dueAt), asc(loans.outAt))
-        .limit(open ? 1000 : 200),
-    );
-    return this.loanViews(rows);
   }
 
   /** Units that are broken, reported, in repair, or due for a check. */
@@ -506,9 +441,11 @@ export class UnitService {
           ),
         ),
     );
-    const loanViews = new Map(
-      (await this.loanViews(loanRows, ex)).map((v, i) => [loanRows[i]!.unitId, v]),
+    const loanViewsByUnit = new Map(
+      (await loanViews(ex, loanRows)).map((v, i) => [loanRows[i]!.unitId, v]),
     );
+    // Units inside a container lent out are out with it.
+    const withPlace = await placeLoans(ex, placeRows);
     return rows.map((r) => {
       const here = rowById.get(r.locationId)!;
       const home = r.homeLocationId ? rowById.get(r.homeLocationId) : undefined;
@@ -522,29 +459,19 @@ export class UnitService {
         location: summaryById.get(r.locationId)!,
         home: home ? summaryById.get(home.id)! : null,
         atHome: !!home && here.path.startsWith(home.path),
-        loan: loanViews.get(r.id) ?? null,
+        loan: loanViewsByUnit.get(r.id) ?? withPlace.get(r.locationId) ?? null,
         lastSeenAt: r.lastSeenAt,
       };
     });
   }
 
   /**
-   * Units can't be put in "Out of the lab" (lend them), someone's carry list (pick them up) or
-   * a dismantled build.
+   * Units can't be put in "Out of the lab" or a container lent out (lend them), someone's carry
+   * list (pick them up) or a dismantled build.
    */
-  checkDestination(dest: LocationRow): void {
-    if (dest.kind === 'away') throw invalid('units.lendInstead');
+  async checkDestination(dest: LocationRow, ex: Executor = this.db): Promise<void> {
     if (dest.kind === 'in_transit') throw invalid('stock.pickUpToCarry');
-    this.locations.checkOpen(dest);
-  }
-
-  async openLoan(ex: Executor, unitId: string): Promise<LoanRow | undefined> {
-    return one(
-      ex
-        .select()
-        .from(loans)
-        .where(and(eq(loans.unitId, unitId), isNull(loans.returnedAt))),
-    );
+    await this.locations.checkOpen(dest, ex);
   }
 
   async event(
@@ -587,45 +514,5 @@ export class UnitService {
     if (!ids.length) return new Map();
     const rows = await many(this.db.select().from(locations).where(inArray(locations.id, ids)));
     return new Map((await this.locations.summaries(this.db, rows)).map((s) => [s.id, s]));
-  }
-
-  private async loanViews(rows: LoanRow[], ex: Executor = this.db): Promise<LoanView[]> {
-    if (!rows.length) return [];
-    const userIds = [
-      ...new Set(
-        rows.flatMap((r) => [r.responsibleUserId, r.returnedBy]).filter((x): x is string => !!x),
-      ),
-    ];
-    const names = new Map(
-      (await many(ex.select().from(users).where(inArray(users.id, userIds)))).map((u) => [
-        u.id,
-        u.name,
-      ]),
-    );
-    const unitRows = await many(
-      ex
-        .select({ id: units.id, code: units.code, name: units.name, part: parts.name })
-        .from(units)
-        .innerJoin(parts, eq(parts.id, units.partId))
-        .where(inArray(units.id, [...new Set(rows.map((r) => r.unitId))])),
-    );
-    const unitById = new Map(unitRows.map((u) => [u.id, u]));
-    return rows.map((r) => {
-      const u = unitById.get(r.unitId);
-      return {
-        id: r.id,
-        unit: {
-          code: u?.code ?? '?',
-          name: u?.name ?? `${u?.part ?? '?'} ${u?.code ?? ''}`.trim(),
-        },
-        responsible: personName(names.get(r.responsibleUserId) ?? '?'),
-        description: r.description,
-        outAt: r.outAt,
-        dueAt: r.dueAt,
-        overdue: !r.returnedAt && !!r.dueAt && r.dueAt < today(),
-        returnedAt: r.returnedAt,
-        returnedBy: r.returnedBy ? personName(names.get(r.returnedBy)) : null,
-      };
-    });
   }
 }

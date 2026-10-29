@@ -112,7 +112,7 @@ export function AddUnits({ part }: { part: PartDetail }) {
       </Field>
       <Field label={t('units.home')} hint={t('units.homeHint')}>
         {(id) => (
-          <PlacePicker id={id} value={home} onChange={setHome} exclude={(p) => p.kind === 'away'} />
+          <PlacePicker id={id} value={home} onChange={setHome} exclude={(p) => p.outOfLab} />
         )}
       </Field>
       <ErrorBox error={add.error} />

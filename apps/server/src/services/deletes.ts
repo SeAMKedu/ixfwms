@@ -14,6 +14,7 @@ import {
 import { invalid } from '../lib/errors.js';
 import { retireCode } from './codes.js';
 import { audit, requireScope, type Actor } from './context.js';
+import { checkNotLent } from './loans.js';
 import type { LocationService } from './locations.js';
 import type { PartResolver } from './parts.js';
 import type { StockService } from './stock.js';
@@ -111,10 +112,11 @@ export class DeleteService {
 }
 
 /**
- * Nothing in the place (no stock, units or places inside, archived ones too) and no unit's
- * home, as a place must be to be deleted or archived.
+ * Nothing in the place (no stock, units or places inside, archived ones too), no unit's home
+ * and not lent out, as a place must be to be deleted or archived.
  */
 export async function checkEmpty(tx: Executor, loc: typeof locations.$inferSelect): Promise<void> {
+  await checkNotLent(tx, loc);
   if (
     (await any(tx, locations, like(locations.path, `${loc.path}_%`))) ||
     (await any(tx, stockLots, eq(stockLots.locationId, loc.id))) ||

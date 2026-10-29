@@ -131,6 +131,10 @@ export const ERROR_MESSAGES = {
   'units.notLent': "This isn't lent out",
   'units.notLost': "This isn't marked lost",
   'units.lendInstead': 'Lend it out instead of moving it out of the lab',
+  'loans.placeLent': '{{name}} is lent out of the lab; return it first',
+  'loans.containersOnly':
+    "Only containers (a box, case or pallet) can be lent out; lend what's in {{name}} one by one",
+  'loans.notInside': '{{unit}} is not in {{name}}',
   'delete.inBuild': '{{name}} is built into something; take it out first',
   'delete.unitLent': '{{unit}} of {{name}} is lent out; return it or mark it lost first',
   'delete.lent': '{{name}} is lent out; return it or mark it lost first',

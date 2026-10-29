@@ -163,7 +163,7 @@ export class CarryService {
       if (dest.kind === 'in_transit') throw invalid('carry.realPlace');
       for (const item of chosen) {
         if (item.kind === 'unit') {
-          this.units.checkDestination(dest);
+          await this.units.checkDestination(dest, tx);
           await this.units.moveWithin(tx, await this.units.resolve(item.id, tx), dest.id, who);
         } else if (item.kind === 'location')
           await this.locations.moveWithin(

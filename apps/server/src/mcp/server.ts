@@ -7,7 +7,6 @@ import {
   ATTACHMENT_KINDS,
   CreatePartInput,
   IdentifierInput,
-  LendInput,
   PART_KINDS,
   SEARCH_KINDS,
   PART_STATUSES,
@@ -21,6 +20,7 @@ import { z } from 'zod';
 import type { Actor, Services } from '../services/index.js';
 import { registerBuildTools } from './build-tools.js';
 import { registerDeleteTools } from './delete-tools.js';
+import { registerLoanTools } from './loan-tools.js';
 import { registerLostTools } from './lost-tools.js';
 import { registerPlaceTools } from './place-tools.js';
 import { read, tool, write } from './tool.js';
@@ -33,7 +33,7 @@ Bulk items (screws, suction cups, filament) are tracked per place as a count (pc
 
 Builds are things made from parts (a gripper, a test rig): places whose parts are built in, not free stock. Parts in a build remember where they came from, so dismantle_build can put them back.
 
-Individual items (tools, robots, PLC CPUs, licence dongles) have units, each with its own code, serial number, where it is now, its home place (where it belongs), a status and a log. Units can be lent out of the lab (a person with an account is responsible). For "where is the …?" questions call where_is first: it answers in short sentences that can be read aloud.
+Individual items (tools, robots, PLC CPUs, licence dongles) have units, each with its own code, serial number, where it is now, its home place (where it belongs), a status and a log. Units, or a whole container (a case with everything in it), can be lent out of the lab (a person with an account is responsible). For "where is the …?" questions call where_is first: it answers in short sentences that can be read aloud.
 
 Doing the initial inventory:
 1. Order confirmations: extract each line (manufacturer, order number, description, quantity) and call create_part_drafts. Without a location, stock goes to the Inbox.
@@ -471,41 +471,6 @@ export function createMcpServer(
   );
 
   server.registerTool(
-    'lend_unit',
-    {
-      title: 'Lend a unit out of the lab',
-      description:
-        'A unit leaves the lab (a thesis, a fair, repair at the vendor). Someone with an account is responsible; describe what for and where. Student names only as free text in the description.',
-      inputSchema: { ref: z.string(), ...LendInput.shape },
-      annotations: write,
-    },
-    tool(async ({ ref, ...loan }) => withUnitLink(await units.lend(ref, loan, actor))),
-  );
-
-  server.registerTool(
-    'return_unit',
-    {
-      title: 'Return a lent unit',
-      description: 'A lent unit is back: it goes to its home place unless "to" is given.',
-      inputSchema: { ref: z.string(), to: z.string().optional() },
-      annotations: write,
-    },
-    tool(async ({ ref, to }) => withUnitLink(await units.returnUnit(ref, to ?? null, actor))),
-  );
-
-  server.registerTool(
-    'list_loans',
-    {
-      title: 'List loans',
-      description:
-        'Units lent out of the lab (open loans, or the latest returned ones), overdue first.',
-      inputSchema: { open: z.boolean().optional().describe('Default true') },
-      annotations: read,
-    },
-    tool(async ({ open }) => units.loanList(open ?? true)),
-  );
-
-  server.registerTool(
     'log_unit_event',
     {
       title: "Write in a unit's log",
@@ -576,6 +541,7 @@ export function createMcpServer(
 
   registerBuildTools(server, services, actor, baseUrl);
   registerDeleteTools(server, services, actor);
+  registerLoanTools(server, services, actor, baseUrl);
   registerLostTools(server, services, actor);
   registerPlaceTools(server, services, actor, baseUrl);
   return server;

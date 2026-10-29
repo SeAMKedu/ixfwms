@@ -110,7 +110,7 @@ export class BuildService {
       leftover,
     } = AddToBuildInput.parse(input);
     return this.db.transaction(async (tx) => {
-      const build = this.locations.checkOpen(await this.locations.resolve(ref, tx));
+      const build = await this.locations.checkOpen(await this.locations.resolve(ref, tx), tx);
       if (!(await this.locations.summarize(tx, build)).build)
         throw invalid('builds.notBuild', { name: build.name });
       const part = await this.resolver.resolve(partRef, tx);
@@ -175,7 +175,7 @@ export class BuildService {
     const dest = await this.locations.resolve(toRef, tx);
     if (dest.path.startsWith(build.path) || dest.kind === 'in_transit')
       throw invalid('builds.outside', { name: build.name });
-    this.units.checkDestination(dest);
+    await this.units.checkDestination(dest, tx);
     const to = await this.locations.summarize(tx, dest);
     const result: DismantleResult = { returned: [], left: [], dismantled: false };
     const unitRows = await this.units.directlyAt(build.id, tx);

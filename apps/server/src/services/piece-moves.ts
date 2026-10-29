@@ -17,6 +17,7 @@ import { invalid } from '../lib/errors.js';
 import { nowIso } from '../lib/ids.js';
 import { absorb, amountOf, countAmount, cutAmount, piecesToUnit } from './amounts.js';
 import type { Actor } from './context.js';
+import { checkNotLent } from './loans.js';
 import type { LocationRow, LocationService } from './locations.js';
 import type { LotRow, StockService } from './stock.js';
 
@@ -45,6 +46,8 @@ export class PieceMoves {
     who: Actor | null,
     guest: string | null = null,
   ): Promise<string> {
+    const from = (await this.stock.lot(tx, lotId)).locationId;
+    await checkNotLent(tx, await this.locations.resolve(from, tx));
     if (amount.cut) return this.cut(tx, lotId, toRef, amount.cut, who, guest);
     if (amount.pieces != null) return this.count(tx, lotId, toRef, amount.pieces, who, guest);
     return this.stock.moveWithin(tx, lotId, toRef, amount.quantity ?? null, who, guest);
@@ -265,7 +268,7 @@ export class PieceMoves {
   }
 
   private async dest(tx: Executor, ref: string): Promise<LocationRow> {
-    return this.locations.checkOpen(await this.locations.resolve(ref, tx));
+    return this.locations.checkOpen(await this.locations.resolve(ref, tx), tx);
   }
 
   private async part(tx: Executor, partId: string) {

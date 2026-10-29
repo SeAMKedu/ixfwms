@@ -2,8 +2,6 @@ import type {
   AddStockInput,
   AddUnitsInput,
   ClearResult,
-  LendInput,
-  LoanView,
   NetworkEntry,
   ReportInput,
   ReportView,
@@ -434,7 +432,7 @@ export const useRetireCodes = () =>
     api<{ retired: number }>('/api/labels/retire', { body: { codes } }),
   );
 
-// --- units, loans, problem reports ---------------------------------------------------------
+// --- units, problem reports (loans: ./loans) ---------------------------------------------------------
 
 /** The name someone without an account gives, remembered on this device. */
 const GUEST_KEY = 'ixfwms.guestName';
@@ -482,12 +480,6 @@ export const useMoveUnit = (code: string) =>
 export const usePutBackUnit = (code: string) =>
   useChange(() => api<UnitDetail>(`/api/units/${code}/put-back`, { body: { name: guest() } }));
 
-export const useLendUnit = (code: string) =>
-  useChange((input: LendInput) => api<UnitDetail>(`/api/units/${code}/lend`, { body: input }));
-
-export const useReturnUnit = (code: string) =>
-  useChange((to: string | null) => api<UnitDetail>(`/api/units/${code}/return`, { body: { to } }));
-
 export const useOpenMoveLot = () =>
   useChange(({ lotId, ...body }: { lotId: string; to: string } & MoveAmount) =>
     api<LotView>(`/api/stock/${lotId}/open-move`, { body: { ...body, name: guest() } }),
@@ -500,9 +492,6 @@ export const usePutBackLot = () =>
 
 export const useClearBench = (code: string) =>
   useChange(() => api<ClearResult>(`/api/locations/${code}/clear`, { body: { name: guest() } }));
-
-export const useLoans = () =>
-  useQuery({ queryKey: ['loans'], queryFn: () => api<LoanView[]>('/api/loans?open=1') });
 
 export const useUnitAttention = () =>
   useQuery({

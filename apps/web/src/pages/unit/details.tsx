@@ -196,7 +196,7 @@ function EditDetails({ unit, onDone }: { unit: UnitDetail; onDone: () => void })
               id={id}
               value={form.home}
               onChange={(home) => set({ home })}
-              exclude={(p) => p.kind === 'away'}
+              exclude={(p) => p.outOfLab}
             />
           )}
         </Field>

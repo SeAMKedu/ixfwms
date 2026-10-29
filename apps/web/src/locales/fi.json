@@ -1027,6 +1027,16 @@
     "onLoanTitle_other": "{{count}} lainassa labran ulkopuolella",
     "attentionTitle": "Huomiota vaativat yksilöt"
   },
+  "loans": {
+    "inside": "Lähti tämän mukana:",
+    "with": "mukana: {{name}}",
+    "lendPlaceIntro": "Kaikki sen sisältö lähtee mukaan. Siitä ei voi ottaa mitään eikä siihen voi laittaa mitään ennen kuin se on palautunut.",
+    "cameBack": "Mitä palautui",
+    "cameBackHint": "Poista rasti siitä, mikä ei palannut; se merkitään kadonneeksi.",
+    "returnToHint": "Jätä tyhjäksi, niin se palaa entiselle paikalleen.",
+    "backMissing_one": "Palautunut, {{count}} puuttuu",
+    "backMissing_other": "Palautunut, {{count}} puuttuu"
+  },
   "apiErrors": {
     "input": {
       "invalid": "Virheellinen syöte"
@@ -1183,6 +1193,11 @@
       "notLent": "Tämä ei ole lainassa",
       "lendInstead": "Lainaa se sen sijaan, että siirtäisit sen ulos labrasta",
       "notLost": "Tätä ei ole merkitty kadonneeksi"
+    },
+    "loans": {
+      "placeLent": "{{name}} on lainassa labran ulkopuolella; palauta se ensin",
+      "containersOnly": "Vain säilytysastioita (laatikko, laukku tai lava) voi lainata; lainaa paikan {{name}} tavarat yksitellen",
+      "notInside": "{{unit}} ei ole paikassa {{name}}"
     },
     "builds": {
       "dismantled": "{{name}} on purettu; siihen ei voi enää laittaa mitään",

@@ -18,6 +18,7 @@ import { parts, stockLots, stockMovements } from '../db/schema.js';
 import { invalid, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
 import { amountOf, checkCut, checkWhole, merge, toAmount } from './amounts.js';
+import { checkNotLent } from './loans.js';
 import { LotStore } from './lots.js';
 import { PieceMoves } from './piece-moves.js';
 import { requireScope, type Actor } from './context.js';
@@ -98,7 +99,7 @@ export class StockService {
       amount = { ...amount, level: await this.levelKey(amount.level) };
     checkWhole(amount.mode, amount.quantity);
     const location = locationRef
-      ? this.locations.checkOpen(await this.locations.resolve(locationRef, tx))
+      ? await this.locations.checkOpen(await this.locations.resolve(locationRef, tx), tx)
       : await this.locations.inbox(tx);
     const lotId = await this.lots.put(tx, { partId, ...amount }, location.id, null, amount, {
       note,
@@ -220,7 +221,8 @@ export class StockService {
     const lot = await this.lot(tx, lotId);
     const dest = await this.locations.resolve(toRef, tx);
     if (dest.id === lot.locationId) return lot.id;
-    this.locations.checkOpen(dest);
+    await this.locations.checkOpen(dest, tx);
+    await checkNotLent(tx, await this.locations.resolve(lot.locationId, tx));
     // Part of a count nobody made, or of a cut lot: pieces (PieceMoves) say what comes out.
     if (quantity != null && lot.mode !== 'level' && lot.quantity == null)
       if (lot.mode === 'count')

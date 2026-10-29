@@ -317,7 +317,7 @@ export const LabSettings = z.object({
 export type LabSettings = z.infer<typeof LabSettings>;
 
 /** A calendar date, "2026-11-30". */
-const DateSchema = z.iso.date();
+export const DateSchema = z.iso.date();
 
 /** The name someone without an account gives (optional), e.g. "Pekka". */
 const ReporterName = z.string().trim().max(80).nullish();
@@ -374,23 +374,6 @@ export const UnitLogInput = z.object({
   nextCheckAt: DateSchema.nullish().describe('Maintenance entries can set the next check date'),
 });
 export type UnitLogInput = z.infer<typeof UnitLogInput>;
-
-export const LendInput = z.object({
-  responsible: z
-    .string()
-    .trim()
-    .max(80)
-    .nullish()
-    .describe('User name of the person responsible (has an account); defaults to you'),
-  description: z
-    .string()
-    .trim()
-    .min(1)
-    .max(2000)
-    .describe('What for and where, e.g. "thesis tests at Company X, for Pekka V."'),
-  dueAt: DateSchema.nullish().describe('Expected back, YYYY-MM-DD'),
-});
-export type LendInput = z.infer<typeof LendInput>;
 
 export const ReportInput = z.object({
   owner: z.enum(['unit', 'part', 'location']),

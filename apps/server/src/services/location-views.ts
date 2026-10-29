@@ -4,6 +4,7 @@ import { many, one, type Db } from '../db/client.js';
 import { locations, locationTypes, parts, stockLots } from '../db/schema.js';
 import type { BuildService } from './builds.js';
 import type { FileService } from './files.js';
+import type { LoanService } from './loans.js';
 import type { LocationService } from './locations.js';
 import type { PartService } from './parts.js';
 import type { UnitService } from './units.js';
@@ -17,6 +18,7 @@ export class LocationViews {
     private readonly files: FileService,
     private readonly units: UnitService,
     private readonly builds: BuildService,
+    private readonly loans: LoanService,
   ) {}
 
   async detail(ref: string, opts: { recursive?: boolean } = {}): Promise<LocationDetail> {
@@ -97,6 +99,7 @@ export class LocationViews {
       units: await this.units.at(loc, opts.recursive ?? false),
       attachments: await this.files.attachmentsOf('location', loc.id),
       clashes: await this.locations.clashes(loc),
+      loan: await this.loans.ofPlace(loc),
       ownStayDays: loc.stayDays,
       typeStayDays:
         (

@@ -10,12 +10,12 @@ import {
   useParts,
   useSetStatus,
   useLabSettings,
-  useLoans,
   useOverdue,
   useReports,
   useResolveReport,
   useUnitAttention,
 } from '../api/queries';
+import { useLoans } from '../api/loans';
 import { UnitStatusPill, UnitWhere } from '../components/units';
 import { useSession } from '../auth/session';
 import { PlacePicker } from '../components/place-picker';
@@ -137,7 +137,7 @@ function Problems() {
   );
 }
 
-/** Units lent out of the lab, overdue ones first and in red. */
+/** Units and containers lent out of the lab, overdue ones first and in red. */
 function OutOnLoan() {
   const { t } = useTranslation();
   const loans = useLoans();
@@ -150,10 +150,10 @@ function OutOnLoan() {
           <li key={l.id} className="flex flex-col gap-0.5">
             <span className="flex flex-wrap items-center gap-2">
               <Link
-                to={`/u/${l.unit.code}`}
+                to={l.place ? `/l/${l.place.code}` : `/u/${l.unit?.code}`}
                 className={`font-medium hover:underline ${l.overdue ? 'text-crit' : ''}`}
               >
-                {l.unit.name}
+                {(l.place ?? l.unit)?.name}
               </Link>
               {l.overdue && <Pill tone="crit">{t('units.overdue')}</Pill>}
             </span>

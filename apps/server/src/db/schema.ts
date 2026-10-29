@@ -386,9 +386,13 @@ export const loans = sqliteTable(
   'loans',
   {
     id: id(),
-    unitId: text('unit_id')
-      .notNull()
-      .references(() => units.id, { onDelete: 'cascade' }),
+    /** A unit, or a container lent with everything in it (`locationId`). */
+    unitId: text('unit_id').references(() => units.id, { onDelete: 'cascade' }),
+    locationId: text('location_id').references(() => locations.id, { onDelete: 'cascade' }),
+    /** Where the container was before it went out, so it can go back there. */
+    fromLocationId: text('from_location_id').references(() => locations.id, {
+      onDelete: 'set null',
+    }),
     responsibleUserId: text('responsible_user_id')
       .notNull()
       .references(() => users.id),
@@ -400,7 +404,7 @@ export const loans = sqliteTable(
     returnedBy: text('returned_by').references(() => users.id),
     createdBy: text('created_by').references(() => users.id),
   },
-  (t) => [index('loans_unit_idx').on(t.unitId)],
+  (t) => [index('loans_unit_idx').on(t.unitId), index('loans_location_idx').on(t.locationId)],
 );
 
 /** "This is broken / missing parts / running low", from anyone, open until someone resolves it. */
