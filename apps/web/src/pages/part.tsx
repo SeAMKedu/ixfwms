@@ -77,26 +77,30 @@ export function PartPage() {
             {canEdit && <AddUnits part={p} />}
           </Card>
         ) : (
-          <Card title={t('part.where')} className="md:col-span-2">
-            {p.lots.length === 0 ? (
-              <span className="text-sm text-muted">{t('part.notInStock')}</span>
-            ) : (
-              <ul className="flex flex-col gap-3">
-                {p.lots.map((lot, i) => (
-                  <LotRow
-                    key={lot.id}
-                    lot={lot}
-                    canEdit={canEdit}
-                    first={i === 0}
-                    cut={p.cut}
-                    unitMassG={p.unitMassG}
-                  />
-                ))}
-              </ul>
-            )}
-            {canEdit && <AddStock part={p} />}
-            <ReportItem part={p} />
-          </Card>
+          <>
+            <Card title={t('part.where')} className="md:col-span-2">
+              {p.lots.length === 0 ? (
+                <span className="text-sm text-muted">{t('part.notInStock')}</span>
+              ) : (
+                <ul className="flex flex-col gap-3">
+                  {p.lots.map((lot, i) => (
+                    <LotRow
+                      key={lot.id}
+                      lot={lot}
+                      canEdit={canEdit}
+                      first={i === 0}
+                      cut={p.cut}
+                      unitMassG={p.unitMassG}
+                    />
+                  ))}
+                </ul>
+              )}
+            </Card>
+            <div className="flex flex-wrap items-start gap-2 md:col-span-2 [&>form]:basis-full">
+              {canEdit && <AddStock part={p} />}
+              <ReportItem part={p} />
+            </div>
+          </>
         )}
         <Card title={t('part.identifiers')}>
           {p.identifiers.length === 0 ? (
