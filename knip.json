@@ -1,10 +1,10 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "workspaces": {
-    ".": { "entry": ["scripts/*.mjs"] },
+    ".": { "entry": ["scripts/*.mjs", "scripts/*.ts"] },
     "packages/domain": { "project": ["src/**/*.ts"] },
     "apps/server": { "project": ["src/**/*.ts"] },
     "apps/web": { "project": ["src/**/*.{ts,tsx,css}"] }
   },
-  "ignoreDependencies": ["git-cliff"]
+  "ignoreDependencies": ["git-cliff", "drizzle-orm"]
 }

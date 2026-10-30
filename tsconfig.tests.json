@@ -12,6 +12,7 @@
     "vitest.config.ts",
     "apps/server/drizzle.config.ts",
     "e2e",
+    "scripts/*.ts",
     "playwright.config.ts"
   ]
 }

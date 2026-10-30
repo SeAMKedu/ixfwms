@@ -27,6 +27,7 @@
     "test:integration": "vitest run --project integration --project web",
     "test:coverage": "vitest run --coverage",
     "db:generate": "npm run db:generate -w @ixfwms/server",
+    "docs:data-model": "tsx scripts/data-model.ts",
     "check": "node scripts/check.mjs check",
     "check:patch": "node scripts/check.mjs patch",
     "check:release": "node scripts/check.mjs release",

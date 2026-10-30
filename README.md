@@ -22,7 +22,7 @@ Parts inventory for the robotics lab: pneumatics, electrical parts, fasteners, f
 - **Deleting:** an item, unit, place or build can be deleted (press twice) while it isn't in use: nothing built in or lent out (a lent unit that never came back is marked lost first), places empty. What should stay on record is archived (items, units, old containers; Unarchive brings it back) or dismantled (builds).
 - **Everyday use:** login for changes (reading is open on the lab network), users and API tokens, history with undo for moves, nightly backups, English and Finnish, keyboard shortcuts.
 
-See [PLAN.md](PLAN.md) for the background and roadmap, and [CHANGELOG.md](CHANGELOG.md) for releases. How-tos: [labels](docs/labels.md), [spreadsheets](docs/import.md), [lab maps](docs/maps.md), [initial inventory with an AI assistant](docs/inventory-with-mcp.md).
+See [PLAN.md](PLAN.md) for the background and roadmap, and [CHANGELOG.md](CHANGELOG.md) for releases. How-tos: [labels](docs/labels.md), [spreadsheets](docs/import.md), [lab maps](docs/maps.md), [initial inventory with an AI assistant](docs/inventory-with-mcp.md). Developers: [data model](docs/data-model.html).
 
 ## Run it
 

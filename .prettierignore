@@ -5,3 +5,5 @@ data
 apps/server/drizzle
 CHANGELOG.md
 package-lock.json
+docs/data-model.html
+scripts/data-model.template.html
