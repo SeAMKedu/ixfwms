@@ -101,7 +101,16 @@
       "anyTag": "Any tag",
       "lowStock": "Low stock",
       "kind": "Kind",
-      "anyKind": "Any kind",
+      "kinds": {
+        "part": "Parts",
+        "tool": "Tools",
+        "device": "Devices",
+        "build": "Builds"
+      },
+      "status": "Status",
+      "stock": "Stock",
+      "noMatch": "No matches",
+      "remove": "Remove {{name}}",
       "uncounted": "Not counted",
       "place": "Place",
       "anyPlace": "Any place"
@@ -116,6 +125,7 @@
     "empty": "No items match.",
     "emptyAll": "No items yet. Add one, or let an AI assistant fill the Inbox from order emails.",
     "multiplePlaces": "Multiple locations ({{count}})",
+    "multipleAmounts": "Multiple ({{count}})",
     "searchEverywhere": "Search all places."
   },
   "part": {
@@ -262,7 +272,9 @@
     "codeHint": "Code on the QR label; it never changes",
     "shortName": "Short name",
     "shortNameHint": "For the address, e.g. A or A140.1",
-    "clash": "{{names}} next to this place has the same short name, so the address {{address}} isn't unique. Give one of them another short name."
+    "addressRoot": "Address starts here",
+    "addressRootHint": "For a lab or room: the building and floor above stay out of its address, so adding them later changes nothing. The short name must be unique among these places. Changing this on a place with levels above it changes addresses, so reprint its labels.",
+    "clash": "{{names}} has the same short name, so the address {{address}} isn't unique. Give one of them another short name."
   },
   "inbox": {
     "title": "Inbox",
@@ -1049,7 +1061,6 @@
     "backMissing_other": "Back, {{count}} missing"
   },
   "builds": {
-    "kindFilter": "Builds",
     "build": "Build",
     "dismantledPill": "dismantled",
     "items_one": "{{count}} thing in it",

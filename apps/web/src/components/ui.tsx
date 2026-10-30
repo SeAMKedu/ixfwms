@@ -170,16 +170,30 @@ export function StatusPill({ status }: { status: PartStatus }) {
   return <Pill tone={status === 'draft' ? 'info' : 'muted'}>{t(`status.${status}`)}</Pill>;
 }
 
-/** Stock amount with a colour hint: empty/zero is red, low is amber. Levels show the lab's names. */
+/** The colour hint for a stock amount: empty/zero is red, low is amber. */
+function useAmountTone() {
+  const { find } = useStockLevels();
+  return (display: string): Tone => {
+    const level = find(display);
+    if (level)
+      return { ok: 'ok' as const, low: 'warn' as const, empty: 'crit' as const }[level.state];
+    return /^0(\s|$)/.test(display) ? 'crit' : 'ok';
+  };
+}
+
+/** Stock amount with a colour hint. Levels show the lab's names. */
 export function AmountPill({ display }: { display: string }) {
   const { find, label } = useStockLevels();
-  const level = find(display);
-  const tone: Tone = level
-    ? { ok: 'ok' as const, low: 'warn' as const, empty: 'crit' as const }[level.state]
-    : /^0(\s|$)/.test(display)
-      ? 'crit'
-      : 'ok';
-  return <Pill tone={tone}>{level ? label(display) : display}</Pill>;
+  const tone = useAmountTone();
+  return <Pill tone={tone(display)}>{find(display) ? label(display) : display}</Pill>;
+}
+
+/** A pill standing for several stock amounts, coloured by the worst of them. */
+export function AmountsPill({ displays, children }: { displays: string[]; children: ReactNode }) {
+  const tone = useAmountTone();
+  const tones = displays.map(tone);
+  const worst = tones.includes('crit') ? 'crit' : tones.includes('warn') ? 'warn' : 'ok';
+  return <Pill tone={worst}>{children}</Pill>;
 }
 
 /** A location or part code drawn like the white P-touch label it is printed on. */
@@ -211,9 +225,9 @@ export function PlaceTag({
   return (
     <span
       title={place.build ? `${place.name} (${place.code})` : place.code}
-      className="inline-flex items-center gap-1"
+      className="inline-flex min-w-0 items-center gap-1"
     >
-      {place.build && <Blocks className="size-3.5 text-muted" aria-hidden />}
+      {place.build && <Blocks className="size-3.5 shrink-0 text-muted" aria-hidden />}
       <CodeLabel
         code={placeTag(place)}
         className={cx(place.overdue && 'border-warn bg-warn-soft text-warn', className)}

@@ -4,11 +4,31 @@
  * they're known by their name and short name, and shown at the address of where they are.
  */
 
+import { z } from 'zod';
+
 export const ADDRESS_SEPARATOR = '-';
 const MAX_AUTO_LENGTH = 8;
 
 /** Allowed in a short name: letters, digits, "." and "_" (the separator "-" and spaces are not). */
 export const SHORT_NAME_PATTERN = /^[\p{L}\p{N}._]{1,12}$/u;
+
+export const ShortNameSchema = z
+  .string()
+  .trim()
+  .max(12)
+  .refine((s) => s === '' || SHORT_NAME_PATTERN.test(s), {
+    message: 'Use letters, digits, "." or "_" (no spaces or "-")',
+  })
+  .transform((s) => s || null)
+  .nullish()
+  .describe('Short name used in the address, e.g. "A" for Cabinet A or "A140.1" for a room');
+
+export const AddressRootSchema = z
+  .boolean()
+  .optional()
+  .describe(
+    'The address starts at this place (a lab or room): places above it stay out, and its short name must be unique among such places',
+  );
 
 /**
  * A short name guessed from a place's name when none is set:
@@ -46,20 +66,23 @@ export interface AddressPart {
   name: string;
   shortName: string | null;
   movable: boolean;
+  addressRoot?: boolean;
 }
 
 /**
  * Address parts of a place, from the path down to it (the place last): the address of the fixed
- * places it's in (`parent`), its own short name, and its full address. A movable place's address
- * is just its short name, and only a set one (a guess from "Box: M4 screws" would be noise); where
- * it is shows separately.
+ * places it's in (`parent`), its own short name, and its full address. The address starts at the
+ * deepest address root on the way, so a building added above a lab changes nothing. A movable
+ * place's address is just its short name, and only a set one (a guess from "Box: M4 screws" would
+ * be noise); where it is shows separately.
  */
 export function addressOf(path: AddressPart[]): { parent: string; short: string; address: string } {
   const own = path[path.length - 1];
   if (!own) return { parent: '', short: '', address: '' };
   const short = own.shortName || (own.movable ? '' : autoShortName(own.name));
+  const start = path.findLastIndex((p) => p.addressRoot && !p.movable);
   const parent = path
-    .slice(0, -1)
+    .slice(Math.max(start, 0), -1)
     .filter((p) => !p.movable)
     .map((p) => p.shortName || autoShortName(p.name))
     .join(ADDRESS_SEPARATOR);

@@ -15,7 +15,7 @@ import {
 } from './enums.js';
 import { AttributeFilter } from './attributes.js';
 import { CUT_SHAPES, LEFTOVERS } from './cut.js';
-import { SHORT_NAME_PATTERN } from './addresses.js';
+import { AddressRootSchema, ShortNameSchema } from './addresses.js';
 
 /** A location or part reference: internal id or short code. */
 export const RefSchema = z.string().trim().min(1).max(64);
@@ -25,17 +25,6 @@ export const PieceSchema = z.array(z.number().positive().max(1_000_000)).min(1).
 const PiecesSchema = z.array(PieceSchema).max(1000);
 
 /** A place's short name for its address, e.g. "A" for Cabinet A; empty means guess it from the name. */
-export const ShortNameSchema = z
-  .string()
-  .trim()
-  .max(12)
-  .refine((s) => s === '' || SHORT_NAME_PATTERN.test(s), {
-    message: 'Use letters, digits, "." or "_" (no spaces or "-")',
-  })
-  .transform((s) => s || null)
-  .nullish()
-  .describe('Short name used in the address, e.g. "A" for Cabinet A or "A140.1" for a room');
-
 /** Expected stay of a temporary place in days: null = as its type says, 0 = not temporary. */
 export const StayDaysSchema = z
   .number()
@@ -48,6 +37,7 @@ export const StayDaysSchema = z
 export const CreateLocationInput = z.object({
   name: z.string().trim().min(1).max(200),
   shortName: ShortNameSchema,
+  addressRoot: AddressRootSchema,
   stayDays: StayDaysSchema,
   contact: z.string().trim().max(200).nullish().describe('Who to ask about a temporary place'),
   parent: RefSchema.nullish().describe('Parent location id or code; omit for a top-level location'),
@@ -89,6 +79,7 @@ export type DuplicateLocationInput = z.input<typeof DuplicateLocationInput>;
 export const UpdateLocationInput = z.object({
   name: z.string().trim().min(1).max(200).optional(),
   shortName: ShortNameSchema,
+  addressRoot: AddressRootSchema,
   stayDays: StayDaysSchema,
   contact: z.string().trim().max(200).nullish(),
   type: z.string().trim().min(1).max(40).optional(),
@@ -231,7 +222,7 @@ export const PartSearchInput = z.object({
   q: z.string().trim().max(200).optional(),
   kind: z.enum(SEARCH_KINDS).optional().describe('part, tool, device, or build (only builds)'),
   category: z.string().trim().max(300).optional(),
-  tag: z.string().trim().max(60).optional(),
+  tags: z.array(z.string().trim().max(60)).max(10).optional().describe('All of these tags'),
   status: z.enum(PART_STATUSES).optional(),
   location: RefSchema.optional().describe(
     'Only things in this location or below it, or units that belong there',

@@ -1,9 +1,9 @@
-import { PART_KINDS, type PartStatus, type SearchKind, type SessionUser } from '@ixfwms/domain';
+import { SEARCH_KINDS, type PartStatus, type SearchKind, type SessionUser } from '@ixfwms/domain';
 import { useTranslation } from 'react-i18next';
 import { useCategories, useTags } from '../../api/queries';
 import { useSession } from '../../auth/session';
+import { FilterPicker } from '../../components/filter-picker';
 import { PlacePicker } from '../../components/place-picker';
-import { Select } from '../../components/ui';
 
 /** `place` in the URL when someone with a home place wants to search everywhere. */
 export const ALL_PLACES = 'all';
@@ -18,7 +18,12 @@ export function searchPlace(params: URLSearchParams, user: SessionUser | null) {
 const chip = (active: boolean) =>
   `rounded-full border px-3 py-1 text-[13px] whitespace-nowrap ${active ? 'border-ink bg-ink text-bg' : 'border-line bg-surface'}`;
 
-/** Status and stock chips, kind, category and tag. They live in the URL like the query. */
+const PILL_GROUP = 'flex flex-wrap gap-1.5 border-l border-line px-3';
+
+/**
+ * What to search in first (place, category, tags), then pills: what kind of thing, its status and
+ * its stock. They live in the URL like the query.
+ */
 export function SearchFilters({
   params,
   onChange,
@@ -33,7 +38,7 @@ export function SearchFilters({
   const tags = useTags().data ?? [];
   const status = (params.get('status') as PartStatus | null) ?? undefined;
   const category = params.get('category') ?? undefined;
-  const tag = params.get('tag') ?? undefined;
+  const chosenTags = params.getAll('tag');
   const kind = (params.get('kind') as SearchKind | null) ?? undefined;
   const inStock = params.get('inStock') === '1';
   const lowStock = params.get('lowStock') === '1';
@@ -44,10 +49,25 @@ export function SearchFilters({
     else next.delete(key);
     onChange(next);
   };
+  const setCategory = (value: string | undefined) => {
+    const next = new URLSearchParams(params);
+    // Field filters belong to the category they were set under.
+    next.delete('attr');
+    if (value) next.set('category', value);
+    else next.delete('category');
+    onChange(next);
+  };
+  const setTags = (values: string[]) => {
+    const next = new URLSearchParams(params);
+    next.delete('tag');
+    for (const v of values) next.append('tag', v);
+    onChange(next);
+  };
+  const toggle = (key: string, on: boolean) => setParam(key, on ? undefined : '1');
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <div className="w-full sm:w-72">
+    <div className="flex flex-col gap-2.5">
+      <div className="grid gap-2 md:grid-cols-3">
         <PlacePicker
           value={place ?? ''}
           label={t('parts.filters.place')}
@@ -55,100 +75,96 @@ export function SearchFilters({
           // Clearing means everywhere, even for someone whose search starts at home.
           onChange={(code) => setParam('place', code || (user?.home ? ALL_PLACES : undefined))}
         />
+        <FilterPicker
+          label={t('parts.filters.category')}
+          placeholder={t('parts.filters.anyCategory')}
+          options={categories.map((c) => ({ name: c.path, count: c.parts }))}
+          values={category ? [category] : []}
+          onChange={(values) => setCategory(values[0])}
+        />
+        <FilterPicker
+          multiple
+          label={t('parts.filters.tag')}
+          placeholder={t('parts.filters.anyTag')}
+          options={tags.map((tg) => ({ name: tg.name, count: tg.parts }))}
+          values={chosenTags}
+          onChange={setTags}
+        />
       </div>
-      <button type="button" className={chip(!status)} onClick={() => setParam('status', undefined)}>
-        {t('parts.filters.all')}
-      </button>
-      <button
-        type="button"
-        className={chip(status === 'draft')}
-        onClick={() => setParam('status', 'draft')}
-      >
-        {t('parts.filters.drafts')}
-      </button>
-      <button
-        type="button"
-        className={chip(status === 'active')}
-        onClick={() => setParam('status', 'active')}
-      >
-        {t('parts.filters.active')}
-      </button>
-      <button
-        type="button"
-        className={chip(status === 'archived')}
-        onClick={() => setParam('status', 'archived')}
-      >
-        {t('parts.filters.archived')}
-      </button>
-      <button
-        type="button"
-        className={chip(!!inStock)}
-        onClick={() => setParam('inStock', inStock ? undefined : '1')}
-      >
-        {t('parts.filters.inStock')}
-      </button>
-      <button
-        type="button"
-        className={chip(!!lowStock)}
-        onClick={() => setParam('lowStock', lowStock ? undefined : '1')}
-      >
-        {t('parts.filters.lowStock')}
-      </button>
-      <button
-        type="button"
-        className={chip(uncounted)}
-        onClick={() => setParam('uncounted', uncounted ? undefined : '1')}
-      >
-        {t('parts.filters.uncounted')}
-      </button>
-      <Select
-        aria-label={t('parts.filters.kind')}
-        value={kind ?? ''}
-        onChange={(e) => setParam('kind', e.target.value || undefined)}
-        className="!w-auto !py-1 text-[13px]"
-      >
-        <option value="">{t('parts.filters.anyKind')}</option>
-        {PART_KINDS.map((k) => (
-          <option key={k} value={k}>
-            {t(`partKinds.${k}`)}
-          </option>
-        ))}
-        <option value="build">{t('builds.kindFilter')}</option>
-      </Select>
-      <Select
-        aria-label={t('parts.filters.category')}
-        value={category ?? ''}
-        onChange={(e) => {
-          const next = new URLSearchParams(params);
-          next.delete('attr');
-          if (e.target.value) next.set('category', e.target.value);
-          else next.delete('category');
-          onChange(next);
-        }}
-        className="!w-auto !py-1 text-[13px]"
-      >
-        <option value="">{t('parts.filters.anyCategory')}</option>
-        {categories.map((c) => (
-          <option key={c.path} value={c.path}>
-            {c.path}
-          </option>
-        ))}
-      </Select>
-      {tags.length > 0 && (
-        <Select
-          aria-label={t('parts.filters.tag')}
-          value={tag ?? ''}
-          onChange={(e) => setParam('tag', e.target.value || undefined)}
-          className="!w-auto !py-1 text-[13px]"
-        >
-          <option value="">{t('parts.filters.anyTag')}</option>
-          {tags.map((tg) => (
-            <option key={tg.name} value={tg.name}>
-              {tg.name}
-            </option>
-          ))}
-        </Select>
-      )}
+      {/* A line before each group; the one starting a row falls outside the box and is clipped. */}
+      <div className="-m-1 overflow-hidden p-1">
+        <div className="-ml-[13px] flex flex-wrap gap-y-2">
+          <div role="group" aria-label={t('parts.filters.kind')} className={PILL_GROUP}>
+            {SEARCH_KINDS.map((k) => (
+              <button
+                key={k}
+                type="button"
+                aria-pressed={kind === k}
+                className={chip(kind === k)}
+                onClick={() => setParam('kind', kind === k ? undefined : k)}
+              >
+                {t(`parts.filters.kinds.${k}`)}
+              </button>
+            ))}
+          </div>
+          <div role="group" aria-label={t('parts.filters.status')} className={PILL_GROUP}>
+            <button
+              type="button"
+              className={chip(!status)}
+              onClick={() => setParam('status', undefined)}
+            >
+              {t('parts.filters.all')}
+            </button>
+            <button
+              type="button"
+              className={chip(status === 'draft')}
+              onClick={() => setParam('status', 'draft')}
+            >
+              {t('parts.filters.drafts')}
+            </button>
+            <button
+              type="button"
+              className={chip(status === 'active')}
+              onClick={() => setParam('status', 'active')}
+            >
+              {t('parts.filters.active')}
+            </button>
+            <button
+              type="button"
+              className={chip(status === 'archived')}
+              onClick={() => setParam('status', 'archived')}
+            >
+              {t('parts.filters.archived')}
+            </button>
+          </div>
+          <div role="group" aria-label={t('parts.filters.stock')} className={PILL_GROUP}>
+            <button
+              type="button"
+              aria-pressed={inStock}
+              className={chip(inStock)}
+              onClick={() => toggle('inStock', inStock)}
+            >
+              {t('parts.filters.inStock')}
+            </button>
+            <button
+              type="button"
+              aria-pressed={lowStock}
+              className={chip(lowStock)}
+              onClick={() => toggle('lowStock', lowStock)}
+            >
+              {t('parts.filters.lowStock')}
+            </button>
+            <button
+              type="button"
+              aria-pressed={uncounted}
+              className={chip(uncounted)}
+              onClick={() => toggle('uncounted', uncounted)}
+            >
+              {t('parts.filters.uncounted')}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

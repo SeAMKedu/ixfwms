@@ -20,6 +20,7 @@ export function EditPlaceForm({ place: d, onDone }: { place: LocationDetail; onD
   const [name, setName] = useState(d.name);
   const [description, setDescription] = useState(d.description ?? '');
   const [shortName, setShortName] = useState(d.shortName ?? '');
+  const [addressRoot, setAddressRoot] = useState(d.addressRoot);
   const [stay, setStay] = useState<'type' | 'none' | 'days'>(
     d.ownStayDays === null ? 'type' : d.ownStayDays === 0 ? 'none' : 'days',
   );
@@ -31,6 +32,7 @@ export function EditPlaceForm({ place: d, onDone }: { place: LocationDetail; onD
     await update.mutateAsync({
       name,
       shortName,
+      addressRoot,
       description: description || null,
       contact: contact || null,
       stayDays: stay === 'type' ? null : stay === 'none' || !(days > 0) ? 0 : days,
@@ -60,6 +62,20 @@ export function EditPlaceForm({ place: d, onDone }: { place: LocationDetail; onD
           )}
         </Field>
       </div>
+      {!d.movable && d.kind === 'normal' && (
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            className="mt-0.5"
+            checked={addressRoot}
+            onChange={(e) => setAddressRoot(e.target.checked)}
+          />
+          <span>
+            {t('places.addressRoot')}
+            <span className="block text-[12.5px] text-muted">{t('places.addressRootHint')}</span>
+          </span>
+        </label>
+      )}
       <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <Field label={t('temporary.expectedStay')} hint={t('temporary.expectedStayHint')}>
           {(id) => (

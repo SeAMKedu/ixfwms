@@ -3,22 +3,15 @@ import { Blocks, Cpu, Package, Ruler, Wrench, createLucideIcon } from 'lucide-re
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { AmountPill, Pill, PlaceTag, StatusPill } from '../../components/ui';
-import { UnitCount, UnitStatusPill, UnitWhere } from '../../components/units';
-import { StockWhere } from './stock-where';
+import { PlaceCell, UnitCount, UnitStatusPill, UnitWhere } from '../../components/units';
+import { MultipleAmounts, StockAmounts, StockWhere } from './stock-where';
 
-function StockSummary({ part }: { part: PartSummary }) {
+/** Stock on one line. On a phone the row is a link, so several amounts wait for the item's page. */
+function StockSummary({ part, phone }: { part: PartSummary; phone?: boolean }) {
   if (part.tracking === 'individual') return <UnitCount units={part.units} />;
   if (part.stock.length === 0) return <AmountPill display="0" />;
-  return (
-    <span className="flex flex-wrap justify-end gap-1">
-      {part.stock.slice(0, 2).map((s, i) => (
-        <AmountPill key={i} display={s.display} />
-      ))}
-      {part.stock.length > 2 && (
-        <span className="text-[12px] text-muted">+{part.stock.length - 2}</span>
-      )}
-    </span>
-  );
+  if (phone && part.stock.length > 1) return <MultipleAmounts stock={part.stock} />;
+  return <StockAmounts stock={part.stock} />;
 }
 
 export type Row =
@@ -85,7 +78,9 @@ function RowName({ row }: { row: Row }) {
     return (
       <>
         <Blocks className="size-4 shrink-0 text-muted" aria-hidden />
-        <span className="truncate font-medium">{row.build.name}</span>
+        <span className="truncate font-medium" title={row.build.name}>
+          {row.build.name}
+        </span>
         <Pill tone={row.build.dismantledAt ? 'warn' : 'info'}>
           {row.build.dismantledAt ? t('builds.dismantledPill') : t('builds.build')}
         </Pill>
@@ -95,14 +90,18 @@ function RowName({ row }: { row: Row }) {
     return (
       <>
         <KindIcon part={row.part} />
-        <span className="truncate font-medium">{row.part.name}</span>
+        <span className="truncate font-medium" title={row.part.name}>
+          {row.part.name}
+        </span>
         <StatusPill status={row.part.status} />
       </>
     );
   return (
     <>
       <KindIcon part={row.part} />
-      <span className="truncate font-medium">{row.unit.name}</span>
+      <span className="truncate font-medium" title={row.unit.name}>
+        {row.unit.name}
+      </span>
       <UnitStatusPill status={row.unit.status} />
     </>
   );
@@ -138,7 +137,7 @@ export function SearchResults({ rows, selected }: { rows: Row[]; selected: numbe
               {row.kind === 'build' ? (
                 row.build.in && <PlaceTag place={row.build.in} />
               ) : row.kind === 'part' ? (
-                <StockSummary part={row.part} />
+                <StockSummary part={row.part} phone />
               ) : row.unit.loan ? (
                 <Pill tone={row.unit.loan.overdue ? 'crit' : 'warn'}>{t('units.lentOut')}</Pill>
               ) : (
@@ -150,14 +149,16 @@ export function SearchResults({ rows, selected }: { rows: Row[]; selected: numbe
       </ul>
       {/* Desktop: table */}
       <div className="hidden md:block overflow-x-auto rounded-xl border border-line bg-surface">
-        <table className="w-full text-[14px]">
+        <table className="w-full min-w-[40rem] table-fixed text-[14px]">
           <thead className="bg-surface-2 text-left font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
             <tr>
-              <th className="px-3 py-2 font-medium">{t('parts.columns.part')}</th>
-              <th className="px-3 py-2 font-medium">{t('parts.columns.maker')}</th>
-              <th className="px-3 py-2 font-medium">{t('parts.columns.where')}</th>
-              <th className="px-3 py-2 text-right font-medium">{t('parts.columns.stock')}</th>
-              <th className="px-3 py-2 font-medium">{t('parts.columns.tags')}</th>
+              <th className="w-[33%] px-3 py-2 font-medium">{t('parts.columns.part')}</th>
+              <th className="w-[15%] px-3 py-2 font-medium">{t('parts.columns.maker')}</th>
+              <th className="w-[19%] px-3 py-2 font-medium">{t('parts.columns.where')}</th>
+              <th className="w-[15%] px-3 py-2 text-right font-medium">
+                {t('parts.columns.stock')}
+              </th>
+              <th className="w-[18%] px-3 py-2 font-medium">{t('parts.columns.tags')}</th>
             </tr>
           </thead>
           <tbody>
@@ -172,17 +173,16 @@ export function SearchResults({ rows, selected }: { rows: Row[]; selected: numbe
                   className={`border-t border-line hover:bg-surface-2 ${i === selected ? 'bg-link-soft' : ''}`}
                 >
                   <td className="px-3 py-2">
-                    <Link
-                      to={row.href}
-                      className="inline-flex items-center gap-1.5 hover:underline"
-                    >
+                    <Link to={row.href} className="flex items-center gap-1.5 hover:underline">
                       <RowName row={row} />
                     </Link>
                   </td>
-                  <td className="px-3 py-2 text-muted">{p.manufacturer}</td>
+                  <td className="truncate px-3 py-2 text-muted" title={p.manufacturer ?? undefined}>
+                    {p.manufacturer}
+                  </td>
                   <td className="px-3 py-2">
                     {row.kind === 'unit' ? (
-                      <UnitWhere unit={row.unit} />
+                      <UnitWhere unit={row.unit} oneLine />
                     ) : (
                       <StockWhere stock={p.stock} />
                     )}
@@ -190,7 +190,9 @@ export function SearchResults({ rows, selected }: { rows: Row[]; selected: numbe
                   <td className="px-3 py-2 text-right">
                     {row.kind === 'part' && <StockSummary part={p} />}
                   </td>
-                  <td className="px-3 py-2 text-muted">{p.tags.join(', ')}</td>
+                  <td className="truncate px-3 py-2 text-muted" title={p.tags.join(', ')}>
+                    {p.tags.join(', ')}
+                  </td>
                 </tr>
               );
             })}
@@ -219,16 +221,18 @@ function BuildRow({
       className={`border-t border-line hover:bg-surface-2 ${i === selected ? 'bg-link-soft' : ''}`}
     >
       <td className="px-3 py-2">
-        <Link to={row.href} className="inline-flex items-center gap-1.5 hover:underline">
+        <Link to={row.href} className="flex items-center gap-1.5 hover:underline">
           <RowName row={row} />
         </Link>
       </td>
-      <td className="px-3 py-2 text-muted">{b.contact}</td>
+      <td className="truncate px-3 py-2 text-muted" title={b.contact ?? undefined}>
+        {b.contact}
+      </td>
       <td className="px-3 py-2">
         {b.in && (
-          <Link to={`/l/${b.in.code}`} title={b.in.name}>
-            <PlaceTag place={b.in} />
-          </Link>
+          <span className="flex min-w-0 text-[13px]">
+            <PlaceCell place={b.in} />
+          </span>
         )}
       </td>
       <td className="px-3 py-2 text-right text-muted">{t('builds.items', { count: b.items })}</td>

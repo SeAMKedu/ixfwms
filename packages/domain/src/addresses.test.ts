@@ -27,6 +27,18 @@ describe('addresses', () => {
     shortName,
     movable: false,
   });
+  it('starts at the deepest address root, for containers inside it too', () => {
+    const building = fixed('Building 1', 'B1');
+    const lab = { ...fixed('Robotics lab', 'RL'), addressRoot: true };
+    const shelf = [building, lab, fixed('Cabinet 1'), fixed('Shelf 2')];
+    expect(addressOf(shelf).address).toBe('RL-1-2');
+    expect(addressOf([building, lab]).address).toBe('RL');
+    expect(addressOf([building, lab]).parent).toBe('');
+    const box = { name: 'Screws', shortName: null, movable: true };
+    expect(addressOf([...shelf, box]).parent).toBe('RL-1-2');
+    expect(addressOf([building, fixed('Lab 2')]).address).toBe('B1-2');
+  });
+
   it('joins fixed places and leaves movable containers out', () => {
     const lab = fixed('Robotics lab', 'Robolab');
     const shelf = [lab, fixed('Cabinet A'), fixed('Shelf C')];

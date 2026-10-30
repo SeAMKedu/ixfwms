@@ -201,7 +201,7 @@ export function PlacePicker({
           onFocus={() => setOpen(true)}
           onBlur={() => setTimeout(() => commit(false), 120)}
           onKeyDown={onKey}
-          className="w-full min-w-0 bg-transparent py-2 text-[15px] text-ink outline-none placeholder:text-muted"
+          className="w-full min-w-0 bg-transparent py-2 text-[15px] text-ink !outline-none placeholder:text-muted"
         />
       </div>
       {open && (

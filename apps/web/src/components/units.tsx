@@ -9,9 +9,10 @@ import {
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
-import { getGuestName, setGuestName, useLabSettings } from '../api/queries';
+import { getGuestName, setGuestName, useLabSettings, usePlaces } from '../api/queries';
 import { useSession } from '../auth/session';
 import { formatDay } from '../lib/format';
+import { placeLabel } from '../lib/places';
 import { CodeLabel, Field, Pill, PlaceTag, TextInput } from './ui';
 
 const STATUS_TONE: Record<UnitStatus, 'ok' | 'warn' | 'crit' | 'muted'> = {
@@ -45,23 +46,63 @@ export function UnitCount({ units }: { units: UnitBrief[] }) {
 }
 
 /** A place in a list: its name and its code. */
-export function PlaceLink({ place }: { place: LocationSummary }) {
+function PlaceLink({ place }: { place: LocationSummary }) {
   return (
-    <Link to={`/l/${place.code}`} className="inline-flex items-center gap-1 hover:underline">
-      <span>{place.name}</span>
+    <Link
+      to={`/l/${place.code}`}
+      className="inline-flex max-w-full min-w-0 items-center gap-1 hover:underline"
+    >
+      <span className="truncate" title={place.name}>
+        {place.name}
+      </span>
       <PlaceTag place={place} />
     </Link>
   );
 }
 
-/** Where a unit is, in one line: here, or here but belongs there, or lent out. */
-export function UnitWhere({ unit }: { unit: UnitBrief }) {
+/**
+ * A place in a tight spot, where names alone can repeat ("Shelf 2"): its address first, then its
+ * name; a movable container shows the address of where it sits. Long text gives way, name first.
+ */
+export function PlaceLabel({ place }: { place: LocationSummary }) {
+  const tag =
+    place.movable && place.within ? { ...place, movable: false, address: place.within } : place;
+  return (
+    <>
+      <span className="flex max-w-[75%] shrink-0">
+        <PlaceTag place={tag} className="!block truncate" />
+      </span>
+      <span className="min-w-0 truncate">{place.name}</span>
+    </>
+  );
+}
+
+/** A place in a table cell: address and name on one line, the full path on hover. */
+export function PlaceCell({ place }: { place: LocationSummary }) {
+  const path = usePlaces().data?.find((p) => p.code === place.code);
+  return (
+    <Link
+      to={`/l/${place.code}`}
+      title={path ? placeLabel(path) : place.name}
+      className="flex max-w-full min-w-0 items-center gap-1.5 hover:underline"
+    >
+      <PlaceLabel place={place} />
+    </Link>
+  );
+}
+
+/**
+ * Where a unit is, in one line: here, or here but belongs there, or lent out. Wraps when it
+ * doesn't fit, or with oneLine (a table cell) cuts the text short instead.
+ */
+export function UnitWhere({ unit, oneLine }: { unit: UnitBrief; oneLine?: boolean }) {
   const { t } = useTranslation();
+  const line = `flex items-center gap-1.5 text-[13px] ${oneLine ? 'min-w-0' : 'flex-wrap'}`;
   if (unit.loan)
     return (
-      <span className="flex flex-wrap items-center gap-1.5 text-[13px]">
+      <span className={line}>
         <Pill tone={unit.loan.overdue ? 'crit' : 'warn'}>{t('units.lentOut')}</Pill>
-        <span className="text-muted">
+        <span className="truncate text-muted">
           {[
             unit.loan.responsible,
             unit.loan.dueAt && t('units.dueBack', { date: formatDay(unit.loan.dueAt) }),
@@ -72,10 +113,10 @@ export function UnitWhere({ unit }: { unit: UnitBrief }) {
       </span>
     );
   return (
-    <span className="flex flex-wrap items-center gap-1.5 text-[13px]">
-      <PlaceLink place={unit.location} />
+    <span className={line}>
+      {oneLine ? <PlaceCell place={unit.location} /> : <PlaceLink place={unit.location} />}
       {unit.home && !unit.atHome && (
-        <span className="inline-flex items-center gap-1 text-muted">
+        <span className="inline-flex shrink-0 items-center gap-1 text-muted">
           {t('units.belongsAt')}
           <Link to={`/l/${unit.home.code}`} className="hover:underline">
             <PlaceTag place={unit.home} />

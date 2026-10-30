@@ -18,6 +18,7 @@ import { locationMoves, locations, locationTypes } from '../db/schema.js';
 import { invalid, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
 import { allocateCode, claimCode } from './codes.js';
+import { addressClashes, checkAddressStart, checkShortName } from './place-addresses.js';
 import { audit, placeName, requireScope, type Actor } from './context.js';
 import { checkNotLent } from './loans.js';
 import { PlaceCopy } from './place-copy.js';
@@ -132,6 +133,7 @@ export class LocationService {
       description: input.description ?? null,
       code: input.code ?? null,
       shortName: input.shortName ?? null,
+      addressRoot: input.addressRoot,
       stayDays: input.stayDays ?? null,
       contact: input.contact ?? null,
     });
@@ -156,10 +158,24 @@ export class LocationService {
       if (input.contact !== undefined) patch.contact = input.contact ?? null;
       if (input.shortName !== undefined) {
         patch.shortName = input.shortName ?? null;
-        await this.checkShortName(tx, loc.parentId, patch.shortName, loc.id);
+        await checkShortName(tx, this, loc.parentId, patch.shortName, loc.id);
       }
       if (input.description !== undefined) patch.description = input.description ?? null;
-      if (input.type !== undefined) patch.typeId = (await this.typeByKey(tx, input.type)).id;
+      const type =
+        input.type !== undefined
+          ? await this.typeByKey(tx, input.type)
+          : await one(tx.select().from(locationTypes).where(eq(locationTypes.id, loc.typeId)));
+      if (input.type !== undefined) patch.typeId = type!.id;
+      if (input.addressRoot !== undefined) patch.addressRoot = input.addressRoot;
+      const shortName = patch.shortName === undefined ? loc.shortName : patch.shortName;
+      await checkAddressStart(tx, this, {
+        id: loc.id,
+        name: patch.name ?? loc.name,
+        shortName,
+        root: patch.addressRoot ?? loc.addressRoot,
+        topLevel: !loc.parentId,
+        movable: type?.movable ?? false,
+      });
       await tx.update(locations).set(patch).where(eq(locations.id, loc.id));
       await audit(tx, who, 'update', 'location', loc.id, { ...input });
       return this.summarize(tx, await this.resolve(loc.id, tx));
@@ -340,6 +356,7 @@ export class LocationService {
     const part = (r: LocationRow) => ({
       name: placeName(r),
       shortName: r.shortName,
+      addressRoot: r.addressRoot,
       movable: types.get(r.typeId)?.movable ?? false,
     });
     return rows.map((r) => {
@@ -363,6 +380,7 @@ export class LocationService {
         type: types.get(r.typeId)?.key ?? 'unknown',
         kind: r.kind,
         shortName: r.shortName,
+        addressRoot: r.addressRoot,
         short,
         movable: part(r).movable,
         address,
@@ -426,38 +444,9 @@ export class LocationService {
     return new TemporaryPlaces(this.db, this).overdue();
   }
 
-  /** Fixed places next to `loc` whose short name is the same, so their addresses are too. */
-  async clashes(loc: LocationRow): Promise<LocationSummary[]> {
-    const siblings = await many(
-      this.db
-        .select()
-        .from(locations)
-        .where(loc.parentId ? eq(locations.parentId, loc.parentId) : isNull(locations.parentId)),
-    );
-    const all = await this.summaries(this.db, siblings);
-    const own = all.find((s) => s.id === loc.id);
-    if (!own || own.movable) return [];
-    return all.filter((s) => s.id !== loc.id && !s.movable && s.short === own.short);
-  }
-
-  /** An explicitly set short name must differ from the fixed places next to it. */
-  private async checkShortName(
-    ex: Executor,
-    parentId: string | null,
-    shortName: string | null,
-    selfId: string | null,
-  ): Promise<void> {
-    if (!shortName) return;
-    const siblings = await many(
-      ex
-        .select()
-        .from(locations)
-        .where(parentId ? eq(locations.parentId, parentId) : isNull(locations.parentId)),
-    );
-    const taken = (await this.summaries(ex, siblings)).find(
-      (s) => s.id !== selfId && !s.movable && s.short.toLowerCase() === shortName.toLowerCase(),
-    );
-    if (taken) throw invalid('places.shortNameTaken', { name: taken.name, short: taken.short });
+  /** Fixed places whose addresses are the same as `loc`'s. */
+  clashes(loc: LocationRow): Promise<LocationSummary[]> {
+    return addressClashes(this.db, this, loc);
   }
 
   private async typeByKey(ex: Executor, key: string) {
@@ -483,6 +472,7 @@ export class LocationService {
       ownerUserId?: string;
       code?: string | null;
       shortName?: string | null;
+      addressRoot?: boolean;
       stayDays?: number | null;
       contact?: string | null;
     },
@@ -494,7 +484,15 @@ export class LocationService {
     }
     if (parent) await this.checkOpen(parent, ex);
     if (type.movable === false)
-      await this.checkShortName(ex, parent?.id ?? null, input.shortName ?? null, null);
+      await checkShortName(ex, this, parent?.id ?? null, input.shortName ?? null, null);
+    await checkAddressStart(ex, this, {
+      id: null,
+      name: input.name,
+      shortName: input.shortName ?? null,
+      root: input.addressRoot ?? false,
+      topLevel: !parent,
+      movable: type.movable,
+    });
     const id = newId();
     const row = {
       id,
@@ -507,6 +505,7 @@ export class LocationService {
       path: `${parent?.path ?? '/'}${id}/`,
       ownerUserId: input.ownerUserId ?? null,
       shortName: input.shortName ?? null,
+      addressRoot: input.addressRoot ?? false,
       stayDays: input.stayDays ?? null,
       contact: input.contact ?? null,
       lastActivityAt: nowIso(),

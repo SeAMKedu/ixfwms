@@ -11,6 +11,7 @@ import { SearchPage } from './search';
 
 const NO_ADDRESS = {
   shortName: null,
+  addressRoot: false,
   short: '',
   movable: false,
   address: '',
@@ -145,6 +146,76 @@ describe('search page', () => {
     // The heading and Load more count rows, not parts.
     expect(screen.getByText('3 items')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Load more' })).toBeTruthy();
+  });
+
+  it('shows several amounts as one label that lists them on hover', async () => {
+    const place = {
+      id: 'S1',
+      code: 'S1S1',
+      name: 'Rack',
+      type: 'shelf' as const,
+      kind: 'normal' as const,
+      ...NO_ADDRESS,
+    };
+    const amount = (display: string) => ({
+      display,
+      location: 'Rack',
+      locationCode: 'S1S1',
+      place,
+    });
+    renderAt('/', [{ path: '/', element: <SearchPage /> }], {
+      '/api/parts': {
+        rows: [{ partId: 'P1', unitId: null }],
+        total: 1,
+        builds: [],
+        items: [
+          part({
+            id: 'P1',
+            code: 'P1P1',
+            name: 'Alu profile',
+            stock: [amount('500 mm'), amount('2 × 150 mm')],
+          }),
+        ],
+      },
+      '/api/categories': [],
+      '/api/tags': [],
+    });
+    await userEvent.hover(await screen.findByRole('button', { name: 'Multiple (2)' }));
+    expect(screen.getByText('2 × 150 mm')).toBeTruthy();
+    expect(screen.getByRole('link', { name: /2 × 150 mm/ }).getAttribute('href')).toBe('/l/S1S1');
+  });
+
+  it('filters by kind pill, a searched category and several tags', async () => {
+    const { router } = renderAt('/?tag=Demo', [{ path: '/', element: <SearchPage /> }], {
+      '/api/parts': { rows: [], items: [], builds: [], total: 0 },
+      '/api/categories': [{ path: 'Pneumatics/Vacuum', parts: 3, ownParts: 3, fields: 0 }],
+      '/api/tags': [
+        { name: 'Demo', parts: 2 },
+        { name: 'Spare', parts: 1 },
+      ],
+    });
+    expect(await screen.findByText('Demo')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Tools' }));
+    expect(router.state.location.search).toContain('kind=tool');
+    await userEvent.click(screen.getByRole('button', { name: 'Tools' }));
+    expect(router.state.location.search).not.toContain('kind=');
+
+    await userEvent.type(screen.getByRole('combobox', { name: 'Category' }), 'vacu');
+    await userEvent.click(await screen.findByRole('option', { name: /Pneumatics\/Vacuum/ }));
+    expect(new URLSearchParams(router.state.location.search).get('category')).toBe(
+      'Pneumatics/Vacuum',
+    );
+
+    const tags = screen.getByRole('combobox', { name: 'Tag' });
+    await userEvent.type(tags, 'spa');
+    await waitFor(() => expect(screen.getByRole('option', { name: /Spare/ })).toBeTruthy());
+    await userEvent.keyboard('{Enter}');
+    expect(new URLSearchParams(router.state.location.search).getAll('tag')).toEqual([
+      'Demo',
+      'Spare',
+    ]);
+    await userEvent.click(screen.getByRole('button', { name: 'Remove Demo' }));
+    expect(new URLSearchParams(router.state.location.search).getAll('tag')).toEqual(['Spare']);
   });
 });
 

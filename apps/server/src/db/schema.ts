@@ -105,6 +105,8 @@ export const locations = sqliteTable(
     name: text('name').notNull(),
     /** For the address ("A" in "Robolab-A-C"); null = guessed from the name. */
     shortName: text('short_name'),
+    /** The address starts here: the places above it (building, floor) stay out of it. */
+    addressRoot: integer('address_root', { mode: 'boolean' }).notNull().default(false),
     /** Expected stay in days: null = the type's, 0 = not temporary. */
     stayDays: integer('stay_days'),
     /** Who to ask about a temporary place ("whose pallet is this?"). */

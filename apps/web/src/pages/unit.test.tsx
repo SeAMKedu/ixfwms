@@ -12,6 +12,7 @@ const place = (code: string, name: string, workstation = false): LocationSummary
   type: workstation ? 'workstation' : 'shelf',
   kind: 'normal',
   shortName: null,
+  addressRoot: false,
   short: '',
   movable: false,
   address: '',

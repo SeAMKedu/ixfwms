@@ -22,7 +22,7 @@ export function SearchPage() {
   const q = params.get('q') ?? '';
   const status = (params.get('status') as PartStatus | null) ?? undefined;
   const category = params.get('category') ?? undefined;
-  const tag = params.get('tag') ?? undefined;
+  const tags = params.getAll('tag');
   const kind = (params.get('kind') as SearchKind | null) ?? undefined;
   const inStock = params.get('inStock') === '1' ? true : undefined;
   const lowStock = params.get('lowStock') === '1' ? true : undefined;
@@ -56,7 +56,7 @@ export function SearchPage() {
     q: q || undefined,
     status,
     category,
-    tag,
+    tag: tags,
     location: place,
     kind,
     inStock,
@@ -127,7 +127,7 @@ export function SearchPage() {
           }}
           placeholder={t('parts.searchPlaceholder')}
           aria-label={t('parts.searchLabel')}
-          className="w-full bg-transparent py-2.5 text-[15px] outline-none"
+          className="w-full bg-transparent py-2.5 text-[15px] !outline-none"
         />
       </div>
       <SearchFilters params={params} onChange={update} />
@@ -137,7 +137,15 @@ export function SearchPage() {
         <Loading />
       ) : parts.data && rows.length === 0 ? (
         <Empty>
-          {q || place || status || category || tag || kind || inStock || lowStock || uncounted
+          {q ||
+          place ||
+          status ||
+          category ||
+          tags.length ||
+          kind ||
+          inStock ||
+          lowStock ||
+          uncounted
             ? t('parts.empty')
             : t('parts.emptyAll')}
           {place && (

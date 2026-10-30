@@ -31,6 +31,8 @@ export interface LocationSummary {
   kind: LocationKind;
   /** Short name as set, or null when it's guessed from the name. */
   shortName: string | null;
+  /** The address starts here: places above it stay out of it. */
+  addressRoot: boolean;
   /** Short name in use, e.g. "C": set, or guessed for fixed places; "" for a container without one. */
   short: string;
   /** Containers (boxes, bins, pallets) move around and aren't part of addresses. */

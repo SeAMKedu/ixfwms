@@ -8,6 +8,75 @@ beforeEach(async () => {
 afterEach(async () => env.cleanup());
 
 describe('place addresses', () => {
+  it('keeps addresses when a building goes above an address root', async () => {
+    const { locations } = env.services;
+    const lab = await locations.create(
+      { name: 'Robotics lab', type: 'room', shortName: 'RL', addressRoot: true },
+      env.admin,
+    );
+    const cabinet = await locations.create(
+      { name: 'Cabinet 1', type: 'cabinet', parent: lab.code },
+      env.admin,
+    );
+    const building = await locations.create(
+      { name: 'Building 1', type: 'building', shortName: 'B1' },
+      env.admin,
+    );
+    await locations.move(lab.code, building.code, env.admin);
+    const addressNow = async () =>
+      (await locations.pathOf(await locations.resolve(cabinet.code))).at(-1)!.address;
+    expect(await addressNow()).toBe('RL-1');
+
+    // Unmarked, the levels above come back.
+    await locations.update(lab.code, { addressRoot: false }, env.admin);
+    expect(await addressNow()).toBe('B1-RL-1');
+  });
+
+  it('keeps short names unique where addresses start', async () => {
+    const { locations } = env.services;
+    const b1 = await locations.create({ name: 'Building 1', type: 'building' }, env.admin);
+    const b2 = await locations.create({ name: 'Building 2', type: 'building' }, env.admin);
+    const root = { type: 'room', shortName: 'RL', addressRoot: true };
+    const lab = await locations.create({ ...root, name: 'Lab', parent: b1.code }, env.admin);
+    await expect(
+      locations.create({ ...root, name: 'Other', parent: b2.code }, env.admin),
+    ).rejects.toThrow(/already starts with RL/);
+    // Top-level places start addresses as well.
+    await expect(
+      locations.create({ name: 'Annex', type: 'room', shortName: 'rl' }, env.admin),
+    ).rejects.toThrow(/already starts with RL/);
+    const other = await locations.create(
+      { name: 'Other', type: 'room', shortName: 'RL', parent: b2.code },
+      env.admin,
+    );
+    await expect(locations.update(other.code, { addressRoot: true }, env.admin)).rejects.toThrow(
+      /already starts with RL/,
+    );
+    // Its own short name isn't a clash, and a guessed one counts too.
+    await locations.update(lab.code, { shortName: 'RL', addressRoot: true }, env.admin);
+    const guess = await locations.create(
+      { name: 'Robotics lab', type: 'room', parent: b2.code },
+      env.admin,
+    );
+    await expect(locations.update(guess.code, { addressRoot: true }, env.admin)).rejects.toThrow(
+      /already starts with RL/,
+    );
+  });
+
+  it('never starts an address at a movable place, and copies are not roots', async () => {
+    const { locations } = env.services;
+    await expect(
+      locations.create({ name: 'Bin', type: 'box', addressRoot: true }, env.admin),
+    ).rejects.toThrow(/movable/);
+    const lab = await locations.create(
+      { name: 'Lab', type: 'room', shortName: 'L1', addressRoot: true },
+      env.admin,
+    );
+    await expect(locations.update(lab.code, { type: 'box' }, env.admin)).rejects.toThrow(/movable/);
+    const [copy] = await locations.duplicate(lab.code, { count: 1 }, env.admin);
+    expect(copy!.addressRoot).toBe(false);
+  });
+
   it('builds addresses from fixed places and keeps containers out of them', async () => {
     const { locations } = env.services;
     const lab = await locations.create(

@@ -9,6 +9,7 @@ const place = (code: string, ...path: string[]): PlaceOption => ({
   type: 'box',
   kind: 'normal',
   shortName: null,
+  addressRoot: false,
   short: '',
   movable: false,
   address: '',

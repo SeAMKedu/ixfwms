@@ -63,7 +63,8 @@ export interface PartFilters {
   status?: PartStatus;
   kind?: SearchKind;
   category?: string;
-  tag?: string;
+  /** Only items with all of these. */
+  tag?: string[];
   location?: string;
   inStock?: boolean;
   lowStock?: boolean;

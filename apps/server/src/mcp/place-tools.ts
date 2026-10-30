@@ -1,4 +1,5 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { AddressRootSchema } from '@ixfwms/domain';
 import { z } from 'zod';
 import type { Actor, Services } from '../services/index.js';
 import { read, tool, write } from './tool.js';
@@ -98,6 +99,7 @@ export function registerPlaceTools(
           .describe(
             'Short name for the address, e.g. "A" for Cabinet A; omit to guess it from the name',
           ),
+        addressRoot: AddressRootSchema,
         description: z.string().optional(),
         stayDays: z
           .number()
@@ -124,6 +126,7 @@ export function registerPlaceTools(
           description: a.description ?? null,
           code: a.code ?? null,
           shortName: a.shortName ?? null,
+          addressRoot: a.addressRoot,
           stayDays: a.stayDays,
           contact: a.contact ?? null,
         },

@@ -25,12 +25,18 @@ const AttrQuery = z.union([z.string(), z.array(z.string())]).transform((v, ctx) 
   }),
 );
 
-const SearchQuery = PartSearchInput.omit({ attributes: true }).extend({
+const SearchQuery = PartSearchInput.omit({ attributes: true, tags: true }).extend({
   inStock: QueryBool.optional(),
   lowStock: QueryBool.optional(),
   uncounted: QueryBool.optional(),
   byUnit: QueryBool.default(true),
   attr: AttrQuery.optional(),
+  /** `?tag=a&tag=b`: items with all of them. */
+  tag: z
+    .union([z.string(), z.array(z.string())])
+    .transform((v) => (Array.isArray(v) ? v : [v]))
+    .pipe(PartSearchInput.shape.tags.unwrap())
+    .optional(),
   limit: z.coerce.number().int().min(1).max(200).default(50),
   offset: z.coerce.number().int().min(0).default(0),
 });
@@ -39,8 +45,8 @@ export function registerPartRoutes(app: FastifyInstance, { services }: AppDeps):
   const { parts, categories } = services;
 
   app.get('/api/parts', async (request) => {
-    const { attr, ...q } = parse(SearchQuery, request.query);
-    return parts.search({ ...q, attributes: attr });
+    const { attr, tag, ...q } = parse(SearchQuery, request.query);
+    return parts.search({ ...q, tags: tag, attributes: attr });
   });
 
   app.get('/api/parts/:ref', async (request) => parts.get(parse(RefParams, request.params).ref));

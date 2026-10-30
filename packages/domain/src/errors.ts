@@ -78,6 +78,8 @@ export const ERROR_MESSAGES = {
   'places.intoItself': "Can't move {{name}} into itself or into something inside it",
   'places.typeInUse': 'Places of type {{type}} exist; change their type first',
   'places.shortNameTaken': '{{name}} next to it already has the short name {{short}}',
+  'places.addressStartTaken': 'The address of {{name}} already starts with {{short}}',
+  'places.rootMustBeFixed': "An address can't start at a movable place like {{name}}",
   'places.unknownType': 'Unknown location type "{{key}}". Known types: {{known}}',
   'places.cantCreateInside': "Locations can't be created inside {{name}}",
 

@@ -81,7 +81,7 @@ export function createMcpServer(
           ),
         kind: z.enum(SEARCH_KINDS).optional().describe('part, tool, device, or build'),
         category: z.string().optional().describe('Category path prefix, e.g. "Pneumatics/Vacuum"'),
-        tag: z.string().optional().describe('Tag or project name'),
+        tags: z.array(z.string()).optional().describe('Tag or project names, all of them'),
         status: z.enum(PART_STATUSES).optional(),
         location: z.string().optional().describe('Only parts stored in this place or below it'),
         inStock: z.boolean().optional(),

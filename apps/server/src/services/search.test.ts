@@ -98,7 +98,13 @@ describe('search results', () => {
     const found = async (input: object) => (await names({ limit: 50, offset: 0, ...input })).rows;
     expect(await found({ q: 'sähkö' })).toEqual(['SÄHKÖKAAPPI']);
     expect(await found({ category: 'SÄHKÖ' })).toEqual(['SÄHKÖKAAPPI']);
-    expect(await found({ tag: 'ÄÄNITYS' })).toEqual(['SÄHKÖKAAPPI']);
+    expect(await found({ tags: ['ÄÄNITYS'] })).toEqual(['SÄHKÖKAAPPI']);
+    expect(await found({ tags: ['ÄÄNITYS', 'Ei ole'] })).toEqual([]);
+    await parts.create(
+      { ...active, name: 'Mikrofoni', tags: ['Äänitys', 'Lainattava'] },
+      env.admin,
+    );
+    expect(await found({ tags: ['äänitys', 'lainattava'] })).toEqual(['Mikrofoni']);
     expect(await found({ q: '100%' })).toEqual(['Grease 100% silicone']);
     // A renamed part is found by its new name only.
     const cabinet = (await parts.search({ q: 'sähkö', limit: 1, offset: 0 })).items[0]!;

@@ -101,7 +101,16 @@
       "anyTag": "Kaikki tunnisteet",
       "lowStock": "Vähissä",
       "kind": "Laji",
-      "anyKind": "Kaikki lajit",
+      "kinds": {
+        "part": "Osat",
+        "tool": "Työkalut",
+        "device": "Laitteet",
+        "build": "Rakennelmat"
+      },
+      "status": "Tila",
+      "stock": "Varasto",
+      "noMatch": "Ei osumia",
+      "remove": "Poista {{name}}",
       "uncounted": "Laskematta",
       "place": "Paikka",
       "anyPlace": "Mikä tahansa paikka"
@@ -116,6 +125,7 @@
     "empty": "Ei hakua vastaavia tavaroita.",
     "emptyAll": "Ei vielä tavaroita. Lisää tavara, tai anna AI-avustajan täyttää Saapuneet tilausvahvistuksista.",
     "multiplePlaces": "Useita paikkoja ({{count}})",
+    "multipleAmounts": "Useita ({{count}})",
     "searchEverywhere": "Hae kaikista paikoista."
   },
   "part": {
@@ -262,7 +272,9 @@
     "codeHint": "QR-tarran koodi; se ei muutu koskaan",
     "shortName": "Lyhyt nimi",
     "shortNameHint": "Osoitetta varten, esim. A tai A140.1",
-    "clash": "Viereisellä paikalla {{names}} on sama lyhyt nimi, joten osoite {{address}} ei ole yksilöllinen. Anna toiselle niistä eri lyhyt nimi."
+    "addressRoot": "Osoite alkaa tästä",
+    "addressRootHint": "Laboratoriolle tai huoneelle: yläpuolinen rakennus ja kerros jäävät pois osoitteesta, joten niiden lisääminen myöhemmin ei muuta mitään. Lyhenteen on oltava yksilöllinen näiden paikkojen kesken. Jos paikan yläpuolella on tasoja, valinnan muuttaminen muuttaa osoitteita, joten tulosta sen tarrat uudelleen.",
+    "clash": "Paikalla {{names}} on sama lyhyt nimi, joten osoite {{address}} ei ole yksilöllinen. Anna toiselle niistä eri lyhyt nimi."
   },
   "inbox": {
     "title": "Saapuneet",
@@ -1137,6 +1149,8 @@
       "cantMove": "Paikkaa {{name}} ei voi siirtää",
       "intoItself": "Paikkaa {{name}} ei voi siirtää itseensä eikä sen sisällä olevaan",
       "typeInUse": "Tyypin {{type}} paikkoja on olemassa; vaihda ensin niiden tyyppi",
+      "addressStartTaken": "Paikan {{name}} osoite alkaa jo lyhenteellä {{short}}",
+      "rootMustBeFixed": "Osoite ei voi alkaa siirrettävästä paikasta {{name}}",
       "shortNameTaken": "Viereisellä paikalla {{name}} on jo lyhenne {{short}}",
       "unknownType": "Tuntematon paikkatyyppi \"{{key}}\". Tunnetut tyypit: {{known}}",
       "cantCreateInside": "Paikan {{name}} sisään ei voi luoda paikkoja",
@@ -1244,7 +1258,6 @@
     }
   },
   "builds": {
-    "kindFilter": "Rakennelmat",
     "build": "Rakennelma",
     "dismantledPill": "purettu",
     "items_one": "{{count}} asia sisällä",

@@ -205,19 +205,22 @@ export class PartSearch {
           : NOTHING,
       );
     }
-    if (input.tag) {
-      const wanted = fold(input.tag);
-      const tag = (await many(this.db.select().from(tags))).find((t) => fold(t.name) === wanted);
-      where.push(
-        tag
-          ? exists(
-              this.db
-                .select({ one: sql`1` })
-                .from(partTags)
-                .where(and(eq(partTags.partId, parts.id), eq(partTags.tagId, tag.id))),
-            )
-          : NOTHING,
-      );
+    if (input.tags?.length) {
+      const known = await many(this.db.select().from(tags));
+      for (const name of input.tags) {
+        const wanted = fold(name);
+        const tag = known.find((t) => fold(t.name) === wanted);
+        where.push(
+          tag
+            ? exists(
+                this.db
+                  .select({ one: sql`1` })
+                  .from(partTags)
+                  .where(and(eq(partTags.partId, parts.id), eq(partTags.tagId, tag.id))),
+              )
+            : NOTHING,
+        );
+      }
     }
     if (input.location) {
       const loc = await this.locations.resolve(input.location);
@@ -368,7 +371,7 @@ function hasItemFilters(input: SearchInput): boolean {
   return !!(
     input.status ||
     input.category ||
-    input.tag ||
+    input.tags?.length ||
     input.inStock !== undefined ||
     input.lowStock ||
     input.uncounted ||

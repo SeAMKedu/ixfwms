@@ -110,7 +110,7 @@ describe('parts and stock', () => {
       (await env.services.parts.search({ category: 'pneumatics', limit: 10, offset: 0 })).total,
     ).toBe(1);
     expect(
-      (await env.services.parts.search({ tag: 'gripper v2', limit: 10, offset: 0 })).total,
+      (await env.services.parts.search({ tags: ['gripper v2'], limit: 10, offset: 0 })).total,
     ).toBe(1);
   });
 
