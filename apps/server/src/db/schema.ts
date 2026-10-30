@@ -356,6 +356,7 @@ export const units = sqliteTable(
     purchaseDate: text('purchase_date'),
     purchaseValueCents: integer('purchase_value_cents'),
     costCenter: text('cost_center'),
+    usefulLifeYears: integer('useful_life_years'),
     lastSeenAt: text('last_seen_at').notNull(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),

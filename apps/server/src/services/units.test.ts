@@ -303,7 +303,12 @@ describe('purchase details', () => {
     );
     await units.update(
       unit!.code,
-      { purchaseDate: '2024-03-01', purchaseValueCents: 123450, costCenter: '4100' },
+      {
+        purchaseDate: '2024-03-01',
+        purchaseValueCents: 123450,
+        costCenter: '4100',
+        usefulLifeYears: 5,
+      },
       env.admin,
     );
     const member = { authorization: `Bearer ${env.inventoryToken}` };
@@ -315,6 +320,7 @@ describe('purchase details', () => {
       date: '2024-03-01',
       valueCents: 123450,
       costCenter: '4100',
+      usefulLifeYears: 5,
     });
 
     expect((await env.app.inject({ url: '/api/write-offs' })).statusCode).toBe(401);

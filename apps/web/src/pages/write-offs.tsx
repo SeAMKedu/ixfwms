@@ -20,17 +20,20 @@ function downloadCsv(header: string[], rows: string[][]) {
   const url = URL.createObjectURL(new Blob([`\uFEFF${text}\r\n`], { type: 'text/csv' }));
   const link = document.createElement('a');
   link.href = url;
-  link.download = 'write-offs.csv';
+  link.download = 'depreciation-list.csv';
   link.click();
   URL.revokeObjectURL(url);
 }
 
-/** Finance's list: what has been removed from use, or everything with purchase details. */
+const hasDetails = ({ purchase: p }: WriteOffRow) =>
+  !!p.date || p.valueCents != null || !!p.costCenter || p.usefulLifeYears != null;
+
+/** Finance's list, for depreciation: everything with purchase details, or what has been removed. */
 export function WriteOffsPage() {
   const { t, i18n } = useTranslation();
   const { user, checking, can } = useSession();
   const list = useWriteOffs();
-  const [all, setAll] = useState(false);
+  const [all, setAll] = useState(true);
   const [center, setCenter] = useState('');
   if (!checking && !user) return <Navigate to="/login?next=/write-offs" replace />;
 
@@ -38,7 +41,7 @@ export function WriteOffsPage() {
   const centers = [...new Set(rows.flatMap((r) => r.purchase.costCenter ?? []))].sort();
   const shown = rows.filter(
     (r) =>
-      (all || r.status === 'archived' || r.status === 'lost') &&
+      (all ? hasDetails(r) : r.status === 'archived' || r.status === 'lost') &&
       (!center || r.purchase.costCenter === center),
   );
   const total = shown.reduce((sum, r) => sum + (r.purchase.valueCents ?? 0), 0);
@@ -52,6 +55,7 @@ export function WriteOffsPage() {
     r.purchase.costCenter ?? '',
     r.purchase.date ?? '',
     r.purchase.valueCents != null ? money(r.purchase.valueCents) : '',
+    r.purchase.usefulLifeYears?.toString() ?? '',
     r.removedAt?.slice(0, 10) ?? '',
   ];
   const header = [
@@ -62,6 +66,7 @@ export function WriteOffsPage() {
     t('finance.costCenter'),
     t('finance.date'),
     t('finance.value'),
+    t('finance.usefulLife'),
     t('finance.removedAt'),
   ];
 
@@ -75,8 +80,8 @@ export function WriteOffsPage() {
           onChange={(e) => setAll(e.target.value === 'all')}
           className="!w-auto !py-1 text-[13px]"
         >
-          <option value="removed">{t('finance.removedOnly')}</option>
           <option value="all">{t('finance.all')}</option>
+          <option value="removed">{t('finance.removedOnly')}</option>
         </Select>
         <Select
           aria-label={t('finance.costCenter')}
@@ -134,6 +139,7 @@ export function WriteOffsPage() {
                   <td className="px-3 py-2 text-right tabular">
                     {r.purchase.valueCents != null && formatEuros(r.purchase.valueCents)}
                   </td>
+                  <td className="px-3 py-2 tabular">{r.purchase.usefulLifeYears}</td>
                   <td className="px-3 py-2 tabular">{r.removedAt && formatDay(r.removedAt)}</td>
                 </tr>
               ))}
@@ -144,7 +150,7 @@ export function WriteOffsPage() {
                   {t('finance.total')}
                 </td>
                 <td className="px-3 py-2 text-right tabular">{formatEuros(total)}</td>
-                <td />
+                <td colSpan={2} />
               </tr>
             </tfoot>
           </table>

@@ -8,8 +8,8 @@ import { purchaseOf } from './unit-views.js';
 const REMOVED = ['archived', 'lost'];
 
 /**
- * The list finance asks for ("poistolista"): tools and devices with purchase details, or that
- * have been removed from use, with when that happened (from the unit's log).
+ * The list finance asks for ("poistolista"), for working out depreciation: tools and devices with
+ * purchase details, or that have been removed from use, with when (from the unit's log).
  */
 export class WriteOffService {
   constructor(private readonly db: Db) {}
@@ -37,7 +37,8 @@ export class WriteOffService {
           REMOVED.includes(u.status) ||
           u.purchaseDate ||
           u.purchaseValueCents != null ||
-          u.costCenter,
+          u.costCenter ||
+          u.usefulLifeYears != null,
       )
       .map(({ unit: u, part }) => ({
         code: u.code,

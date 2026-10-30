@@ -370,6 +370,13 @@ export const UpdateUnitInput = z.object({
     .nullish()
     .describe('What it cost, in euro cents'),
   costCenter: z.string().trim().max(60).nullish().describe('Cost center (kustannuspaikka)'),
+  usefulLifeYears: z
+    .number()
+    .int()
+    .min(1)
+    .max(100)
+    .nullish()
+    .describe('Estimated useful life in years, for depreciation'),
 });
 export type UpdateUnitInput = z.infer<typeof UpdateUnitInput>;
 

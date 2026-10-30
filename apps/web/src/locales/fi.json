@@ -693,7 +693,7 @@
     "next": "Uusi salasana",
     "change": "Vaihda salasana",
     "changed": "Salasana vaihdettu.",
-    "home": "Kotipaikka",
+    "home": "Oletuspaikka",
     "homeHint": "Haut rajataan aluksi tähän paikkaan ja kaikkeen sen sisällä. Voit aina hakea muualtakin."
   },
   "history": {
@@ -1356,6 +1356,9 @@
     "total": "Yhteensä",
     "csv": "Lataa CSV",
     "empty": "Ei listattavaa.",
-    "meta": "Arkistoidut tai kadonneiksi merkityt työkalut ja laitteet."
+    "meta": "Työkalut ja laitteet, joilla on hankintatiedot.",
+    "usefulLife": "Taloudellinen käyttöikä (vuotta)",
+    "years_one": "{{count}} vuosi",
+    "years_other": "{{count}} vuotta"
   }
 }

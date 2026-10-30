@@ -5,6 +5,8 @@ export interface UnitPurchase {
   date: string | null;
   valueCents: number | null;
   costCenter: string | null;
+  /** Estimate, for working out depreciation. */
+  usefulLifeYears: number | null;
 }
 
 /** One line of the write-off list: a unit with its purchase details and whether it's gone. */

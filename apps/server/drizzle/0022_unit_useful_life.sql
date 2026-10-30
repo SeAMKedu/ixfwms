@@ -1,0 +1,1 @@
+ALTER TABLE `units` ADD `useful_life_years` integer;

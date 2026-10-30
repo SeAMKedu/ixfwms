@@ -27,9 +27,17 @@ export function eventView(
 }
 
 export function purchaseOf(
-  u: Pick<typeof units.$inferSelect, 'purchaseDate' | 'purchaseValueCents' | 'costCenter'>,
+  u: Pick<
+    typeof units.$inferSelect,
+    'purchaseDate' | 'purchaseValueCents' | 'costCenter' | 'usefulLifeYears'
+  >,
 ): UnitPurchase {
-  return { date: u.purchaseDate, valueCents: u.purchaseValueCents, costCenter: u.costCenter };
+  return {
+    date: u.purchaseDate,
+    valueCents: u.purchaseValueCents,
+    costCenter: u.costCenter,
+    usefulLifeYears: u.usefulLifeYears,
+  };
 }
 
 /** Members see what things cost; nobody else does. */
@@ -47,6 +55,7 @@ export function purchasePatch(input: UpdateUnitInput): Partial<typeof units.$inf
   if (input.purchaseValueCents !== undefined)
     patch.purchaseValueCents = input.purchaseValueCents ?? null;
   if (input.costCenter !== undefined) patch.costCenter = input.costCenter ?? null;
+  if (input.usefulLifeYears !== undefined) patch.usefulLifeYears = input.usefulLifeYears ?? null;
   return patch;
 }
 

@@ -87,6 +87,11 @@ export function Details({ unit }: { unit: UnitDetail }) {
         )}
         {row(t('finance.costCenter'), unit.purchase?.costCenter)}
         {row(
+          t('finance.usefulLife'),
+          unit.purchase?.usefulLifeYears != null &&
+            t('finance.years', { count: unit.purchase.usefulLifeYears }),
+        )}
+        {row(
           t('part.notes'),
           unit.notes && <span className="whitespace-pre-wrap">{unit.notes}</span>,
         )}
@@ -137,6 +142,7 @@ function EditDetails({ unit, onDone }: { unit: UnitDetail; onDone: () => void })
     purchaseValue:
       unit.purchase?.valueCents != null ? (unit.purchase.valueCents / 100).toFixed(2) : '',
     costCenter: unit.purchase?.costCenter ?? '',
+    usefulLife: unit.purchase?.usefulLifeYears?.toString() ?? '',
   });
   const costCenters = [
     ...new Set((useWriteOffs().data ?? []).flatMap((r) => r.purchase.costCenter ?? [])),
@@ -172,6 +178,7 @@ function EditDetails({ unit, onDone }: { unit: UnitDetail; onDone: () => void })
       purchaseDate: form.purchaseDate || null,
       purchaseValueCents: parseEuros(form.purchaseValue),
       costCenter: form.costCenter.trim() || null,
+      usefulLifeYears: form.usefulLife ? Number(form.usefulLife) : null,
     });
     onDone();
   };
@@ -223,7 +230,7 @@ function EditDetails({ unit, onDone }: { unit: UnitDetail; onDone: () => void })
           {text('macAddress', t('units.mac'))}
         </div>
         <p className="text-[12px] text-muted">{t('units.networkHint')}</p>
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-2">
           <Field label={t('finance.date')}>
             {(id) => (
               <TextInput
@@ -260,6 +267,19 @@ function EditDetails({ unit, onDone }: { unit: UnitDetail; onDone: () => void })
                   ))}
                 </datalist>
               </>
+            )}
+          </Field>
+          <Field label={t('finance.usefulLife')}>
+            {(id) => (
+              <TextInput
+                id={id}
+                type="number"
+                min={1}
+                max={100}
+                step={1}
+                value={form.usefulLife}
+                onChange={(e) => set({ usefulLife: e.target.value })}
+              />
             )}
           </Field>
         </div>

@@ -30,7 +30,7 @@
     "settings": "Settings",
     "network": "Network list",
     "builds": "Builds",
-    "writeOffs": "Write-off list"
+    "writeOffs": "Depreciation list"
   },
   "common": {
     "save": "Save",
@@ -693,8 +693,8 @@
     "next": "New password",
     "change": "Change password",
     "changed": "Password changed.",
-    "home": "Home place",
-    "homeHint": "Searches start limited to this place, with everything inside it. You can always search elsewhere."
+    "home": "Default location",
+    "homeHint": "Searches start limited to this location, with everything inside it. You can always search elsewhere."
   },
   "history": {
     "title": "History",
@@ -1147,7 +1147,7 @@
     "noMatch": "No one by that name has an account."
   },
   "finance": {
-    "title": "Write-off list",
+    "title": "Depreciation list",
     "date": "Purchase date",
     "value": "Purchase value (€)",
     "costCenter": "Cost center",
@@ -1163,6 +1163,9 @@
     "total": "Total",
     "csv": "Download CSV",
     "empty": "Nothing to list.",
-    "meta": "Tools and devices archived or marked lost."
+    "meta": "Tools and devices with purchase details.",
+    "usefulLife": "Useful life (years)",
+    "years_one": "{{count}} year",
+    "years_other": "{{count}} years"
   }
 }
