@@ -1,11 +1,27 @@
-import { SCOPES, USER_ROLES } from '@ixfwms/domain';
+import { SCOPES, USER_ROLES, UserSettingsInput } from '@ixfwms/domain';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { fail } from '../../lib/errors.js';
+import { fail, invalid } from '../../lib/errors.js';
 import { requireScope } from '../../services/context.js';
 import { parse, type AppDeps } from '../context.js';
 
 const NameParams = z.object({ name: z.string() });
+
+/** Saves what's given of someone's default location and language. */
+export async function saveUserSettings(
+  services: AppDeps['services'],
+  name: string,
+  input: UserSettingsInput,
+): Promise<void> {
+  const patch: Parameters<typeof services.auth.updateSettings>[1] = {};
+  if (input.language !== undefined) patch.language = input.language;
+  if (input.home !== undefined) {
+    const place = input.home ? await services.locations.resolve(input.home) : null;
+    if (place && place.kind !== 'normal') throw invalid('places.cantBeHome', { name: place.name });
+    patch.homeLocationId = place?.id ?? null;
+  }
+  await services.auth.updateSettings(name, patch);
+}
 
 /** User and token administration (admin scope), plus changing your own password. */
 export function registerUserRoutes(app: FastifyInstance, { services }: AppDeps): void {
@@ -73,11 +89,15 @@ export function registerUserRoutes(app: FastifyInstance, { services }: AppDeps):
     requireScope(request.actor, 'admin');
     const { name } = parse(NameParams, request.params);
     const body = parse(
-      z.object({ role: z.enum(USER_ROLES).optional(), password: z.string().max(500).optional() }),
+      UserSettingsInput.extend({
+        role: z.enum(USER_ROLES).optional(),
+        password: z.string().max(500).optional(),
+      }),
       request.body,
     );
     if (body.role) await auth.setRole(name, body.role);
     if (body.password) await auth.setPassword(name, body.password);
+    await saveUserSettings(services, name, body);
     return reply.status(204).send();
   });
 

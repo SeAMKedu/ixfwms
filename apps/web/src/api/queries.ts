@@ -22,6 +22,7 @@ import type {
   UserDetail,
   UserInfo,
   UserRole,
+  UserSettingsInput,
   CodeInfo,
   LabelBatch,
   AttachmentView,
@@ -362,11 +363,9 @@ export const useCreateUser = () =>
     api('/api/users', { body: input }),
   );
 export const useUpdateUser = () =>
-  useChange((input: { name: string; role?: UserRole; password?: string }) =>
-    api(`/api/users/${encodeURIComponent(input.name)}`, {
-      method: 'PATCH',
-      body: { role: input.role, password: input.password },
-    }),
+  useChange(
+    ({ name, ...body }: { name: string; role?: UserRole; password?: string } & UserSettingsInput) =>
+      api(`/api/users/${encodeURIComponent(name)}`, { method: 'PATCH', body }),
   );
 export const useUser = (name: string, enabled: boolean) =>
   useQuery({

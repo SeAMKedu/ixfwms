@@ -16,6 +16,7 @@ import type {
   TrackingMode,
   UnitEventKind,
   UnitStatus,
+  UserLanguage,
   UserRole,
 } from './enums.js';
 import type { BuildBrief } from './builds.js';
@@ -335,6 +336,8 @@ export interface SessionUser {
   scopes: Scope[];
   /** The place this person mostly works in. */
   home: { code: string; name: string } | null;
+  /** Null: whatever the browser uses. */
+  language: UserLanguage | null;
 }
 
 export interface LoginResult {
@@ -469,6 +472,8 @@ export interface UserInfo {
   role: UserRole;
   hasPassword: boolean;
   createdAt: string;
+  home: { code: string; name: string } | null;
+  language: UserLanguage | null;
   /** False when turned off: can't log in and has no tokens, but stays in the history. */
   active: boolean;
   disabledAt: string | null;

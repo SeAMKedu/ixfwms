@@ -120,7 +120,7 @@ export class AuthService {
     return {
       token,
       expiresAt,
-      user: { name: user.name, role: user.role, scopes, home: await this.home(user.id) },
+      user: { name: user.name, role: user.role, scopes, ...(await this.settings(user.id)) },
     };
   }
 
@@ -149,20 +149,28 @@ export class AuthService {
     return many(this.db.select().from(users));
   }
 
-  /** The place someone mostly works in. */
-  async home(userId: string): Promise<SessionUser['home']> {
+  /** Someone's default location and language. */
+  async settings(userId: string): Promise<Pick<SessionUser, 'home' | 'language'>> {
     const row = await one(
       this.db
-        .select({ code: locations.code, name: locations.name })
+        .select({ language: users.language, code: locations.code, name: locations.name })
         .from(users)
-        .innerJoin(locations, eq(locations.id, users.homeLocationId))
+        .leftJoin(locations, eq(locations.id, users.homeLocationId))
         .where(eq(users.id, userId)),
     );
-    return row ?? null;
+    return {
+      home: row?.code && row.name ? { code: row.code, name: row.name } : null,
+      language: row?.language ?? null,
+    };
   }
 
-  async setHome(userId: string, locationId: string | null): Promise<void> {
-    await this.db.update(users).set({ homeLocationId: locationId }).where(eq(users.id, userId));
+  async updateSettings(
+    userName: string,
+    patch: Partial<Pick<typeof users.$inferSelect, 'homeLocationId' | 'language'>>,
+  ): Promise<void> {
+    const user = await this.byName(userName);
+    if (Object.keys(patch).length)
+      await this.db.update(users).set(patch).where(eq(users.id, user.id));
   }
 
   /** Names of people with a working account, for choosing who is responsible for a loan. */
@@ -199,7 +207,12 @@ export class AuthService {
   /** Users with their active tokens, for the admin page. Token hashes never leave the server. */
   async listUsersWithTokens(): Promise<UserInfo[]> {
     const all = await many(
-      this.db.select().from(users).where(ne(users.id, REMOVED_USER_ID)).orderBy(users.name),
+      this.db
+        .select({ u: users, homeCode: locations.code, homeName: locations.name })
+        .from(users)
+        .leftJoin(locations, eq(locations.id, users.homeLocationId))
+        .where(ne(users.id, REMOVED_USER_ID))
+        .orderBy(users.name),
     );
     const tokens = await many(
       this.db
@@ -218,8 +231,10 @@ export class AuthService {
         .from(apiTokens)
         .groupBy(apiTokens.userId),
     );
-    return all.map((u) => ({
+    return all.map(({ u, homeCode, homeName }) => ({
       id: u.id,
+      home: homeCode && homeName ? { code: homeCode, name: homeName } : null,
+      language: u.language,
       name: u.name,
       role: u.role,
       hasPassword: u.passwordHash != null,
@@ -259,6 +274,18 @@ export class AuthService {
 
   async revokeToken(id: string): Promise<void> {
     await this.db.update(apiTokens).set({ revokedAt: nowIso() }).where(eq(apiTokens.id, id));
+  }
+
+  /** Someone's own API token; another person's is treated as not there. */
+  async revokeOwnToken(userId: string, id: string): Promise<void> {
+    const row = await one(
+      this.db
+        .select({ id: apiTokens.id })
+        .from(apiTokens)
+        .where(and(eq(apiTokens.id, id), eq(apiTokens.userId, userId), eq(apiTokens.kind, 'api'))),
+    );
+    if (!row) throw notFound('token', id);
+    await this.revokeToken(id);
   }
 
   /** One user with what would stop turning them off or removing them. */
@@ -411,6 +438,7 @@ export class AuthService {
       name: row.user.name,
       role: row.user.role,
       scopes: row.token.scopes,
+      webLogin: row.token.kind === 'session',
     };
   }
 }

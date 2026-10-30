@@ -7,7 +7,7 @@ import { useShortcut, useShortcutRegistry } from '../lib/shortcuts';
 export function GlobalShortcuts() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { can } = useSession();
+  const { can, user } = useSession();
   const { setHelpOpen } = useShortcutRegistry();
   const go = (path: string) => () => void navigate(path);
   useShortcut('?', t('shortcuts.help'), () => setHelpOpen(true));
@@ -17,7 +17,7 @@ export function GlobalShortcuts() {
     else void navigate('/?focus=1');
   });
   useShortcut('g p', t('shortcuts.goParts'), go('/'));
-  useShortcut('g i', t('shortcuts.goInbox'), go('/inbox'));
+  useShortcut('g i', t('shortcuts.goInbox'), go('/inbox'), !!user);
   useShortcut('g l', t('shortcuts.goPlaces'), go('/places'));
   useShortcut('g s', t('shortcuts.goScan'), go('/scan'));
   useShortcut('g c', t('shortcuts.goCarry'), go('/carry'));

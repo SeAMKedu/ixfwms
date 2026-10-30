@@ -1,21 +1,24 @@
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, Navigate } from 'react-router';
-import { useChangePassword, useChange } from '../api/queries';
-import { api } from '../api/client';
+import { hasScope, SCOPES } from '@ixfwms/domain';
+import { useCreateMyToken, useMyTokens, useRevokeMyToken, useSaveSettings } from '../api/account';
+import { useChangePassword } from '../api/queries';
 import { useSession } from '../auth/session';
+import { ApiTokens } from '../components/api-tokens';
 import { LanguageSwitch } from '../components/language-switch';
 import { PlacePicker } from '../components/place-picker';
 import { Button, Card, ErrorBox, Field, PageHeader, TextInput } from '../components/ui';
 
-/** Your account, plus the pages that don't fit the phone's bottom tabs. */
+/** Your account. On a phone also the pages that don't fit the bottom tabs: it has no sidebar. */
 export function AccountPage() {
   const { t } = useTranslation();
-  const { user, checking, logout } = useSession();
+  const { user, checking, logout, can } = useSession();
   const change = useChangePassword();
-  const setHome = useChange((home: string) =>
-    api('/api/session/home', { method: 'PUT', body: { home: home || null } }),
-  );
+  const save = useSaveSettings();
+  const tokens = useMyTokens(can('inventory'));
+  const createToken = useCreateMyToken();
+  const revokeToken = useRevokeMyToken();
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [done, setDone] = useState(false);
@@ -41,7 +44,7 @@ export function AccountPage() {
   return (
     <>
       <PageHeader title={user?.name ?? ''} meta={user && t(`users.roles.${user.role}`)} />
-      <Card title={t('account.more')}>
+      <Card title={t('account.more')} className="md:hidden">
         <ul className="grid gap-1 sm:grid-cols-2">
           {links.map(([to, label]) => (
             <li key={to}>
@@ -60,12 +63,25 @@ export function AccountPage() {
           <PlacePicker
             value={user?.home?.code ?? ''}
             label={t('account.home')}
-            onChange={(code) => setHome.mutate(code)}
+            onChange={(code) => save.mutate({ home: code || null })}
           />
           <p className="text-[12px] text-muted">{t('account.homeHint')}</p>
-          <ErrorBox error={setHome.error} />
+          <ErrorBox error={save.error} />
         </div>
       </Card>
+      {can('inventory') && (
+        <ApiTokens
+          tokens={tokens.data ?? []}
+          create={{
+            scopes: SCOPES.filter((s) => hasScope(user?.scopes ?? [], s)),
+            run: (input) => createToken.mutateAsync(input),
+            busy: createToken.isPending,
+          }}
+          revoke={revokeToken.mutate}
+          revoking={revokeToken.isPending}
+          error={tokens.error ?? createToken.error ?? revokeToken.error}
+        />
+      )}
       <Card title={t('account.password')}>
         <form onSubmit={(e) => void submit(e)} className="flex flex-col gap-3 sm:max-w-sm">
           <Field label={t('account.current')}>

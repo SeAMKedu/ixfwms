@@ -159,15 +159,15 @@ describe('searching within a place', () => {
     const lab = await locations.create({ name: 'Lab A', type: 'room' }, env.admin);
     const headers = { authorization: `Bearer ${env.inventoryToken}` };
     const put = await env.app.inject({
-      method: 'PUT',
-      url: '/api/session/home',
+      method: 'PATCH',
+      url: '/api/session',
       headers,
       payload: { home: lab.code },
     });
-    expect(put.json()).toEqual({ home: { code: lab.code, name: 'Lab A' } });
+    expect(put.json()).toEqual({ home: { code: lab.code, name: 'Lab A' }, language: null });
     const session = await env.app.inject({ url: '/api/session', headers });
     expect(session.json<SessionUser>().home?.code).toBe(lab.code);
     await deletes.location(lab.code, env.admin);
-    expect(await auth.home(env.inventory.userId)).toBeNull();
+    expect((await auth.settings(env.inventory.userId)).home).toBeNull();
   });
 });

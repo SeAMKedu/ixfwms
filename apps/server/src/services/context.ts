@@ -12,6 +12,8 @@ export interface Actor {
   name: string;
   role: UserRole;
   scopes: Scope[];
+  /** Came in through a web login rather than an API token. */
+  webLogin?: boolean;
 }
 
 const viewer = new AsyncLocalStorage<{ anonymous: boolean }>();

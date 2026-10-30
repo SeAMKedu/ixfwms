@@ -11,6 +11,7 @@ import {
   TRACKING_MODES,
   UNIT_LOG_KINDS,
   UNIT_STATUSES,
+  USER_LANGUAGES,
 } from './enums.js';
 import { AttributeFilter } from './attributes.js';
 import { CUT_SHAPES, LEFTOVERS } from './cut.js';
@@ -355,6 +356,13 @@ export const AddUnitsInput = z.object({
   home: RefSchema.nullish().describe('Where they belong'),
 });
 export type AddUnitsInput = z.input<typeof AddUnitsInput>;
+
+/** What a person can set for themselves, or an admin for them. */
+export const UserSettingsInput = z.object({
+  home: RefSchema.nullish().describe('Default location; null to clear'),
+  language: z.enum(USER_LANGUAGES).nullish().describe('Null: whatever the browser uses'),
+});
+export type UserSettingsInput = z.infer<typeof UserSettingsInput>;
 
 export const UpdateUnitInput = z.object({
   ...UnitFields,

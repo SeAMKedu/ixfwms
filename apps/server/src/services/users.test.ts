@@ -56,3 +56,83 @@ describe('turning users off and removing them', () => {
     expect((await auth.listUsers()).map((u) => u.name)).not.toContain('typo');
   });
 });
+
+describe('your own account over HTTP', () => {
+  const login = async (name: string, role: 'viewer' | 'member' | 'admin') => {
+    await env.services.auth.createUser(name, role);
+    await env.services.auth.setPassword(name, 'long enough');
+    const res = await env.services.auth.login(name, 'long enough');
+    return { authorization: `Bearer ${res.token}` };
+  };
+  const call = (
+    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+    url: string,
+    headers?: Record<string, string>,
+    payload?: object,
+  ) => env.app.inject({ method, url, headers, payload });
+
+  it('members make and delete their own tokens, within what they may do', async () => {
+    const pat = await login('pat', 'member');
+    const made = await call('POST', '/api/session/tokens', pat, {
+      name: 'script',
+      scopes: ['inventory'],
+    });
+    expect(made.statusCode).toBe(201);
+    const { id, token } = made.json<{ id: string; token: string }>();
+    const mine = await call('GET', '/api/session/tokens', pat);
+    expect(mine.json<{ id: string }[]>().map((t) => t.id)).toContain(id);
+
+    const tooMuch = await call('POST', '/api/session/tokens', pat, {
+      name: 'x',
+      scopes: ['admin'],
+    });
+    expect(tooMuch.statusCode).toBe(403);
+
+    // A token can't make or remove tokens: a leaked one could otherwise outlive being revoked.
+    const byToken = { authorization: `Bearer ${token}` };
+    expect((await call('GET', '/api/session/tokens', byToken)).statusCode).toBe(403);
+    expect((await call('DELETE', `/api/session/tokens/${id}`, byToken)).statusCode).toBe(403);
+
+    expect((await call('DELETE', `/api/session/tokens/${id}`, pat)).statusCode).toBe(204);
+    expect(await env.services.auth.verify(token)).toBeNull();
+  });
+
+  it("leaves other people's tokens alone, and viewers and anonymous readers without any", async () => {
+    const pat = await login('pat', 'member');
+    const sam = await login('sam', 'member');
+    const made = await call('POST', '/api/session/tokens', pat, {
+      name: 'script',
+      scopes: ['read'],
+    });
+    const { id, token } = made.json<{ id: string; token: string }>();
+    expect((await call('DELETE', `/api/session/tokens/${id}`, sam)).statusCode).toBe(404);
+    expect(await env.services.auth.verify(token)).not.toBeNull();
+
+    const viewer = await login('vera', 'viewer');
+    expect((await call('GET', '/api/session/tokens', viewer)).statusCode).toBe(403);
+    expect((await call('GET', '/api/session/tokens')).statusCode).toBe(401);
+    expect((await call('GET', '/api/users', pat)).statusCode).toBe(403);
+  });
+
+  it('settings: your own, and an admin can change anyone’s', async () => {
+    const pat = await login('pat', 'member');
+    const room = await env.services.locations.create({ name: 'Lab', type: 'room' }, env.admin);
+    expect((await call('PATCH', '/api/session', pat, { language: 'fi' })).json()).toMatchObject({
+      language: 'fi',
+      home: null,
+    });
+    const admin = { authorization: `Bearer ${env.adminToken}` };
+    await call('PATCH', '/api/users/pat', admin, { home: room.code, language: 'en' });
+    expect((await call('GET', '/api/session', pat)).json()).toMatchObject({
+      language: 'en',
+      home: { code: room.code },
+    });
+    expect((await call('GET', '/api/users/pat', admin)).json()).toMatchObject({ language: 'en' });
+    expect((await call('PATCH', '/api/users/pat', pat, { language: 'fi' })).statusCode).toBe(403);
+    await call('PATCH', '/api/users/pat', admin, { home: null });
+    expect((await call('GET', '/api/session', pat)).json()).toMatchObject({ home: null });
+    expect(
+      (await call('PATCH', '/api/session', pat, { language: 'sv' })).statusCode,
+    ).toBeGreaterThanOrEqual(400);
+  });
+});

@@ -38,9 +38,12 @@ function useNavItems(): NavItem[] {
   const { t } = useTranslation();
   const drafts = useParts({ status: 'draft', byUnit: false, limit: 1 }).data?.total ?? 0;
   const reports = useReports().data?.length ?? 0;
+  const { user } = useSession();
   return [
     { to: '/', label: t('nav.parts'), icon: Search },
-    { to: '/inbox', label: t('nav.inbox'), icon: Inbox, badge: drafts + reports },
+    ...(user
+      ? [{ to: '/inbox', label: t('nav.inbox'), icon: Inbox, badge: drafts + reports }]
+      : []),
     { to: '/scan', label: t('nav.scan'), icon: ScanLine },
     { to: '/places', label: t('nav.places'), icon: MapPin },
     { to: '/builds', label: t('nav.builds'), icon: Blocks },
@@ -177,11 +180,12 @@ function MoreLinks({ links }: { links: SideLinkItem[] }) {
 export function Layout() {
   const { t } = useTranslation();
   const { setHelpOpen } = useShortcutRegistry();
+  const { user } = useSession();
   // Settings has its own section list down the side, so it gets more room than other pages.
   const wide = useMatch('/settings/*') !== null;
   const items = useNavItems();
   const secondary: SideLinkItem[] = [
-    { to: '/import', label: t('nav.import'), icon: FileSpreadsheet },
+    ...(user ? [{ to: '/import', label: t('nav.import'), icon: FileSpreadsheet }] : []),
     { to: '/bom', label: t('nav.bom'), icon: ListChecks },
   ];
   // Occasional pages: tucked under "More" so the everyday ones stand out.
@@ -223,7 +227,7 @@ export function Layout() {
           ))}
         </nav>
         <SideLinks links={secondary} className="mt-3" />
-        <MoreLinks links={more} />
+        {user && <MoreLinks links={more} />}
         <div className="mt-auto flex flex-col gap-3 px-2">
           <CarryIndicator className="self-start" compact />
           <button
@@ -252,7 +256,7 @@ export function Layout() {
         <CarryIndicator className="md:hidden fixed bottom-24 left-1/2 z-10 -translate-x-1/2" />
         <nav
           aria-label={t('nav.mainNav')}
-          className="md:hidden fixed inset-x-0 bottom-0 z-10 grid grid-cols-5 border-t border-line bg-surface px-1 pt-1.5 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+          className={`md:hidden fixed inset-x-0 bottom-0 z-10 grid ${user ? 'grid-cols-5' : 'grid-cols-4'} border-t border-line bg-surface px-1 pt-1.5 pb-[max(0.75rem,env(safe-area-inset-bottom))]`}
         >
           {items.map((item) => (
             <NavLink

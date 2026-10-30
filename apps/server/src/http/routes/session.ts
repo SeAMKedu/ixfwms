@@ -1,8 +1,10 @@
-import { RefSchema } from '@ixfwms/domain';
+import { hasScope, SCOPES, UserSettingsInput } from '@ixfwms/domain';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { fail, invalid } from '../../lib/errors.js';
+import { fail } from '../../lib/errors.js';
+import { requireScope, type Actor } from '../../services/context.js';
 import { parse, type AppDeps } from '../context.js';
+import { saveUserSettings } from './users.js';
 
 /** Web login. The returned token is sent as a Bearer token like any API token. */
 export function registerSessionRoutes(app: FastifyInstance, { services }: AppDeps): void {
@@ -17,19 +19,49 @@ export function registerSessionRoutes(app: FastifyInstance, { services }: AppDep
   app.get('/api/session', async (request) => {
     const actor = request.actor;
     if (!actor) throw fail('unauthorized', 'auth.notLoggedIn');
-    const home = await services.auth.home(actor.userId);
-    return { name: actor.name, role: actor.role, scopes: actor.scopes, home };
+    const settings = await services.auth.settings(actor.userId);
+    return { name: actor.name, role: actor.role, scopes: actor.scopes, ...settings };
   });
 
-  /** The place you mostly work in; null for none. */
-  app.put('/api/session/home', async (request) => {
+  /** Your default location and language. */
+  app.patch('/api/session', async (request) => {
     const actor = request.actor;
     if (!actor) throw fail('unauthorized', 'auth.logInFirst');
-    const { home } = parse(z.object({ home: RefSchema.nullable() }), request.body);
-    const place = home ? await services.locations.resolve(home) : null;
-    if (place && place.kind !== 'normal') throw invalid('places.cantBeHome', { name: place.name });
-    await services.auth.setHome(actor.userId, place?.id ?? null);
-    return { home: await services.auth.home(actor.userId) };
+    await saveUserSettings(services, actor.name, parse(UserSettingsInput, request.body));
+    return services.auth.settings(actor.userId);
+  });
+
+  /** Your own API tokens: members and admins, from a web login, up to what you may do yourself. */
+  const tokenOwner = (actor: Actor | null): Actor => {
+    const who = requireScope(actor, 'inventory');
+    if (!who.webLogin) throw fail('forbidden', 'auth.webLoginOnly');
+    return who;
+  };
+
+  app.get('/api/session/tokens', async (request) => {
+    const who = tokenOwner(request.actor);
+    const users = await services.auth.listUsersWithTokens();
+    return users.find((u) => u.id === who.userId)?.tokens ?? [];
+  });
+
+  app.post('/api/session/tokens', async (request, reply) => {
+    const who = tokenOwner(request.actor);
+    const body = parse(
+      z.object({ name: z.string().trim().min(1).max(100), scopes: z.array(z.enum(SCOPES)).min(1) }),
+      request.body,
+    );
+    for (const scope of body.scopes)
+      if (!hasScope(who.scopes, scope)) throw fail('forbidden', 'auth.needScope', { scope });
+    return reply
+      .status(201)
+      .send(await services.auth.createToken(who.name, body.name, body.scopes));
+  });
+
+  app.delete('/api/session/tokens/:id', async (request, reply) => {
+    const who = tokenOwner(request.actor);
+    const { id } = parse(z.object({ id: z.string() }), request.params);
+    await services.auth.revokeOwnToken(who.userId, id);
+    return reply.status(204).send();
   });
 
   app.delete('/api/session', async (request, reply) => {

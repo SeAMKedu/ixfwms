@@ -1,7 +1,8 @@
 import { hasScope, type LoginResult, type Scope, type SessionUser } from '@ixfwms/domain';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { createContext, use, useCallback, useMemo, type ReactNode } from 'react';
+import { createContext, use, useCallback, useEffect, useMemo, type ReactNode } from 'react';
 import { api, ApiError, getToken, setToken } from '../api/client';
+import { setLanguage } from '../i18n';
 
 interface Session {
   user: SessionUser | null;
@@ -32,6 +33,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     },
     staleTime: Infinity,
   });
+
+  // A language saved on the account follows the person to every device.
+  const language = me.data?.language;
+  useEffect(() => {
+    if (language) void setLanguage(language);
+  }, [language]);
 
   const login = useCallback(
     async (name: string, password: string) => {

@@ -29,6 +29,7 @@ import type {
   TrackingMode,
   UnitEventKind,
   UnitStatus,
+  UserLanguage,
   UserRole,
 } from '@ixfwms/domain';
 import { nowIso } from '../lib/ids.js';
@@ -55,6 +56,8 @@ export const users = sqliteTable('users', {
   disabledAt: text('disabled_at'),
   /** The place this person mostly works in: searches start limited to it. */
   homeLocationId: text('home_location_id').references((): AnySQLiteColumn => locations.id),
+  /** Applied when they open the app; null leaves it to the browser. */
+  language: text('language').$type<UserLanguage>(),
   createdAt: createdAt(),
 });
 

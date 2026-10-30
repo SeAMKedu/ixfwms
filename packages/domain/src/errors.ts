@@ -21,10 +21,12 @@ export const ERROR_MESSAGES = {
   'notFound.fileContent': 'File content not found: {{ref}}',
   'notFound.map': 'Map not found: {{ref}}',
   'notFound.mapDrawing': 'Map drawing not found: {{ref}}',
+  'notFound.token': 'API token not found: {{ref}}',
   'notFound.user': 'User not found: {{ref}}',
 
   'auth.unknownToken': 'Unknown or revoked API token',
   'auth.needToken': 'This needs an API token',
+  'auth.webLoginOnly': 'API tokens are managed from a web login',
   'auth.needScope': 'This needs the "{{scope}}" scope',
   'auth.logInFirst': 'Log in first',
   'auth.notLoggedIn': 'Not logged in',

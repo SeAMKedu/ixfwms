@@ -42,7 +42,7 @@ Then either:
 - **Use it:** `npm run build && npm start`. Everything is at <http://localhost:3000>.
 - **Develop it:** `npm run dev` (API on :3000) plus `npm run dev:web` (web app with hot reload on <http://localhost:5173>, proxying the API).
 
-Log in with the admin you created. Other people and API tokens for scripts or AI assistants are added under **More › Settings › Users**. Roles: `viewer` (read only), `member` (add, move, edit, confirm drafts), `admin` (everything).
+Log in with the admin you created. Other people, and accounts for scripts or AI assistants, are added under **More › Settings › Users**. Everyone makes their own API tokens on their account page. Roles: `viewer` (read only), `member` (add, move, edit, confirm drafts), `admin` (everything).
 
 Data lives in `./data`: the SQLite database, uploaded files and backups.
 
@@ -97,7 +97,7 @@ QR labels encode `…/L/<code>` (places) and `…/P/<code>` (parts). Codes stay 
 
 ## Connect an AI assistant (MCP)
 
-The MCP endpoint is `<base URL>/mcp` (Streamable HTTP). It uses the same API tokens as the REST API. Create a token on the Users page (it shows the full command), or:
+The MCP endpoint is `<base URL>/mcp` (Streamable HTTP). It uses the same API tokens as the REST API. Create a token on your account page (it shows the full command), or:
 
 ```bash
 claude mcp add --transport http ixfwms http://localhost:3000/mcp --header "Authorization: Bearer ixf_..."

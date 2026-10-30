@@ -626,7 +626,7 @@
   },
   "users": {
     "title": "Käyttäjät",
-    "intro": "Kirjautumaan pääsevät henkilöt sekä API-avaimet skripteille ja AI-avustajille. Anna avustajille avain inventory-oikeudella: ne voivat lisätä luonnoksia ja siirtää tavaroita, mutta eivät hyväksyä luonnoksia.",
+    "intro": "Käyttäjät, jotka voivat kirjautua, sekä tilit skripteille ja AI-avustajille. Anna avustajalle tili ilman salasanaa ja tunnus, jonka oikeus on inventory: se voi lisätä luonnoksia ja siirtää tavaroita, mutta ei vahvistaa luonnoksia.",
     "add": "Lisää henkilö",
     "role": "Rooli",
     "roles": {
@@ -683,7 +683,11 @@
     "showOff_other": "Näytä {{count}} suljettua tunnusta",
     "eraseHint": "Tietojen poisto (esim. GDPR-pyynnöstä) poistaa tunnuksen, salasanan ja tokenit. Henkilön tekemiset jäävät historiaan nimellä “Removed user”. Muistiinpanoihin tai lainojen kuvauksiin kirjoitettuja nimiä ei muuteta, ja vanhoissa varmuuskopioissa nimi säilyy, kunnes ne vanhenevat.",
     "erase": "Poista henkilötiedot",
-    "eraseConfirm": "Poista {{name}} lopullisesti"
+    "eraseConfirm": "Poista {{name}} lopullisesti",
+    "settings": "Asetukset",
+    "languageBrowser": "Selaimen kieli",
+    "settingsHint": "Nämä tulevat voimaan, kun käyttäjä seuraavan kerran avaa sovelluksen.",
+    "tokensHint": "Poistaminen pysäyttää sitä käyttävän ohjelman heti. Käyttäjät luovat omat tunnuksensa omalla tilisivullaan."
   },
   "account": {
     "more": "Lisää",
@@ -1065,6 +1069,7 @@
       "fileContent": "Tiedoston sisältöä ei löytynyt: {{ref}}",
       "map": "Karttaa ei löytynyt: {{ref}}",
       "mapDrawing": "Karttapiirrosta ei löytynyt: {{ref}}",
+      "token": "API-tunnusta ei löytynyt: {{ref}}",
       "user": "Käyttäjää ei löytynyt: {{ref}}"
     },
     "auth": {
@@ -1077,7 +1082,8 @@
       "tooManyLogins": "Liian monta epäonnistunutta kirjautumista, yritä muutaman minuutin päästä",
       "wrongLogin": "Väärä nimi tai salasana",
       "accountOff": "Tämä tili on poistettu käytöstä",
-      "wrongPassword": "Nykyinen salasana on väärä"
+      "wrongPassword": "Nykyinen salasana on väärä",
+      "webLoginOnly": "API-tunnuksia hallitaan verkkokirjautumisella"
     },
     "users": {
       "exists": "Käyttäjä \"{{name}}\" on jo olemassa",

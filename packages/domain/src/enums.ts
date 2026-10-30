@@ -72,6 +72,10 @@ export type AttachmentKind = (typeof ATTACHMENT_KINDS)[number];
 export const MOVEMENT_REASONS = ['add', 'take', 'adjust', 'stocktake', 'move'] as const;
 export type MovementReason = (typeof MOVEMENT_REASONS)[number];
 
+/** Languages the web app is translated into. */
+export const USER_LANGUAGES = ['en', 'fi'] as const;
+export type UserLanguage = (typeof USER_LANGUAGES)[number];
+
 export const USER_ROLES = ['viewer', 'member', 'admin'] as const;
 export type UserRole = (typeof USER_ROLES)[number];
 

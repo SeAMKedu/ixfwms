@@ -1,5 +1,11 @@
-import { SCOPES, USER_ROLES, type Scope, type UserDetail, type UserRole } from '@ixfwms/domain';
-import { ChevronLeft, ChevronRight, Copy, Trash2 } from 'lucide-react';
+import {
+  SCOPES,
+  USER_ROLES,
+  type UserDetail,
+  type UserLanguage,
+  type UserRole,
+} from '@ixfwms/domain';
+import { ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, Navigate, useNavigate, useParams } from 'react-router';
@@ -9,7 +15,6 @@ import {
   useDeactivateUser,
   useDeleteUser,
   useEraseUser,
-  useInfo,
   useReactivateUser,
   useRevokeToken,
   useUpdateUser,
@@ -17,6 +22,8 @@ import {
   useUsers,
 } from '../api/queries';
 import { useSession } from '../auth/session';
+import { ApiTokens } from '../components/api-tokens';
+import { PlacePicker } from '../components/place-picker';
 import {
   Button,
   Card,
@@ -30,131 +37,74 @@ import {
   TextInput,
   isNotFound,
 } from '../components/ui';
+import { LANGUAGES } from '../i18n';
 import { formatDate } from '../lib/format';
 
-/** Shows a new token once, with the command to connect Claude Code to it. */
-function NewToken({ token, onDone }: { token: string; onDone: () => void }) {
+/** Their keys: an admin can delete any. Only accounts without a login get new ones from here. */
+function UserTokens({ user }: { user: UserDetail }) {
   const { t } = useTranslation();
-  const info = useInfo();
-  const command = `claude mcp add --transport http ixfwms ${info.data?.mcpUrl ?? '<server>/mcp'} --header "Authorization: Bearer ${token}"`;
-  const [copied, setCopied] = useState('');
-  const copy = (text: string) =>
-    navigator.clipboard.writeText(text).then(
-      () => setCopied(text),
-      () => setCopied(''),
-    );
+  const create = useCreateToken();
+  const revoke = useRevokeToken();
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-warn/40 bg-warn-soft p-3 text-sm">
-      <strong className="text-warn">{t('users.tokenOnce')}</strong>
-      <code className="break-all rounded bg-surface px-2 py-1 font-mono text-[13px]">{token}</code>
-      <Button small onClick={() => void copy(token)} className="self-start">
-        <Copy className="size-4" aria-hidden />
-        {copied === token ? t('users.copied') : t('users.copy')}
-      </Button>
-      <span className="text-muted">{t('users.connectClaude')}</span>
-      <code className="break-all rounded bg-surface px-2 py-1 font-mono text-[12px]">
-        {command}
-      </code>
-      <Button small onClick={() => void copy(command)} className="self-start">
-        <Copy className="size-4" aria-hidden />
-        {copied === command ? t('users.copied') : t('users.copyCommand')}
-      </Button>
-      <Button small variant="ghost" onClick={onDone} className="self-start">
-        {t('users.tokenSaved')}
-      </Button>
-    </div>
+    <ApiTokens
+      tokens={user.tokens}
+      hint={user.hasPassword ? t('users.tokensHint') : undefined}
+      create={
+        user.active && !user.hasPassword
+          ? {
+              scopes: SCOPES,
+              run: (input) => create.mutateAsync({ user: user.name, ...input }),
+              busy: create.isPending,
+            }
+          : undefined
+      }
+      revoke={revoke.mutate}
+      revoking={revoke.isPending}
+      error={create.error ?? revoke.error}
+    />
   );
 }
 
-function Tokens({ user }: { user: UserDetail }) {
+/** What this person has chosen for themselves, for an admin to change. */
+function UserSettings({ user }: { user: UserDetail }) {
   const { t } = useTranslation();
-  const createToken = useCreateToken();
-  const revoke = useRevokeToken();
-  const [tokenName, setTokenName] = useState('');
-  const [scopes, setScopes] = useState<Scope[]>(['inventory']);
-  const [newToken, setNewToken] = useState<string | null>(null);
-  const addToken = async (e: FormEvent) => {
-    e.preventDefault();
-    const res = await createToken.mutateAsync({ user: user.name, name: tokenName, scopes });
-    setNewToken(res.token);
-    setTokenName('');
-  };
-  const apiTokens = user.tokens.filter((tk) => tk.kind === 'api');
-  const sessions = user.tokens.filter((tk) => tk.kind === 'session').length;
+  const update = useUpdateUser();
   return (
-    <Card title={t('users.tokens')}>
-      <span className="text-[13px] text-muted">{t('users.sessions', { count: sessions })}</span>
-      {apiTokens.length === 0 && <span className="text-sm text-muted">{t('users.noTokens')}</span>}
-      {apiTokens.map((tk) => (
-        <div key={tk.id} className="flex items-center justify-between gap-2 text-sm">
-          <span className="flex flex-wrap items-center gap-1.5">
-            {tk.name}
-            {tk.scopes.map((s) => (
-              <Pill key={s} tone="info">
-                {s}
-              </Pill>
-            ))}
-            <span className="text-[12px] text-muted">
-              {tk.lastUsedAt
-                ? t('users.lastUsed', { date: formatDate(tk.lastUsedAt) })
-                : t('users.neverUsed')}
-            </span>
-          </span>
-          <Button
-            small
-            variant="ghost"
-            aria-label={t('users.revoke')}
-            busy={revoke.isPending}
-            onClick={() => revoke.mutate(tk.id)}
-          >
-            <Trash2 className="size-4" aria-hidden />
-          </Button>
-        </div>
-      ))}
-      {newToken ? (
-        <NewToken token={newToken} onDone={() => setNewToken(null)} />
-      ) : (
-        user.active && (
-          <form
-            onSubmit={(e) => void addToken(e)}
-            className="flex flex-wrap items-end gap-2 border-t border-line pt-3"
-          >
-            <Field label={t('users.tokenName')}>
-              {(id) => (
-                <TextInput
-                  id={id}
-                  required
-                  value={tokenName}
-                  onChange={(e) => setTokenName(e.target.value)}
-                  placeholder={t('users.tokenPlaceholder')}
-                  className="!w-48"
-                />
-              )}
-            </Field>
-            <fieldset className="flex flex-wrap items-center gap-3 pb-2 text-sm">
-              <legend className="sr-only">{t('users.scopes')}</legend>
-              {SCOPES.map((s) => (
-                <label key={s} className="flex items-center gap-1">
-                  <input
-                    type="checkbox"
-                    checked={scopes.includes(s)}
-                    onChange={(e) =>
-                      setScopes((cur) =>
-                        e.target.checked ? [...cur, s] : cur.filter((x) => x !== s),
-                      )
-                    }
-                  />
-                  {s}
-                </label>
+    <Card title={t('users.settings')}>
+      <div className="grid gap-3 md:grid-cols-2">
+        <Field label={t('account.home')}>
+          {(id) => (
+            <PlacePicker
+              id={id}
+              value={user.home?.code ?? ''}
+              onChange={(code) => update.mutate({ name: user.name, home: code || null })}
+            />
+          )}
+        </Field>
+        <Field label={t('account.language')}>
+          {(id) => (
+            <Select
+              id={id}
+              value={user.language ?? ''}
+              onChange={(e) =>
+                update.mutate({
+                  name: user.name,
+                  language: (e.target.value || null) as UserLanguage | null,
+                })
+              }
+            >
+              <option value="">{t('users.languageBrowser')}</option>
+              {LANGUAGES.map((l) => (
+                <option key={l.code} value={l.code}>
+                  {l.name}
+                </option>
               ))}
-            </fieldset>
-            <Button type="submit" disabled={scopes.length === 0} busy={createToken.isPending}>
-              {t('users.createToken')}
-            </Button>
-          </form>
-        )
-      )}
-      <ErrorBox error={createToken.error ?? revoke.error} />
+            </Select>
+          )}
+        </Field>
+      </div>
+      <p className="text-[12px] text-muted">{t('users.settingsHint')}</p>
+      <ErrorBox error={update.error} />
     </Card>
   );
 }
@@ -242,7 +192,7 @@ function Status({ user }: { user: UserDetail }) {
   );
 }
 
-/** One user: role, password, tokens, and turning the account off or removing it. */
+/** One user: role, password, settings, tokens, and turning the account off or removing it. */
 export function UserPage() {
   const { t } = useTranslation();
   const { name = '' } = useParams();
@@ -327,7 +277,8 @@ export function UserPage() {
         </dl>
         <ErrorBox error={update.error} />
       </Card>
-      <Tokens user={u} />
+      <UserSettings user={u} />
+      <UserTokens user={u} />
       {me?.name !== u.name && <Status user={u} />}
     </>
   );
