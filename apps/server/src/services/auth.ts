@@ -144,6 +144,18 @@ export class AuthService {
     return many(this.db.select().from(users));
   }
 
+  /** Names of people with a working account, for choosing who is responsible for a loan. */
+  async people(): Promise<string[]> {
+    const rows = await many(
+      this.db
+        .select({ name: users.name })
+        .from(users)
+        .where(and(isNull(users.disabledAt), ne(users.id, REMOVED_USER_ID)))
+        .orderBy(users.name),
+    );
+    return rows.map((r) => r.name);
+  }
+
   async createToken(
     userName: string,
     tokenName: string,

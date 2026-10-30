@@ -1,6 +1,7 @@
 import {
   anonymousAllows,
   type AnonymousActions,
+  type LocationSummary,
   type PlaceOption,
   type UnitBrief,
   type UnitStatus,
@@ -43,6 +44,16 @@ export function UnitCount({ units }: { units: UnitBrief[] }) {
   );
 }
 
+/** A place in a list: its name and its code. */
+export function PlaceLink({ place }: { place: LocationSummary }) {
+  return (
+    <Link to={`/l/${place.code}`} className="inline-flex items-center gap-1 hover:underline">
+      <span>{place.name}</span>
+      <PlaceTag place={place} />
+    </Link>
+  );
+}
+
 /** Where a unit is, in one line: here, or here but belongs there, or lent out. */
 export function UnitWhere({ unit }: { unit: UnitBrief }) {
   const { t } = useTranslation();
@@ -62,13 +73,7 @@ export function UnitWhere({ unit }: { unit: UnitBrief }) {
     );
   return (
     <span className="flex flex-wrap items-center gap-1.5 text-[13px]">
-      <Link
-        to={`/l/${unit.location.code}`}
-        className="inline-flex items-center gap-1 hover:underline"
-      >
-        <span>{unit.location.name}</span>
-        <PlaceTag place={unit.location} />
-      </Link>
+      <PlaceLink place={unit.location} />
       {unit.home && !unit.atHome && (
         <span className="inline-flex items-center gap-1 text-muted">
           {t('units.belongsAt')}

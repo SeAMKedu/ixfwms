@@ -20,3 +20,7 @@ export const useReturnPlace = (code: string) =>
   useChange((input: ReturnPlaceInput) =>
     api<LoanView>(`/api/locations/${code}/return`, { body: input }),
   );
+
+/** Who can be responsible for a loan: people with a working account. */
+export const usePeople = () =>
+  useQuery({ queryKey: ['people'], queryFn: () => api<string[]>('/api/people') });

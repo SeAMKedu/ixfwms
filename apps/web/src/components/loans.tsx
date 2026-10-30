@@ -2,6 +2,7 @@ import type { LendInput, LoanView } from '@ixfwms/domain';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { formatDate, formatDay } from '../lib/format';
+import { PersonPicker } from './person-picker';
 import { Field, TextArea, TextInput } from './ui';
 
 /**
@@ -24,7 +25,7 @@ export function LoanNote({ loan, code }: { loan: LoanView; code: string }) {
           </Link>
         </span>
       )}
-      <span className="text-ink">{loan.description}</span>
+      {loan.description && <span className="text-ink">{loan.description}</span>}
       <span className="text-ink">
         {[
           loan.responsible && t('units.responsible', { name: loan.responsible }),
@@ -78,10 +79,10 @@ export function LendFields({
       <div className="grid gap-2 md:grid-cols-2">
         <Field label={t('units.responsibleField')} hint={t('units.responsibleHint')}>
           {(id) => (
-            <TextInput
+            <PersonPicker
               id={id}
               value={draft.responsible}
-              onChange={(e) => set({ responsible: e.target.value })}
+              onChange={(responsible) => set({ responsible })}
             />
           )}
         </Field>

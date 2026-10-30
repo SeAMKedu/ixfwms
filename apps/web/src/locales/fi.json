@@ -111,7 +111,8 @@
       "tags": "Tunnisteet"
     },
     "empty": "Ei hakua vastaavia tavaroita.",
-    "emptyAll": "Ei vielä tavaroita. Lisää tavara, tai anna AI-avustajan täyttää Saapuneet tilausvahvistuksista."
+    "emptyAll": "Ei vielä tavaroita. Lisää tavara, tai anna AI-avustajan täyttää Saapuneet tilausvahvistuksista.",
+    "multiplePlaces": "Useita paikkoja ({{count}})"
   },
   "part": {
     "where": "Missä",
@@ -995,7 +996,7 @@
     "lendWhat": "Mihin ja minne",
     "lendWhatHint": "Esim. \"opinnäytetyön testit Yritys X:ssä, Pekka V.\" Opiskelijoiden nimet vain tähän vapaana tekstinä.",
     "responsibleField": "Vastuuhenkilö",
-    "responsibleHint": "Tunnuksellisen käyttäjän nimi, esim. ohjaava opettaja. Tyhjä = sinä.",
+    "responsibleHint": "Joku, jolla on käyttäjätili, esim. ohjaava opettaja. Tyhjä = sinä.",
     "dueField": "Palautuu",
     "status": "Tila",
     "serial": "Sarjanumero",
@@ -1326,5 +1327,9 @@
     "placeNote": "Arkistoitu {{date}}: ei näy paikkalistoissa, eikä siihen voi laittaa mitään. Historia säilyy.",
     "here_one": "{{count}} arkistoitu",
     "here_other": "{{count}} arkistoitua"
+  },
+  "person": {
+    "placeholder": "Kirjoita nimi…",
+    "noMatch": "Tällä nimellä ei ole käyttäjätiliä."
   }
 }

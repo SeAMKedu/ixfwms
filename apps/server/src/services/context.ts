@@ -34,6 +34,11 @@ export function personName(name: string | null | undefined): string | null {
   return namesHidden() ? null : (name ?? null);
 }
 
+/** Why something was lent out: only for people with a login, others just see that it's out. */
+export function loanReason(text: string | null): string | null {
+  return namesHidden() ? null : text;
+}
+
 /** A place's name; a carry list ("Carried by <name>") is just "Being carried" for anonymous readers. */
 export function placeName(row: { name: string; kind: string }): string {
   return row.kind === 'in_transit' && namesHidden() ? 'Being carried' : row.name;

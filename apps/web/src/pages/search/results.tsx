@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { AmountPill, Pill, PlaceTag, StatusPill } from '../../components/ui';
 import { UnitCount, UnitStatusPill, UnitWhere } from '../../components/units';
+import { StockWhere } from './stock-where';
 
 function StockSummary({ part }: { part: PartSummary }) {
   if (part.tracking === 'individual') return <UnitCount units={part.units} />;
@@ -183,15 +184,7 @@ export function SearchResults({ rows, selected }: { rows: Row[]; selected: numbe
                     {row.kind === 'unit' ? (
                       <UnitWhere unit={row.unit} />
                     ) : (
-                      <span className="flex flex-wrap gap-1">
-                        {[...new Map(p.stock.map((s) => [s.place.code, s.place])).values()]
-                          .slice(0, 3)
-                          .map((place) => (
-                            <Link key={place.code} to={`/l/${place.code}`} title={place.name}>
-                              <PlaceTag place={place} />
-                            </Link>
-                          ))}
-                      </span>
+                      <StockWhere stock={p.stock} />
                     )}
                   </td>
                   <td className="px-3 py-2 text-right">

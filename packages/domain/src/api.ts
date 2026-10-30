@@ -202,7 +202,8 @@ export interface LoanView {
   place: { code: string; name: string } | null;
   /** User name; null for readers without a login. */
   responsible: string | null;
-  description: string;
+  /** What for; null for readers without a login. */
+  description: string | null;
   outAt: string;
   dueAt: string | null;
   overdue: boolean;

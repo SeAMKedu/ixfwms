@@ -16,6 +16,12 @@ export function registerUserRoutes(app: FastifyInstance, { services }: AppDeps):
     return auth.listUsersWithTokens();
   });
 
+  /** Just the names, for anyone who can lend things out. */
+  app.get('/api/people', async (request) => {
+    requireScope(request.actor, 'inventory');
+    return auth.people();
+  });
+
   app.get('/api/users/:name', async (request) => {
     requireScope(request.actor, 'admin');
     return auth.userDetail(parse(NameParams, request.params).name);

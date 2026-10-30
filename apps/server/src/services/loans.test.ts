@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { UnitDetail } from '@ixfwms/domain';
 import { createTestEnv, type TestEnv } from '../test/harness.js';
 
 let env: TestEnv;
@@ -150,5 +151,44 @@ describe('lending a whole container', () => {
     await env.services.deletes.location(corner.code, env.admin);
     await loans.returnPlace(bag.code, {}, env.admin);
     expect((await env.services.locationViews.detail(bag.code)).path[0]!.kind).toBe('inbox');
+  });
+});
+
+describe('loans seen without a login', () => {
+  it('say that it is out and when it is back, not why or who', async () => {
+    const { parts, units, loans } = env.services;
+    const room = await env.services.locations.create({ name: 'Lab', type: 'room' }, env.admin);
+    const part = await parts.create({ name: 'Drill', kind: 'tool', status: 'active' }, env.admin);
+    const [unit] = await units.add(
+      { part: part.code, units: [{}], location: room.code },
+      env.admin,
+    );
+    await loans.lendUnit(
+      unit!.code,
+      { responsible: 'assistant', description: 'secret thesis', dueAt: '2030-01-02' },
+      env.admin,
+    );
+    const anon = (await env.app.inject({ url: `/api/units/${unit!.code}` })).json<UnitDetail>();
+    expect(anon.loan).toMatchObject({ description: null, responsible: null, dueAt: '2030-01-02' });
+    expect(JSON.stringify(anon)).not.toContain('secret thesis');
+    const member = await env.app.inject({
+      url: `/api/units/${unit!.code}`,
+      headers: { authorization: `Bearer ${env.inventoryToken}` },
+    });
+    expect(member.json<UnitDetail>().loan?.description).toBe('secret thesis');
+    const open = await env.app.inject({ url: '/api/loans' });
+    expect(open.body).not.toContain('secret thesis');
+  });
+
+  it('people to choose from need a login, and leave out accounts turned off', async () => {
+    await env.services.auth.createUser('gone', 'member');
+    await env.services.auth.deactivate('gone', env.admin);
+    expect((await env.app.inject({ url: '/api/people' })).statusCode).toBe(401);
+    const res = await env.app.inject({
+      url: '/api/people',
+      headers: { authorization: `Bearer ${env.inventoryToken}` },
+    });
+    expect(res.json<string[]>()).toEqual(expect.arrayContaining(['admin', 'assistant']));
+    expect(res.json<string[]>()).not.toContain('gone');
   });
 });

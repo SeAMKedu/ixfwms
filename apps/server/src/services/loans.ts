@@ -10,7 +10,7 @@ import { many, one, type Db, type Executor } from '../db/client.js';
 import { loans, locations, parts, units, users } from '../db/schema.js';
 import { invalid } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
-import { audit, personName, requireScope, type Actor } from './context.js';
+import { audit, loanReason, personName, requireScope, type Actor } from './context.js';
 import type { LocationRow, LocationService } from './locations.js';
 import type { UnitService } from './units.js';
 
@@ -312,7 +312,7 @@ export async function loanViews(ex: Executor, rows: LoanRow[]): Promise<LoanView
         : null,
       place: p ? { code: p.code, name: p.name } : null,
       responsible: personName(names.get(r.responsibleUserId) ?? '?'),
-      description: r.description,
+      description: loanReason(r.description),
       outAt: r.outAt,
       dueAt: r.dueAt,
       overdue: !r.returnedAt && !!r.dueAt && r.dueAt < today(),

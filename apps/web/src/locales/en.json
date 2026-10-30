@@ -111,7 +111,8 @@
       "tags": "Tags"
     },
     "empty": "No items match.",
-    "emptyAll": "No items yet. Add one, or let an AI assistant fill the Inbox from order emails."
+    "emptyAll": "No items yet. Add one, or let an AI assistant fill the Inbox from order emails.",
+    "multiplePlaces": "Multiple locations ({{count}})"
   },
   "part": {
     "where": "Where",
@@ -995,7 +996,7 @@
     "lendWhat": "What for and where",
     "lendWhatHint": "E.g. \"thesis tests at Company X, for Pekka V.\" Student names only here, as free text.",
     "responsibleField": "Person responsible",
-    "responsibleHint": "User name of someone with an account, e.g. the supervising teacher. Empty = you.",
+    "responsibleHint": "Someone with an account, e.g. the supervising teacher. Empty = you.",
     "dueField": "Expected back",
     "status": "Status",
     "serial": "Serial number",
@@ -1134,5 +1135,9 @@
     "placeNote": "Archived {{date}}: left out of place lists, and nothing can go in it. Its history is kept.",
     "here_one": "{{count}} archived",
     "here_other": "{{count}} archived"
+  },
+  "person": {
+    "placeholder": "Type a name…",
+    "noMatch": "No one by that name has an account."
   }
 }
