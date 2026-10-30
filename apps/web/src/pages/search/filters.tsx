@@ -1,7 +1,19 @@
-import { PART_KINDS, type PartStatus, type SearchKind } from '@ixfwms/domain';
+import { PART_KINDS, type PartStatus, type SearchKind, type SessionUser } from '@ixfwms/domain';
 import { useTranslation } from 'react-i18next';
 import { useCategories, useTags } from '../../api/queries';
+import { useSession } from '../../auth/session';
+import { PlacePicker } from '../../components/place-picker';
 import { Select } from '../../components/ui';
+
+/** `place` in the URL when someone with a home place wants to search everywhere. */
+export const ALL_PLACES = 'all';
+
+/** The place searched: the one chosen, else your home place. */
+export function searchPlace(params: URLSearchParams, user: SessionUser | null) {
+  const place = params.get('place');
+  if (place === ALL_PLACES) return undefined;
+  return place ?? user?.home?.code;
+}
 
 const chip = (active: boolean) =>
   `rounded-full border px-3 py-1 text-[13px] whitespace-nowrap ${active ? 'border-ink bg-ink text-bg' : 'border-line bg-surface'}`;
@@ -15,6 +27,8 @@ export function SearchFilters({
   onChange: (next: URLSearchParams) => void;
 }) {
   const { t } = useTranslation();
+  const { user } = useSession();
+  const place = searchPlace(params, user);
   const categories = useCategories().data ?? [];
   const tags = useTags().data ?? [];
   const status = (params.get('status') as PartStatus | null) ?? undefined;
@@ -33,6 +47,15 @@ export function SearchFilters({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
+      <div className="w-full sm:w-72">
+        <PlacePicker
+          value={place ?? ''}
+          label={t('parts.filters.place')}
+          placeholder={t('parts.filters.anyPlace')}
+          // Clearing means everywhere, even for someone whose search starts at home.
+          onChange={(code) => setParam('place', code || (user?.home ? ALL_PLACES : undefined))}
+        />
+      </div>
       <button type="button" className={chip(!status)} onClick={() => setParam('status', undefined)}>
         {t('parts.filters.all')}
       </button>

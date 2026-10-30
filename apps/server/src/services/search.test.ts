@@ -1,3 +1,4 @@
+import type { SessionUser } from '@ixfwms/domain';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createTestEnv, type TestEnv } from '../test/harness.js';
 import { fillSearchText } from './search-text.js';
@@ -112,5 +113,61 @@ describe('search results', () => {
     expect((await names({ q: 'ÖLK', limit: 50, offset: 0 })).rows).toEqual([]);
     await fillSearchText(env.database.db);
     expect((await names({ q: 'ÖLK', limit: 50, offset: 0 })).rows).toEqual(['Ölkännu']);
+  });
+});
+
+describe('searching within a place', () => {
+  it('lists only what is there, and units that belong there', async () => {
+    const { locations, parts, units, stock } = env.services;
+    const labA = await locations.create({ name: 'Lab A', type: 'room' }, env.admin);
+    const labB = await locations.create({ name: 'Lab B', type: 'room' }, env.admin);
+    const screw = await parts.create({ name: 'Screw', kind: 'part', status: 'active' }, env.admin);
+    await stock.add(
+      { part: screw.code, location: labA.code, amount: { mode: 'count', quantity: 5 } },
+      env.admin,
+    );
+    await stock.add(
+      { part: screw.code, location: labB.code, amount: { mode: 'count', quantity: 7 } },
+      env.admin,
+    );
+    const drill = await parts.create({ name: 'Drill', kind: 'tool', status: 'active' }, env.admin);
+    const [inA] = await units.add(
+      { part: drill.code, units: [{}], location: labA.code },
+      env.admin,
+    );
+    const [inB] = await units.add(
+      { part: drill.code, units: [{}], location: labB.code },
+      env.admin,
+    );
+    // Belongs to Lab A, visiting Lab B.
+    const [visiting] = await units.add(
+      { part: drill.code, units: [{}], location: labB.code, home: labA.code },
+      env.admin,
+    );
+
+    const found = await parts.search({ location: labA.code, limit: 50, offset: 0 });
+    const unitIds = found.rows.flatMap((r) => ('unitId' in r && r.unitId ? [r.unitId] : []));
+    expect(unitIds).toContain(inA!.id);
+    expect(unitIds).toContain(visiting!.id);
+    expect(unitIds).not.toContain(inB!.id);
+    const listed = found.items.find((i) => i.id === screw.id)!;
+    expect(listed.stock.map((s) => s.locationCode)).toEqual([labA.code]);
+  });
+
+  it('home place: remembered for the session, forgotten when the place is deleted', async () => {
+    const { locations, auth, deletes } = env.services;
+    const lab = await locations.create({ name: 'Lab A', type: 'room' }, env.admin);
+    const headers = { authorization: `Bearer ${env.inventoryToken}` };
+    const put = await env.app.inject({
+      method: 'PUT',
+      url: '/api/session/home',
+      headers,
+      payload: { home: lab.code },
+    });
+    expect(put.json()).toEqual({ home: { code: lab.code, name: 'Lab A' } });
+    const session = await env.app.inject({ url: '/api/session', headers });
+    expect(session.json<SessionUser>().home?.code).toBe(lab.code);
+    await deletes.location(lab.code, env.admin);
+    expect(await auth.home(env.inventory.userId)).toBeNull();
   });
 });

@@ -64,14 +64,14 @@ describe('names for readers without a login', () => {
     }
 
     const [loan] = (await get('/api/loans')).json<Record<string, unknown>[]>();
-    expect(loan).toMatchObject({ responsible: null, description: 'Thesis tests', overdue: false });
+    expect(loan).toMatchObject({ responsible: null, description: null, overdue: false });
     const [report] = (await get('/api/reports')).json<Record<string, unknown>[]>();
     expect(report).toMatchObject({ by: null, kind: 'broken', note: 'Chuck slips' });
     const detail = (await get(`/api/units/${unit.code}`)).json<{
       loan: Record<string, unknown>;
       events: { kind: string; by: string | null }[];
     }>();
-    expect(detail.loan).toMatchObject({ responsible: null, description: 'Thesis tests' });
+    expect(detail.loan).toMatchObject({ responsible: null, description: null });
     expect(detail.events.map((e) => e.kind)).toContain('lent');
     expect(detail.events.every((e) => e.by === null)).toBe(true);
     const history = (await get('/api/history')).json<{ user: string | null }[]>();

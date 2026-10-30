@@ -101,7 +101,9 @@
       "lowStock": "Vähissä",
       "kind": "Laji",
       "anyKind": "Kaikki lajit",
-      "uncounted": "Laskematta"
+      "uncounted": "Laskematta",
+      "place": "Paikka",
+      "anyPlace": "Mikä tahansa paikka"
     },
     "columns": {
       "part": "Tavara",
@@ -112,7 +114,8 @@
     },
     "empty": "Ei hakua vastaavia tavaroita.",
     "emptyAll": "Ei vielä tavaroita. Lisää tavara, tai anna AI-avustajan täyttää Saapuneet tilausvahvistuksista.",
-    "multiplePlaces": "Useita paikkoja ({{count}})"
+    "multiplePlaces": "Useita paikkoja ({{count}})",
+    "searchEverywhere": "Hae kaikista paikoista."
   },
   "part": {
     "where": "Missä",
@@ -688,7 +691,9 @@
     "current": "Nykyinen salasana",
     "next": "Uusi salasana",
     "change": "Vaihda salasana",
-    "changed": "Salasana vaihdettu."
+    "changed": "Salasana vaihdettu.",
+    "home": "Kotipaikka",
+    "homeHint": "Haut rajataan aluksi tähän paikkaan ja kaikkeen sen sisällä. Voit aina hakea muualtakin."
   },
   "history": {
     "title": "Historia",
@@ -1129,6 +1134,7 @@
       "unknownType": "Tuntematon paikkatyyppi \"{{key}}\". Tunnetut tyypit: {{known}}",
       "cantCreateInside": "Paikan {{name}} sisään ei voi luoda paikkoja",
       "cantDelete": "Paikkaa {{name}} ei voi poistaa",
+      "cantBeHome": "Paikka {{name}} ei voi olla kotipaikkasi",
       "archived": "{{name}} on arkistoitu; palauta se ensin arkistosta",
       "cantArchive": "Paikkaa {{name}} ei voi arkistoida; vain siirrettävät säilytysastiat voi",
       "notArchived": "{{name}} ei ole arkistoitu"

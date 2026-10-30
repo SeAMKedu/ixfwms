@@ -330,6 +330,8 @@ export interface SessionUser {
   name: string;
   role: UserRole;
   scopes: Scope[];
+  /** The place this person mostly works in. */
+  home: { code: string; name: string } | null;
 }
 
 export interface LoginResult {

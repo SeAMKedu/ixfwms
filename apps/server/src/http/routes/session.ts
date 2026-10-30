@@ -1,6 +1,7 @@
+import { RefSchema } from '@ixfwms/domain';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { fail } from '../../lib/errors.js';
+import { fail, invalid } from '../../lib/errors.js';
 import { parse, type AppDeps } from '../context.js';
 
 /** Web login. The returned token is sent as a Bearer token like any API token. */
@@ -13,10 +14,22 @@ export function registerSessionRoutes(app: FastifyInstance, { services }: AppDep
     return reply.status(201).send(await services.auth.login(body.name, body.password));
   });
 
-  app.get('/api/session', (request) => {
+  app.get('/api/session', async (request) => {
     const actor = request.actor;
     if (!actor) throw fail('unauthorized', 'auth.notLoggedIn');
-    return { name: actor.name, role: actor.role, scopes: actor.scopes };
+    const home = await services.auth.home(actor.userId);
+    return { name: actor.name, role: actor.role, scopes: actor.scopes, home };
+  });
+
+  /** The place you mostly work in; null for none. */
+  app.put('/api/session/home', async (request) => {
+    const actor = request.actor;
+    if (!actor) throw fail('unauthorized', 'auth.logInFirst');
+    const { home } = parse(z.object({ home: RefSchema.nullable() }), request.body);
+    const place = home ? await services.locations.resolve(home) : null;
+    if (place && place.kind !== 'normal') throw invalid('places.cantBeHome', { name: place.name });
+    await services.auth.setHome(actor.userId, place?.id ?? null);
+    return { home: await services.auth.home(actor.userId) };
   });
 
   app.delete('/api/session', async (request, reply) => {

@@ -1,9 +1,11 @@
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, Navigate } from 'react-router';
-import { useChangePassword } from '../api/queries';
+import { useChangePassword, useChange } from '../api/queries';
+import { api } from '../api/client';
 import { useSession } from '../auth/session';
 import { LanguageSwitch } from '../components/language-switch';
+import { PlacePicker } from '../components/place-picker';
 import { Button, Card, ErrorBox, Field, PageHeader, TextInput } from '../components/ui';
 
 /** Your account, plus the pages that don't fit the phone's bottom tabs. */
@@ -11,6 +13,9 @@ export function AccountPage() {
   const { t } = useTranslation();
   const { user, checking, logout } = useSession();
   const change = useChangePassword();
+  const setHome = useChange((home: string) =>
+    api('/api/session/home', { method: 'PUT', body: { home: home || null } }),
+  );
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [done, setDone] = useState(false);
@@ -48,6 +53,17 @@ export function AccountPage() {
       </Card>
       <Card title={t('account.language')}>
         <LanguageSwitch />
+      </Card>
+      <Card title={t('account.home')}>
+        <div className="flex flex-col gap-2 sm:max-w-sm">
+          <PlacePicker
+            value={user?.home?.code ?? ''}
+            label={t('account.home')}
+            onChange={(code) => setHome.mutate(code)}
+          />
+          <p className="text-[12px] text-muted">{t('account.homeHint')}</p>
+          <ErrorBox error={setHome.error} />
+        </div>
       </Card>
       <Card title={t('account.password')}>
         <form onSubmit={(e) => void submit(e)} className="flex flex-col gap-3 sm:max-w-sm">

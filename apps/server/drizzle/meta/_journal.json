@@ -141,6 +141,13 @@
       "when": 1793316168443,
       "tag": "0019_container_loans",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1793346719199,
+      "tag": "0020_user_home_place",
+      "breakpoints": true
     }
   ]
 }

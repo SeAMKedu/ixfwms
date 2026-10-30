@@ -13,6 +13,7 @@ import {
   type UserDetail,
   type UserInfo,
   type UserRole,
+  type SessionUser,
 } from '@ixfwms/domain';
 import { and, eq, gt, isNull, ne, or, sql, type SQL } from 'drizzle-orm';
 import { many, one, type Db } from '../db/client.js';
@@ -116,7 +117,11 @@ export class AuthService {
       kind: 'session',
       expiresAt,
     });
-    return { token, expiresAt, user: { name: user.name, role: user.role, scopes } };
+    return {
+      token,
+      expiresAt,
+      user: { name: user.name, role: user.role, scopes, home: await this.home(user.id) },
+    };
   }
 
   /** Ends a web session. API tokens are left alone (revoke those with revokeToken). */
@@ -142,6 +147,22 @@ export class AuthService {
 
   async listUsers() {
     return many(this.db.select().from(users));
+  }
+
+  /** The place someone mostly works in. */
+  async home(userId: string): Promise<SessionUser['home']> {
+    const row = await one(
+      this.db
+        .select({ code: locations.code, name: locations.name })
+        .from(users)
+        .innerJoin(locations, eq(locations.id, users.homeLocationId))
+        .where(eq(users.id, userId)),
+    );
+    return row ?? null;
+  }
+
+  async setHome(userId: string, locationId: string | null): Promise<void> {
+    await this.db.update(users).set({ homeLocationId: locationId }).where(eq(users.id, userId));
   }
 
   /** Names of people with a working account, for choosing who is responsible for a loan. */

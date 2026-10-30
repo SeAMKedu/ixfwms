@@ -10,6 +10,7 @@ import {
   stockLots,
   stockMovements,
   units,
+  users,
 } from '../db/schema.js';
 import { invalid } from '../lib/errors.js';
 import { retireCode } from './codes.js';
@@ -95,6 +96,7 @@ export class DeleteService {
       await this.dropOwned(tx, 'location', loc.id);
       // Stock that belonged back here forgets it (origin_location_id: on delete set null).
       await retireCode(tx, loc.code, `deleted place ${loc.name}`);
+      await tx.update(users).set({ homeLocationId: null }).where(eq(users.homeLocationId, loc.id));
       await tx.delete(locations).where(eq(locations.id, loc.id));
       await this.locations.touch(tx, [loc.parentId]);
       await audit(tx, who, 'delete', 'location', loc.id, { code: loc.code, name: loc.name });

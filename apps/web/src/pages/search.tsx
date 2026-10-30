@@ -8,14 +8,14 @@ import { useCategoryFields, useParts } from '../api/queries';
 import { FieldFilters } from '../components/field-filters';
 import { useSession } from '../auth/session';
 import { ButtonLink, Button, Empty, ErrorBox, Loading, PageHeader } from '../components/ui';
-import { SearchFilters } from './search/filters';
+import { ALL_PLACES, SearchFilters, searchPlace } from './search/filters';
 import { resultRows, SearchResults } from './search/results';
 
 const PAGE = 50;
 
 export function SearchPage() {
   const { t } = useTranslation();
-  const { can } = useSession();
+  const { can, user } = useSession();
   const [params, setParams] = useSearchParams();
   const [text, setText] = useState(params.get('q') ?? '');
   const typing = useRef<number | undefined>(undefined);
@@ -28,6 +28,7 @@ export function SearchPage() {
   const lowStock = params.get('lowStock') === '1' ? true : undefined;
   const uncounted = params.get('uncounted') === '1' ? true : undefined;
   const attr = params.getAll('attr');
+  const place = searchPlace(params, user);
   const fields = useCategoryFields(category ?? '').data?.effective ?? [];
   const [limit, setLimit] = useState(PAGE);
   const navigate = useNavigate();
@@ -56,6 +57,7 @@ export function SearchPage() {
     status,
     category,
     tag,
+    location: place,
     kind,
     inStock,
     lowStock,
@@ -135,9 +137,21 @@ export function SearchPage() {
         <Loading />
       ) : parts.data && rows.length === 0 ? (
         <Empty>
-          {q || status || category || tag || kind || inStock || lowStock || uncounted
+          {q || place || status || category || tag || kind || inStock || lowStock || uncounted
             ? t('parts.empty')
             : t('parts.emptyAll')}
+          {place && (
+            <>
+              {' '}
+              <button
+                type="button"
+                className="text-link underline"
+                onClick={() => setParam('place', ALL_PLACES)}
+              >
+                {t('parts.searchEverywhere')}
+              </button>
+            </>
+          )}
         </Empty>
       ) : (
         parts.data && (

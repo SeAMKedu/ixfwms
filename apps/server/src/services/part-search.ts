@@ -51,7 +51,9 @@ export class PartSearch {
     private readonly categories: CategoryService,
   ) {}
 
-  async rows(input: SearchInput): Promise<{ rows: PartSearchRow[]; total: number }> {
+  async rows(
+    input: SearchInput,
+  ): Promise<{ rows: PartSearchRow[]; total: number; within?: string }> {
     const condition = await this.condition(input);
     const textFilters = (input.attributes ?? []).filter(isTextFilter);
     const found = (
@@ -67,7 +69,8 @@ export class PartSearch {
           .where(condition),
       )
     ).filter((p) => textFilters.every((f) => textMatches(p.attributes, f)));
-    const live = await this.liveUnits(condition);
+    const within = input.location ? await this.locations.resolve(input.location) : null;
+    const live = await this.liveUnits(condition, within?.path);
 
     const q = input.q ? fold(input.q) : '';
     const code = input.q ? normalizeCode(input.q) : '';
@@ -95,13 +98,18 @@ export class PartSearch {
       all.push(row);
     }
     for (; b < builds.length; b++) all.push({ buildId: builds[b]!.id });
-    return { rows: all.slice(input.offset, input.offset + input.limit), total: all.length };
+    return {
+      rows: all.slice(input.offset, input.offset + input.limit),
+      total: all.length,
+      within: within?.path,
+    };
   }
 
   /**
    * Builds for the results, by folded name: those the text matches (name, description, code;
-   * dismantled ones too), or without text every build still standing. None for an item kind,
-   * item filters, or lists of items (byUnit false: the Inbox, counts, pickers).
+   * dismantled ones too), or without text every build still standing; only those in the place
+   * searched. None for an item kind, item filters, or lists of items (byUnit false: the Inbox,
+   * counts, pickers).
    */
   private async builds(input: SearchInput): Promise<{ id: string; name: string }[]> {
     if ((input.kind && input.kind !== 'build') || hasItemFilters(input) || input.byUnit === false)
@@ -113,6 +121,7 @@ export class PartSearch {
           name: locations.name,
           description: locations.description,
           code: locations.code,
+          path: locations.path,
           dismantledAt: locations.dismantledAt,
         })
         .from(locations)
@@ -121,7 +130,9 @@ export class PartSearch {
     );
     const text = input.q ? fold(input.q) : '';
     const code = input.q ? normalizeCode(input.q) : '';
+    const within = input.location ? (await this.locations.resolve(input.location)).path : '';
     return rows
+      .filter((l) => l.path.startsWith(within))
       .filter((l) =>
         text
           ? fold(`${l.name} ${l.description ?? ''}`).includes(text) || l.code === code
@@ -131,8 +142,11 @@ export class PartSearch {
       .sort((x, y) => compare(x.name, y.name) || compare(x.id, y.id));
   }
 
-  /** Units that aren't archived, of the individually tracked parts the search finds. */
-  private async liveUnits(condition: SQL | undefined): Promise<Map<string, LiveUnit[]>> {
+  /** Units that aren't archived, of the individually tracked parts the search finds; in a place if given. */
+  private async liveUnits(
+    condition: SQL | undefined,
+    within?: string,
+  ): Promise<Map<string, LiveUnit[]>> {
     const rows = await many(
       this.db
         .select({
@@ -147,6 +161,7 @@ export class PartSearch {
         .where(
           and(
             ne(units.status, 'archived'),
+            within ? this.unitWithin(within) : undefined,
             inArray(
               units.partId,
               this.db
@@ -219,8 +234,13 @@ export class PartSearch {
             this.db
               .select({ one: sql`1` })
               .from(units)
-              .innerJoin(locations, eq(locations.id, units.locationId))
-              .where(and(eq(units.partId, parts.id), like(locations.path, `${loc.path}%`))),
+              .where(
+                and(
+                  eq(units.partId, parts.id),
+                  ne(units.status, 'archived'),
+                  this.unitWithin(loc.path),
+                ),
+              ),
           ),
         )!,
       );
@@ -274,6 +294,15 @@ export class PartSearch {
       where.push(input.inStock ? available : sql`not ${available}`);
     }
     return where.length ? and(...where) : undefined;
+  }
+
+  /** A unit in this place or below it, or one belonging there that's away (lent, at another lab). */
+  private unitWithin(path: string): SQL {
+    const inside = this.db
+      .select({ id: locations.id })
+      .from(locations)
+      .where(like(locations.path, `${path}%`));
+    return or(inArray(units.locationId, inside), inArray(units.homeLocationId, inside))!;
   }
 
   /** Ids of builds and "Out of the lab", with everything inside them (a few, next to the whole lab). */
@@ -340,7 +369,6 @@ function hasItemFilters(input: SearchInput): boolean {
     input.status ||
     input.category ||
     input.tag ||
-    input.location ||
     input.inStock !== undefined ||
     input.lowStock ||
     input.uncounted ||

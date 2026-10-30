@@ -354,14 +354,15 @@ export class PartService {
 
   /** A page of search results; see PartSearch for what a row is. */
   async search(input: SearchInput): Promise<PartSearchResult> {
-    const { rows, total } = await this.searcher.rows(input);
+    const { rows, total, within } = await this.searcher.rows(input);
     const ids = [...new Set(rows.flatMap((r) => ('partId' in r ? [r.partId] : [])))];
     // inArray of no ids is plain false.
     const found = await many(this.db.select().from(parts).where(inArray(parts.id, ids)));
     const byId = new Map(found.map((p) => [p.id, p]));
+    const listed = ids.map((id) => byId.get(id)!);
     return {
       rows,
-      items: await this.summaries(ids.map((id) => byId.get(id)!)),
+      items: await this.summaries(listed, this.db, within),
       total,
       builds: await this.builds.briefs(rows.flatMap((r) => ('buildId' in r ? [r.buildId] : []))),
     };
@@ -425,7 +426,8 @@ export class PartService {
     return top.map(([id, s]) => ({ ...summaries.get(id)!, ...s }));
   }
 
-  async summaries(rows: PartRow[], ex: Executor = this.db): Promise<PartSummary[]> {
+  /** `within`: list only the stock in this place (its path), for a search limited to it. */
+  async summaries(rows: PartRow[], ex: Executor = this.db, within = ''): Promise<PartSummary[]> {
     if (!rows.length) return [];
     const ids = rows.map((r) => r.id);
     const catIds = [
@@ -480,7 +482,7 @@ export class PartService {
         .map((i) => ({ kind: i.kind, value: i.value })),
       tags: tagRows.filter((t) => t.partId === r.id).map((t) => t.name),
       stock: lots
-        .filter((l) => l.lot.partId === r.id)
+        .filter((l) => l.lot.partId === r.id && l.loc.path.startsWith(within))
         .map((l) => ({
           display: formatAmount(l.lot),
           location: placeName(l.loc),

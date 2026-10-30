@@ -101,7 +101,9 @@
       "lowStock": "Low stock",
       "kind": "Kind",
       "anyKind": "Any kind",
-      "uncounted": "Not counted"
+      "uncounted": "Not counted",
+      "place": "Place",
+      "anyPlace": "Any place"
     },
     "columns": {
       "part": "Item",
@@ -112,7 +114,8 @@
     },
     "empty": "No items match.",
     "emptyAll": "No items yet. Add one, or let an AI assistant fill the Inbox from order emails.",
-    "multiplePlaces": "Multiple locations ({{count}})"
+    "multiplePlaces": "Multiple locations ({{count}})",
+    "searchEverywhere": "Search all places."
   },
   "part": {
     "where": "Where",
@@ -688,7 +691,9 @@
     "current": "Current password",
     "next": "New password",
     "change": "Change password",
-    "changed": "Password changed."
+    "changed": "Password changed.",
+    "home": "Home place",
+    "homeHint": "Searches start limited to this place, with everything inside it. You can always search elsewhere."
   },
   "history": {
     "title": "History",

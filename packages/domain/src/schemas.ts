@@ -232,7 +232,9 @@ export const PartSearchInput = z.object({
   category: z.string().trim().max(300).optional(),
   tag: z.string().trim().max(60).optional(),
   status: z.enum(PART_STATUSES).optional(),
-  location: RefSchema.optional().describe('Only parts stored in this location or below it'),
+  location: RefSchema.optional().describe(
+    'Only things in this location or below it, or units that belong there',
+  ),
   inStock: z.boolean().optional(),
   lowStock: z.boolean().optional().describe('Below minimum stock, or marked low/empty'),
   uncounted: z.boolean().optional().describe('Has stock nobody has counted yet'),

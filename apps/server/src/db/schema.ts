@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  type AnySQLiteColumn,
   check,
   index,
   integer,
@@ -52,6 +53,8 @@ export const users = sqliteTable('users', {
   passwordHash: text('password_hash'),
   /** Turned off: can't log in, tokens revoked; kept so history still shows who did what. */
   disabledAt: text('disabled_at'),
+  /** The place this person mostly works in: searches start limited to it. */
+  homeLocationId: text('home_location_id').references((): AnySQLiteColumn => locations.id),
   createdAt: createdAt(),
 });
 

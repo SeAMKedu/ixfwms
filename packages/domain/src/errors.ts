@@ -141,6 +141,7 @@ export const ERROR_MESSAGES = {
   'delete.notEmpty': "{{name}} isn't empty; move what's in it first",
   'delete.homeOf': '{{count}} unit(s) belong at {{name}}; give them another home first',
   'places.cantDelete': "The {{name}} place can't be deleted",
+  'places.cantBeHome': "The {{name}} place can't be your home place",
   'builds.dismantled': '{{name}} has been dismantled; nothing can go in it',
   'places.archived': '{{name}} is archived; unarchive it first',
   'places.cantArchive': "{{name}} can't be archived; only movable containers can",
