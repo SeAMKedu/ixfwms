@@ -1,6 +1,12 @@
-import type { LocationSummary, UnitEventView } from '@ixfwms/domain';
-import type { unitEvents } from '../db/schema.js';
-import { loanReason, personName } from './context.js';
+import {
+  hasScope,
+  type LocationSummary,
+  type UnitEventView,
+  type UnitPurchase,
+  type UpdateUnitInput,
+} from '@ixfwms/domain';
+import type { unitEvents, units } from '../db/schema.js';
+import { loanReason, personName, type Actor } from './context.js';
 
 export function eventView(
   e: typeof unitEvents.$inferSelect,
@@ -18,6 +24,30 @@ export function eventView(
     guest: !user,
     at: e.at,
   };
+}
+
+export function purchaseOf(
+  u: Pick<typeof units.$inferSelect, 'purchaseDate' | 'purchaseValueCents' | 'costCenter'>,
+): UnitPurchase {
+  return { date: u.purchaseDate, valueCents: u.purchaseValueCents, costCenter: u.costCenter };
+}
+
+/** Members see what things cost; nobody else does. */
+export function purchaseFor(
+  u: typeof units.$inferSelect,
+  actor: Actor | null,
+): UnitPurchase | null {
+  return actor && hasScope(actor.scopes, 'inventory') ? purchaseOf(u) : null;
+}
+
+/** The purchase details an update changes; what it leaves out stays as it is. */
+export function purchasePatch(input: UpdateUnitInput): Partial<typeof units.$inferSelect> {
+  const patch: Partial<typeof units.$inferSelect> = {};
+  if (input.purchaseDate !== undefined) patch.purchaseDate = input.purchaseDate ?? null;
+  if (input.purchaseValueCents !== undefined)
+    patch.purchaseValueCents = input.purchaseValueCents ?? null;
+  if (input.costCenter !== undefined) patch.costCenter = input.costCenter ?? null;
+  return patch;
 }
 
 /** Sorts IPv4 addresses numerically ("10.0.0.9" before "10.0.0.10"); others after them, as text. */

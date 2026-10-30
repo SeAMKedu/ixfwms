@@ -29,7 +29,8 @@
     "maps": "Maps",
     "settings": "Settings",
     "network": "Network list",
-    "builds": "Builds"
+    "builds": "Builds",
+    "writeOffs": "Write-off list"
   },
   "common": {
     "save": "Save",
@@ -1144,5 +1145,24 @@
   "person": {
     "placeholder": "Type a name…",
     "noMatch": "No one by that name has an account."
+  },
+  "finance": {
+    "title": "Write-off list",
+    "date": "Purchase date",
+    "value": "Purchase value (€)",
+    "costCenter": "Cost center",
+    "hint": "For the finance people. Only members see these.",
+    "removedOnly": "Removed",
+    "all": "All with purchase details",
+    "anyCenter": "Any cost center",
+    "item": "Item",
+    "code": "Code",
+    "serial": "Serial number",
+    "status": "Status",
+    "removedAt": "Removed",
+    "total": "Total",
+    "csv": "Download CSV",
+    "empty": "Nothing to list.",
+    "meta": "Tools and devices archived or marked lost."
   }
 }

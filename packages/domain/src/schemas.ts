@@ -361,6 +361,15 @@ export const UpdateUnitInput = z.object({
   status: z.enum(UNIT_STATUSES).optional(),
   home: RefSchema.nullish().describe('Where it belongs; null to clear'),
   nextCheckAt: DateSchema.nullish().describe('Next maintenance or inspection, YYYY-MM-DD'),
+  purchaseDate: DateSchema.nullish().describe('When it was bought, YYYY-MM-DD'),
+  purchaseValueCents: z
+    .number()
+    .int()
+    .min(0)
+    .max(100_000_000_000)
+    .nullish()
+    .describe('What it cost, in euro cents'),
+  costCenter: z.string().trim().max(60).nullish().describe('Cost center (kustannuspaikka)'),
 });
 export type UpdateUnitInput = z.infer<typeof UpdateUnitInput>;
 

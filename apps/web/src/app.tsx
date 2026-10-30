@@ -10,6 +10,7 @@ import { BomPage } from './pages/bom';
 import { CarryPage } from './pages/carry';
 import { CategoriesPage } from './pages/categories';
 import { HistoryPage } from './pages/history';
+import { WriteOffsPage } from './pages/write-offs';
 import { ImportPage } from './pages/import';
 import { InboxPage } from './pages/inbox';
 import { LabelsPage } from './pages/labels';
@@ -82,6 +83,7 @@ const routes = [
       { path: '/import', element: <ImportPage /> },
       { path: '/bom', element: <BomPage /> },
       { path: '/history', element: <HistoryPage /> },
+      { path: '/write-offs', element: <WriteOffsPage /> },
       { path: '/network', element: <NetworkPage /> },
       { path: '/users', element: <Redirect to="/settings/users" /> },
       { path: '/backups', element: <Redirect to="/settings/backups" /> },

@@ -352,6 +352,10 @@ export const units = sqliteTable(
     notes: text('notes'),
     /** Next maintenance or inspection (a date, YYYY-MM-DD). */
     nextCheckAt: text('next_check_at'),
+    /** For the finance people; shown only to members. Value in cents, to stay exact. */
+    purchaseDate: text('purchase_date'),
+    purchaseValueCents: integer('purchase_value_cents'),
+    costCenter: text('cost_center'),
     lastSeenAt: text('last_seen_at').notNull(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),

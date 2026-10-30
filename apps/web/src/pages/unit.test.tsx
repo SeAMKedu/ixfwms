@@ -49,6 +49,7 @@ const unit = (over: Partial<UnitDetail>): UnitDetail => ({
   hostname: null,
   macAddress: null,
   networkHidden: true,
+  purchase: null,
   notes: null,
   nextCheckAt: null,
   checkDue: false,

@@ -30,6 +30,7 @@ export function AccountPage() {
   };
   const links = [
     ['/history', t('nav.history')],
+    ['/write-offs', t('nav.writeOffs')],
     ['/labels', t('nav.labels')],
     ['/maps', t('nav.maps')],
     ['/import', t('nav.import')],

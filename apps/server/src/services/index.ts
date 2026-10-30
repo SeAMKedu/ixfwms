@@ -28,6 +28,7 @@ import { SettingsService } from './settings.js';
 import { StockService } from './stock.js';
 import { UnitService } from './units.js';
 import { WhereService } from './where.js';
+import { WriteOffService } from './write-offs.js';
 
 export type { Actor } from './context.js';
 
@@ -57,6 +58,7 @@ export interface Services {
   stock: StockService;
   units: UnitService;
   where: WhereService;
+  writeOffs: WriteOffService;
 }
 
 export function createServices(
@@ -101,6 +103,7 @@ export function createServices(
     stock,
     units,
     where: new WhereService(parts, stock),
+    writeOffs: new WriteOffService(db),
   };
 }
 

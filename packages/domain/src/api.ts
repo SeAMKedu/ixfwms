@@ -4,6 +4,7 @@ import type { ErrorKey, ErrorParams } from './errors.js';
  * and the web app (which consumes them), so both sides stay in sync.
  */
 import type { AttributeField } from './attributes.js';
+import type { UnitPurchase } from './finance.js';
 import type {
   AttachmentKind,
   LocationKind,
@@ -235,6 +236,8 @@ export interface UnitDetail extends UnitBrief {
   hostname: string | null;
   macAddress: string | null;
   networkHidden: boolean;
+  /** Null for people who can't change inventory. */
+  purchase: UnitPurchase | null;
   notes: string | null;
   nextCheckAt: string | null;
   /** The next check date has come. */

@@ -29,7 +29,8 @@
     "maps": "Kartat",
     "settings": "Asetukset",
     "network": "Verkkolista",
-    "builds": "Rakennelmat"
+    "builds": "Rakennelmat",
+    "writeOffs": "Poistolista"
   },
   "common": {
     "save": "Tallenna",
@@ -1337,5 +1338,24 @@
   "person": {
     "placeholder": "Kirjoita nimi…",
     "noMatch": "Tällä nimellä ei ole käyttäjätiliä."
+  },
+  "finance": {
+    "title": "Poistolista",
+    "date": "Hankintapäivä",
+    "value": "Hankinta-arvo (€)",
+    "costCenter": "Kustannuspaikka",
+    "hint": "Taloushallintoa varten. Vain jäsenet näkevät nämä.",
+    "removedOnly": "Poistetut",
+    "all": "Kaikki, joilla on hankintatiedot",
+    "anyCenter": "Mikä tahansa kustannuspaikka",
+    "item": "Tavara",
+    "code": "Koodi",
+    "serial": "Sarjanumero",
+    "status": "Tila",
+    "removedAt": "Poistettu",
+    "total": "Yhteensä",
+    "csv": "Lataa CSV",
+    "empty": "Ei listattavaa.",
+    "meta": "Arkistoidut tai kadonneiksi merkityt työkalut ja laitteet."
   }
 }

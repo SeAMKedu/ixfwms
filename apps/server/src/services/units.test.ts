@@ -1,3 +1,4 @@
+import type { UnitDetail, WriteOffRow } from '@ixfwms/domain';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createTestEnv, type TestEnv } from '../test/harness.js';
 
@@ -288,5 +289,43 @@ describe('without an account', () => {
     expect((await env.services.locationViews.detail(bench.code)).units.map((u) => u.code)).toEqual([
       unit.code,
     ]);
+  });
+});
+
+describe('purchase details', () => {
+  it('are for members, and removed units reach the write-off list', async () => {
+    const { locations, parts, units } = env.services;
+    const room = await locations.create({ name: 'Lab', type: 'room' }, env.admin);
+    const part = await parts.create({ name: 'Scope', kind: 'device', status: 'active' }, env.admin);
+    const [unit, plain] = await units.add(
+      { part: part.code, units: [{}, {}], location: room.code },
+      env.admin,
+    );
+    await units.update(
+      unit!.code,
+      { purchaseDate: '2024-03-01', purchaseValueCents: 123450, costCenter: '4100' },
+      env.admin,
+    );
+    const member = { authorization: `Bearer ${env.inventoryToken}` };
+    const anon = await env.app.inject({ url: `/api/units/${unit!.code}` });
+    expect(anon.json<UnitDetail>().purchase).toBeNull();
+    expect(anon.body).not.toContain('4100');
+    const seen = await env.app.inject({ url: `/api/units/${unit!.code}`, headers: member });
+    expect(seen.json<UnitDetail>().purchase).toEqual({
+      date: '2024-03-01',
+      valueCents: 123450,
+      costCenter: '4100',
+    });
+
+    expect((await env.app.inject({ url: '/api/write-offs' })).statusCode).toBe(401);
+    const list = async () =>
+      (await env.app.inject({ url: '/api/write-offs', headers: member })).json<WriteOffRow[]>();
+    expect((await list()).map((r) => [r.code, r.removedAt])).toEqual([[unit!.code, null]]);
+
+    await units.update(unit!.code, { status: 'archived' }, env.admin);
+    await units.update(plain!.code, { status: 'lost' }, env.admin);
+    const after = await list();
+    expect(after.map((r) => r.code).sort()).toEqual([unit!.code, plain!.code].sort());
+    expect(after.every((r) => r.removedAt)).toBe(true);
   });
 });

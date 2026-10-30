@@ -36,3 +36,15 @@ export function formatDay(day: string): string {
     new Date(`${day.slice(0, 10)}T12:00:00`),
   );
 }
+
+export function formatEuros(cents: number): string {
+  return new Intl.NumberFormat(i18n.language, { style: 'currency', currency: 'EUR' }).format(
+    cents / 100,
+  );
+}
+
+/** "1 234,50" as cents; null when empty. The field's pattern keeps out anything else. */
+export function parseEuros(text: string): number | null {
+  const n = Number(text.replace(/\s/g, '').replace(',', '.'));
+  return text.trim() === '' || Number.isNaN(n) ? null : Math.round(n * 100);
+}

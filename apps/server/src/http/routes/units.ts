@@ -95,6 +95,8 @@ export function registerUnitRoutes(app: FastifyInstance, { services }: AppDeps):
     return loans.returnUnit(parse(RefParams, request.params).ref, to ?? null, request.actor);
   });
 
+  app.get('/api/write-offs', async (request) => services.writeOffs.list(request.actor));
+
   app.get('/api/loans', async (request) => {
     const q = parse(z.object({ open: QueryBool.optional() }), request.query);
     return loans.list(q.open ?? true);

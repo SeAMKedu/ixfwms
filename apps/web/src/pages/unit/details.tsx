@@ -5,12 +5,13 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
 import { useDelete } from '../../api/builds';
 import { useUpdateUnit } from '../../api/queries';
+import { useWriteOffs } from '../../api/write-offs';
 import { useSession } from '../../auth/session';
 import { DeleteButton } from '../../components/delete-button';
 import { PlacePicker } from '../../components/place-picker';
 import { Button, Card, ErrorBox, Field, Select, TextArea, TextInput } from '../../components/ui';
 import { UnitStatusPill } from '../../components/units';
-import { formatDay } from '../../lib/format';
+import { formatDay, formatEuros, parseEuros } from '../../lib/format';
 import { useShortcut } from '../../lib/shortcuts';
 
 export function Details({ unit }: { unit: UnitDetail }) {
@@ -79,6 +80,12 @@ export function Details({ unit }: { unit: UnitDetail }) {
           t('units.mac'),
           unit.macAddress && <span className="font-mono">{unit.macAddress}</span>,
         )}
+        {row(t('finance.date'), unit.purchase?.date && formatDay(unit.purchase.date))}
+        {row(
+          t('finance.value'),
+          unit.purchase?.valueCents != null && formatEuros(unit.purchase.valueCents),
+        )}
+        {row(t('finance.costCenter'), unit.purchase?.costCenter)}
         {row(
           t('part.notes'),
           unit.notes && <span className="whitespace-pre-wrap">{unit.notes}</span>,
@@ -126,7 +133,14 @@ function EditDetails({ unit, onDone }: { unit: UnitDetail; onDone: () => void })
     macAddress: unit.macAddress ?? '',
     nextCheckAt: unit.nextCheckAt ?? '',
     notes: unit.notes ?? '',
+    purchaseDate: unit.purchase?.date ?? '',
+    purchaseValue:
+      unit.purchase?.valueCents != null ? (unit.purchase.valueCents / 100).toFixed(2) : '',
+    costCenter: unit.purchase?.costCenter ?? '',
   });
+  const costCenters = [
+    ...new Set((useWriteOffs().data ?? []).flatMap((r) => r.purchase.costCenter ?? [])),
+  ].sort();
   const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
   const text = (
     key: 'name' | 'serialNo' | 'ipAddress' | 'hostname' | 'macAddress',
@@ -155,6 +169,9 @@ function EditDetails({ unit, onDone }: { unit: UnitDetail; onDone: () => void })
       macAddress: form.macAddress.trim() || null,
       nextCheckAt: form.nextCheckAt || null,
       notes: form.notes.trim() || null,
+      purchaseDate: form.purchaseDate || null,
+      purchaseValueCents: parseEuros(form.purchaseValue),
+      costCenter: form.costCenter.trim() || null,
     });
     onDone();
   };
@@ -206,6 +223,47 @@ function EditDetails({ unit, onDone }: { unit: UnitDetail; onDone: () => void })
           {text('macAddress', t('units.mac'))}
         </div>
         <p className="text-[12px] text-muted">{t('units.networkHint')}</p>
+        <div className="grid gap-3 md:grid-cols-3">
+          <Field label={t('finance.date')}>
+            {(id) => (
+              <TextInput
+                id={id}
+                type="date"
+                value={form.purchaseDate}
+                onChange={(e) => set({ purchaseDate: e.target.value })}
+              />
+            )}
+          </Field>
+          <Field label={t('finance.value')}>
+            {(id) => (
+              <TextInput
+                id={id}
+                inputMode="decimal"
+                pattern="[0-9 ]*([.,][0-9]{1,2})?"
+                value={form.purchaseValue}
+                onChange={(e) => set({ purchaseValue: e.target.value })}
+              />
+            )}
+          </Field>
+          <Field label={t('finance.costCenter')}>
+            {(id) => (
+              <>
+                <TextInput
+                  id={id}
+                  list={`${id}-known`}
+                  value={form.costCenter}
+                  onChange={(e) => set({ costCenter: e.target.value })}
+                />
+                <datalist id={`${id}-known`}>
+                  {costCenters.map((c) => (
+                    <option key={c} value={c} />
+                  ))}
+                </datalist>
+              </>
+            )}
+          </Field>
+        </div>
+        <p className="text-[12px] text-muted">{t('finance.hint')}</p>
         <Field label={t('part.notes')}>
           {(id) => (
             <TextArea id={id} value={form.notes} onChange={(e) => set({ notes: e.target.value })} />

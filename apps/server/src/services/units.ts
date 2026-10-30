@@ -47,7 +47,7 @@ import type { LocationRow, LocationService } from './locations.js';
 import type { PartResolver } from './parts.js';
 import { unitSearchText } from './search-text.js';
 import { checkNotLent, loanViews, openLoan, placeLoans } from './loans.js';
-import { eventView, ipKey } from './unit-views.js';
+import { eventView, ipKey, purchaseFor, purchasePatch } from './unit-views.js';
 
 export type UnitRow = typeof units.$inferSelect;
 
@@ -152,6 +152,7 @@ export class UnitService {
       ] as const) {
         if (input[key] !== undefined) patch[key] = input[key] ?? null;
       }
+      Object.assign(patch, purchasePatch(input));
       if (patch.name !== undefined || patch.serialNo !== undefined)
         patch.searchText = unitSearchText({ ...unit, ...patch });
       if (input.home !== undefined)
@@ -286,6 +287,7 @@ export class UnitService {
       hostname: hidden ? null : unit.hostname,
       macAddress: hidden ? null : unit.macAddress,
       networkHidden: hidden && !!(unit.ipAddress || unit.hostname || unit.macAddress),
+      purchase: purchaseFor(unit, actor),
       notes: unit.notes,
       nextCheckAt: unit.nextCheckAt,
       checkDue: !!unit.nextCheckAt && unit.nextCheckAt <= today(),
