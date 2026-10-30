@@ -1,6 +1,18 @@
 # Changelog
 
 All notable changes to ixfwms.
+## 0.16.0 (2026-10-30)
+
+### Features
+- pick the loan's responsible person, hide loan reasons from guests
+- filter search by place, and give each user a home place
+- purchase details on tools and devices, and a write-off list
+- depreciation list shows everything with purchase details, add useful life
+- own API tokens and settings on the account page, admins edit them per user
+- search filters as pills and search fields, address roots, one-line results
+
+### Documentation
+- draw the data model from the schema
 ## 0.15.0 (2026-10-29)
 
 ### Features
