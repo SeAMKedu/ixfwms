@@ -17,3 +17,7 @@ vendor-docs/
 e2e/.data/
 test-results/
 playwright-report/
+
+# Internal notes, kept local
+docs/notes-for-claude.md
+PLAN.md

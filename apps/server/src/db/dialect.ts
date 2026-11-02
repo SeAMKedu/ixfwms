@@ -2,9 +2,9 @@ import { sql, type AnyColumn, type SQL } from 'drizzle-orm';
 
 /*
  * The SQL that differs between SQLite and Postgres. Services build queries with Drizzle and
- * SQL both understand (lower, substr, ||, coalesce, cast, exists, count); what is specific to
+ * SQL both understand (substr, ||, coalesce, cast, exists, count); what is specific to
  * one database goes here, so moving to Postgres changes this file, the schema, the migrations
- * and the backups (see PLAN.md, "Database portability"), not the services.
+ * and the backups (see CONTRIBUTING.md, "Database portability"), not the services.
  */
 
 /** A value inside a JSON column, e.g. jsonValue(parts.attributes, ['colour', 'name']). Postgres: `col #>> '{colour,name}'`. */

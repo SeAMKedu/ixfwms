@@ -36,3 +36,15 @@ The release script must run on `main` with a clean tree. It runs the matching ch
 ## Database changes
 
 Edit `apps/server/src/db/schema.ts`, then run `npm run db:generate` and commit the generated SQL in `apps/server/drizzle/`. The server applies pending migrations at startup, after taking a backup. Then run `npm run docs:data-model` to redraw the data model (`docs/data-model.html`); it fails if a drawn column is gone or a new foreign key isn't drawn, and the fix is in `scripts/data-model.ts`.
+
+## Database portability
+
+SQLite now; Postgres should stay possible later. The goal is not a database-agnostic app but services free of SQLite-only APIs, so a port touches `db/schema.ts`, `db/dialect.ts`, `db/client.ts`, the migrations, the code triggers and `services/backup.ts`, and not the services.
+
+- Build queries with Drizzle and read rows through `one()` and `many()` from `db/client.ts`, never `.get()` or `.all()` (only the SQLite drivers have them).
+- Raw `sql` only for SQL both databases understand: `substr`, `||`, `coalesce`, `cast`, `exists`, `count`, `case`, `like … escape`. Not `lower()`: SQLite folds only A–Z, Postgres folds ä. Case-insensitive matching compares text folded in JavaScript (`fold()` in the domain package), e.g. the stored `search_text` columns.
+- No SQLite types in services (`SQLiteColumn` and the like); use Drizzle's `AnyColumn`.
+- Anything specific to one database goes in `apps/server/src/db/dialect.ts`: JSON access, the timestamp default for raw SQL, and which database rule an error broke.
+- The app writes timestamps itself (`nowIso()`); SQL defaults are only for raw SQL.
+- Portable column types: text ids (UUIDv7), ISO-8601 text timestamps, integers for booleans, JSON as text, `real` for amounts, CHECK constraints in a form both accept.
+- Database-level rules (unique codes) are triggers in a migration; Postgres would get the same rules as trigger functions in its own migration.
