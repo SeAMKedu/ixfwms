@@ -83,6 +83,8 @@ export class LocationViews {
     return {
       ...summary,
       description: loc.description,
+      hint: loc.hint,
+      numberFrom: loc.numberFrom,
       path,
       children: children.map((c) => ({ ...c, partCount: counts.get(c.id) ?? 0 })),
       archived: await this.locations.summaries(

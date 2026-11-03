@@ -272,6 +272,17 @@
     "codeHint": "QR-tarran koodi; se ei muutu koskaan",
     "shortName": "Lyhyt nimi",
     "shortNameHint": "Osoitetta varten, esim. A tai A140.1",
+    "hint": "Miten sen löytää",
+    "hintHelp": "Missä se on sen paikan sisällä, jossa se on, juuri paikalle tulleelle: maamerkit ja ulkonäkö, ei sisältöä. Esim. \"Harmaa kaksiovinen kaappi projektipöydän vieressä\".",
+    "numberFrom": "Sisällä olevat paikat on numeroitu",
+    "numberFromHelp": "Jotta ”Hylly 2” voidaan kertoa ”toisena hyllynä alhaalta”.",
+    "numberFromOptions": {
+      "none": "Ei missään järjestyksessä",
+      "bottom": "Alhaalta",
+      "top": "Ylhäältä",
+      "left": "Vasemmalta",
+      "right": "Oikealta"
+    },
     "addressRoot": "Osoite alkaa tästä",
     "addressRootHint": "Laboratoriolle tai huoneelle: yläpuolinen rakennus ja kerros jäävät pois osoitteesta, joten niiden lisääminen myöhemmin ei muuta mitään. Lyhenteen on oltava yksilöllinen näiden paikkojen kesken. Jos paikan yläpuolella on tasoja, valinnan muuttaminen muuttaa osoitteita, joten tulosta sen tarrat uudelleen.",
     "clash": "Paikalla {{names}} on sama lyhyt nimi, joten osoite {{address}} ei ole yksilöllinen. Anna toiselle niistä eri lyhyt nimi."

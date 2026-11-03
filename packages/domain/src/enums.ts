@@ -2,6 +2,10 @@
 export const LOCATION_KINDS = ['normal', 'inbox', 'in_transit', 'away'] as const;
 export type LocationKind = (typeof LOCATION_KINDS)[number];
 
+/** Which way a place's sub-places are numbered ("Shelf 2" counted from the bottom), for directions. */
+export const NUMBER_FROM = ['bottom', 'top', 'left', 'right'] as const;
+export type NumberFrom = (typeof NUMBER_FROM)[number];
+
 export const PART_STATUSES = ['draft', 'active', 'archived'] as const;
 export type PartStatus = (typeof PART_STATUSES)[number];
 

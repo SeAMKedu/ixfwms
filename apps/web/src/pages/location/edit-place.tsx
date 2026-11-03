@@ -1,4 +1,10 @@
-import { autoShortName, normalizeCode, type LocationDetail } from '@ixfwms/domain';
+import {
+  autoShortName,
+  NUMBER_FROM,
+  normalizeCode,
+  type LocationDetail,
+  type NumberFrom,
+} from '@ixfwms/domain';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -10,7 +16,7 @@ import { DeleteButton } from '../../components/delete-button';
 import { PlacePicker } from '../../components/place-picker';
 import { Button, ErrorBox, Field, Select, TextArea, TextInput } from '../../components/ui';
 
-/** Name, short name, expected stay, contact and description of a place. */
+/** Name, short name, how to find it, expected stay, contact and description of a place. */
 export function EditPlaceForm({ place: d, onDone }: { place: LocationDetail; onDone: () => void }) {
   const { t } = useTranslation();
   const { can } = useSession();
@@ -26,6 +32,8 @@ export function EditPlaceForm({ place: d, onDone }: { place: LocationDetail; onD
   );
   const [stayDays, setStayDays] = useState(d.ownStayDays ? String(d.ownStayDays) : '');
   const [contact, setContact] = useState(d.contact ?? '');
+  const [hint, setHint] = useState(d.hint ?? '');
+  const [numberFrom, setNumberFrom] = useState<NumberFrom | ''>(d.numberFrom ?? '');
   const saveEdit = async (e: FormEvent) => {
     e.preventDefault();
     const days = Math.round(Number(stayDays));
@@ -35,6 +43,8 @@ export function EditPlaceForm({ place: d, onDone }: { place: LocationDetail; onD
       addressRoot,
       description: description || null,
       contact: contact || null,
+      hint: hint || null,
+      numberFrom: numberFrom || null,
       stayDays: stay === 'type' ? null : stay === 'none' || !(days > 0) ? 0 : days,
     });
     onDone();
@@ -76,6 +86,34 @@ export function EditPlaceForm({ place: d, onDone }: { place: LocationDetail; onD
           </span>
         </label>
       )}
+      <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_14rem]">
+        <Field label={t('places.hint')} hint={t('places.hintHelp')}>
+          {(id) => (
+            <TextInput
+              id={id}
+              value={hint}
+              maxLength={300}
+              onChange={(e) => setHint(e.target.value)}
+            />
+          )}
+        </Field>
+        <Field label={t('places.numberFrom')} hint={t('places.numberFromHelp')}>
+          {(id) => (
+            <Select
+              id={id}
+              value={numberFrom}
+              onChange={(e) => setNumberFrom(e.target.value as NumberFrom | '')}
+            >
+              <option value="">{t('places.numberFromOptions.none')}</option>
+              {NUMBER_FROM.map((f) => (
+                <option key={f} value={f}>
+                  {t(`places.numberFromOptions.${f}`)}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+      </div>
       <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <Field label={t('temporary.expectedStay')} hint={t('temporary.expectedStayHint')}>
           {(id) => (

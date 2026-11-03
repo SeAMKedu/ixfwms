@@ -16,6 +16,7 @@ import {
 import { AttributeFilter } from './attributes.js';
 import { CUT_SHAPES, LEFTOVERS } from './cut.js';
 import { AddressRootSchema, ShortNameSchema } from './addresses.js';
+import { HintSchema, NumberFromSchema } from './directions.js';
 
 /** A location or part reference: internal id or short code. */
 export const RefSchema = z.string().trim().min(1).max(64);
@@ -40,6 +41,8 @@ export const CreateLocationInput = z.object({
   addressRoot: AddressRootSchema,
   stayDays: StayDaysSchema,
   contact: z.string().trim().max(200).nullish().describe('Who to ask about a temporary place'),
+  hint: HintSchema,
+  numberFrom: NumberFromSchema,
   parent: RefSchema.nullish().describe('Parent location id or code; omit for a top-level location'),
   type: z
     .string()
@@ -82,6 +85,8 @@ export const UpdateLocationInput = z.object({
   addressRoot: AddressRootSchema,
   stayDays: StayDaysSchema,
   contact: z.string().trim().max(200).nullish(),
+  hint: HintSchema,
+  numberFrom: NumberFromSchema,
   type: z.string().trim().min(1).max(40).optional(),
   description: z.string().trim().max(2000).nullish(),
 });

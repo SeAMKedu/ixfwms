@@ -1,5 +1,10 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { AddressRootSchema } from '@ixfwms/domain';
+import {
+  AddressRootSchema,
+  HintSchema,
+  NumberFromSchema,
+  UpdateLocationInput,
+} from '@ixfwms/domain';
 import { z } from 'zod';
 import type { Actor, Services } from '../services/index.js';
 import { read, tool, write } from './tool.js';
@@ -110,6 +115,8 @@ export function registerPlaceTools(
             'Temporary place (e.g. a delivery pallet): expected stay in days; 0 = not temporary',
           ),
         contact: z.string().optional().describe('Who to ask about a temporary place'),
+        hint: HintSchema,
+        numberFrom: NumberFromSchema,
         code: z
           .string()
           .optional()
@@ -129,11 +136,25 @@ export function registerPlaceTools(
           addressRoot: a.addressRoot,
           stayDays: a.stayDays,
           contact: a.contact ?? null,
+          hint: a.hint ?? null,
+          numberFrom: a.numberFrom ?? null,
         },
         actor,
       );
       return { ...loc, url: `${baseUrl}/l/${loc.code}` };
     }),
+  );
+
+  server.registerTool(
+    'update_location',
+    {
+      title: 'Change place',
+      description:
+        'Change fields of a place. Omitted fields stay as they are; null clears one. Someone standing at a place can say how to find it ("note that cabinet B is next to the project workbench"): set its hint, in the language the other fields are in.',
+      inputSchema: { ref: z.string().describe('Place code or id'), ...UpdateLocationInput.shape },
+      annotations: write,
+    },
+    tool(async ({ ref, ...changes }) => locations.update(ref, changes, actor)),
   );
 
   server.registerTool(

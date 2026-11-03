@@ -8,8 +8,8 @@ import type { UnitPurchase } from './finance.js';
 import type {
   AttachmentKind,
   LocationKind,
+  NumberFrom,
   PartKind,
-  SearchKind,
   PartStatus,
   ReportKind,
   Scope,
@@ -277,13 +277,6 @@ export interface ClearResult {
   left: { kind: 'unit' | 'lot' | 'place'; name: string }[];
 }
 
-/** One readable answer to "where is …?", made to be read aloud. */
-export interface WhereIsAnswer {
-  item: { code: string; name: string; kind: SearchKind };
-  unit: string | null;
-  text: string;
-}
-
 export interface LocationContentItem {
   lotId: string;
   part: { id: string; code: string; name: string; status: PartStatus; manufacturer: string | null };
@@ -294,6 +287,10 @@ export interface LocationContentItem {
 
 export interface LocationDetail extends LocationSummary {
   description: string | null;
+  /** How to find it inside its parent ("next to the project workbench"). */
+  hint: string | null;
+  /** Which way its sub-places are numbered, for directions. */
+  numberFrom: NumberFrom | null;
   path: LocationSummary[];
   children: (LocationSummary & { partCount: number })[];
   /** Archived containers here, listed apart so they can be brought back. */

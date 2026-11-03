@@ -18,6 +18,7 @@ import type {
   AttributeField,
   IdentifierKind,
   LocationKind,
+  NumberFrom,
   MeasureUnit,
   MovementReason,
   PartKind,
@@ -32,19 +33,13 @@ import type {
   UserLanguage,
   UserRole,
 } from '@ixfwms/domain';
-import { nowIso } from '../lib/ids.js';
-import { nowIsoDefault } from './dialect.js';
+import { createdAt, id, updatedAt, writtenAt } from './columns.js';
 
 /*
  * SQLite schema. Kept to portable column types (text, integer, real, json-as-text) so a
  * Postgres variant stays a mechanical translation; SQL that differs lives in ./dialect.ts.
  * Timestamps are ISO-8601 strings in UTC.
  */
-
-const id = () => text('id').primaryKey();
-// The app writes timestamps (nowIso: one fixed-width form); the SQL default is for raw SQL.
-const createdAt = () => text('created_at').notNull().default(nowIsoDefault).$defaultFn(nowIso);
-const updatedAt = () => text('updated_at').notNull().default(nowIsoDefault).$defaultFn(nowIso);
 
 export const users = sqliteTable('users', {
   id: id(),
@@ -118,6 +113,10 @@ export const locations = sqliteTable(
     /** An old container put away (only movable ones, only empty): hidden, nothing goes in it. */
     archivedAt: text('archived_at'),
     description: text('description'),
+    /** How to find it inside its parent ("next to the project workbench"), for directions. */
+    hint: text('hint'),
+    /** Which way its sub-places are numbered (bottom, top, left, right), for directions. */
+    numberFrom: text('number_from').$type<NumberFrom>(),
     /** Materialised path of ids, e.g. "/a/b/c/" (includes this location), for subtree queries. */
     path: text('path').notNull(),
     ownerUserId: text('owner_user_id').references(() => users.id),
@@ -410,7 +409,7 @@ export const loans = sqliteTable(
       .notNull()
       .references(() => users.id),
     description: text('description').notNull(),
-    outAt: text('out_at').notNull().default(nowIsoDefault).$defaultFn(nowIso),
+    outAt: writtenAt('out_at'),
     /** Expected back (a date, YYYY-MM-DD). */
     dueAt: text('due_at'),
     returnedAt: text('returned_at'),

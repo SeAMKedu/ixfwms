@@ -102,7 +102,7 @@ export function createServices(
     settings,
     stock,
     units,
-    where: new WhereService(parts, stock),
+    where: new WhereService(parts, stock, locations),
     writeOffs: new WriteOffService(db),
   };
 }

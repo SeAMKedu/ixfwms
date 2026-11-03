@@ -1,7 +1,5 @@
 import {
   addressOf,
-  BUILT_IN_LOCATION_TYPES,
-  DEFAULT_LOCATION_TYPES,
   type OverduePlace,
   isValidCode,
   normalizeCode,
@@ -9,7 +7,9 @@ import {
   type LocationKind,
   type LocationNode,
   type LocationSummary,
+  type NumberFrom,
   type PlaceOption,
+  type PlaceStep,
   type UpdateLocationInput,
 } from '@ixfwms/domain';
 import { and, asc, eq, inArray, isNull, like, sql } from 'drizzle-orm';
@@ -22,70 +22,21 @@ import { addressClashes, checkAddressStart, checkShortName } from './place-addre
 import { audit, placeName, requireScope, type Actor } from './context.js';
 import { checkNotLent } from './loans.js';
 import { PlaceCopy } from './place-copy.js';
+import { ensurePlaceDefaults } from './place-defaults.js';
+import { directionsTo } from './place-directions.js';
 import { TemporaryPlaces } from './temporary.js';
 
 export type LocationRow = typeof locations.$inferSelect;
 export type { LocationNode, LocationSummary };
 
-const INBOX_NAME = 'Inbox';
-const AWAY_NAME = 'Out of the lab';
 const DAY_MS = 86_400_000;
 
 export class LocationService {
   constructor(private readonly db: Db) {}
 
-  /** Seeds location types, the Inbox and "Out of the lab". Safe to run on every start. */
+  /** Seeds location types, the Inbox and "Out of the lab"; see ensurePlaceDefaults. */
   async ensureDefaults(): Promise<void> {
-    const existing = await many(this.db.select().from(locationTypes));
-    const keys = new Set(existing.map((t) => t.key));
-    let sort = existing.length;
-    const defaults = [
-      ...DEFAULT_LOCATION_TYPES,
-      {
-        key: 'in_transit',
-        name: 'Being carried',
-        movable: false,
-        stayDays: null,
-        workstation: false,
-        build: false,
-      },
-    ];
-    // Only for a new database: types removed in the app on purpose stay removed.
-    const fresh = existing.length === 0;
-    for (const t of defaults) {
-      if (!keys.has(t.key) && (fresh || BUILT_IN_LOCATION_TYPES.some((b) => b === t.key))) {
-        await this.db.insert(locationTypes).values({
-          id: newId(),
-          key: t.key,
-          name: t.name,
-          movable: t.movable,
-          stayDays: t.stayDays,
-          workstation: t.workstation,
-          build: t.build,
-          sort: sort++,
-        });
-      }
-    }
-    const inbox = await one(this.db.select().from(locations).where(eq(locations.kind, 'inbox')));
-    if (!inbox) {
-      await this.insert(this.db, {
-        name: INBOX_NAME,
-        parent: null,
-        typeKey: 'system',
-        kind: 'inbox',
-        description: 'Things we own but have not put away yet: new orders and AI drafts.',
-      });
-    }
-    const away = await one(this.db.select().from(locations).where(eq(locations.kind, 'away')));
-    if (!away) {
-      await this.insert(this.db, {
-        name: AWAY_NAME,
-        parent: null,
-        typeKey: 'system',
-        kind: 'away',
-        description: 'Things lent out of the lab, each with the person responsible for it.',
-      });
-    }
+    return ensurePlaceDefaults(this.db, this);
   }
 
   /** The built-in place where lent units are while they're out of the lab. */
@@ -136,6 +87,8 @@ export class LocationService {
       addressRoot: input.addressRoot,
       stayDays: input.stayDays ?? null,
       contact: input.contact ?? null,
+      hint: input.hint ?? null,
+      numberFrom: input.numberFrom ?? null,
     });
     await audit(tx, who, 'create', 'location', row.id, {
       name: row.name,
@@ -156,6 +109,8 @@ export class LocationService {
       if (input.name !== undefined) patch.name = input.name;
       if (input.stayDays !== undefined) patch.stayDays = input.stayDays ?? null;
       if (input.contact !== undefined) patch.contact = input.contact ?? null;
+      if (input.hint !== undefined) patch.hint = input.hint || null;
+      if (input.numberFrom !== undefined) patch.numberFrom = input.numberFrom ?? null;
       if (input.shortName !== undefined) {
         patch.shortName = input.shortName ?? null;
         await checkShortName(tx, this, loc.parentId, patch.shortName, loc.id);
@@ -215,7 +170,11 @@ export class LocationService {
       throw invalid('places.intoItself', { name: loc.name });
     }
     if (parent) await this.checkOpen(parent, tx);
+    const moved = (parent?.id ?? null) !== loc.parentId;
     await this.relink(tx, loc, parent, who);
+    // "Behind the blue bin" was about where a container was; it says nothing about its new spot.
+    if (moved && loc.hint && (await this.typeOf(tx, loc)).movable)
+      await tx.update(locations).set({ hint: null }).where(eq(locations.id, loc.id));
   }
 
   /** Puts `loc` under `parent` with no questions asked; lending and returning go through here. */
@@ -449,6 +408,15 @@ export class LocationService {
     return addressClashes(this.db, this, loc);
   }
 
+  /** How to get to a place, step by step from the top; see directionsTo. */
+  async directions(ref: string, ex: Executor = this.db): Promise<PlaceStep[]> {
+    return directionsTo(ex, await this.resolve(ref, ex));
+  }
+
+  private async typeOf(ex: Executor, loc: LocationRow) {
+    return (await one(ex.select().from(locationTypes).where(eq(locationTypes.id, loc.typeId))))!;
+  }
+
   private async typeByKey(ex: Executor, key: string) {
     const type = await one(ex.select().from(locationTypes).where(eq(locationTypes.key, key)));
     if (!type) {
@@ -475,6 +443,8 @@ export class LocationService {
       addressRoot?: boolean;
       stayDays?: number | null;
       contact?: string | null;
+      hint?: string | null;
+      numberFrom?: NumberFrom | null;
     },
   ): Promise<LocationRow> {
     const type = await this.typeByKey(ex, input.typeKey);
@@ -508,6 +478,8 @@ export class LocationService {
       addressRoot: input.addressRoot ?? false,
       stayDays: input.stayDays ?? null,
       contact: input.contact ?? null,
+      hint: input.hint || null,
+      numberFrom: input.numberFrom ?? null,
       lastActivityAt: nowIso(),
     };
     await ex.insert(locations).values(row);

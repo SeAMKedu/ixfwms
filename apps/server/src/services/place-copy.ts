@@ -79,6 +79,9 @@ export class PlaceCopy {
             kind: 'normal',
             description: row.description,
             shortName: isRoot ? shortRoot : row.shortName,
+            // The copy stands somewhere else; what's inside it is found the same way.
+            hint: isRoot ? null : row.hint,
+            numberFrom: row.numberFrom,
           });
           pairs.set(row.id, copy.id);
           if (isRoot) copies.push(await this.locations.summarize(tx, copy));

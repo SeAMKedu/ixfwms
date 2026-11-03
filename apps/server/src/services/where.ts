@@ -6,6 +6,7 @@ import type {
   UnitBrief,
   WhereIsAnswer,
 } from '@ixfwms/domain';
+import type { LocationService } from './locations.js';
 import type { PartService } from './parts.js';
 import type { StockService } from './stock.js';
 
@@ -29,6 +30,7 @@ export class WhereService {
   constructor(
     private readonly parts: PartService,
     private readonly stock: StockService,
+    private readonly locations: LocationService,
   ) {}
 
   async ask(query: string, limit = 5): Promise<WhereIsAnswer[]> {
@@ -36,10 +38,21 @@ export class WhereService {
     const levels = await this.stock.levels();
     const byId = new Map(items.map((i) => [i.id, i]));
     const buildById = new Map(builds.map((b) => [b.id, b]));
-    return rows.map((row) =>
-      'buildId' in row
-        ? buildAnswer(buildById.get(row.buildId)!)
-        : answerFor(byId.get(row.partId)!, row.unitId, levels),
+    return Promise.all(
+      rows.map(async (row) => {
+        let answer: WhereIsAnswer;
+        let to: LocationSummary | null;
+        if ('buildId' in row) {
+          const build = buildById.get(row.buildId)!;
+          [answer, to] = [buildAnswer(build), build.in];
+        } else {
+          const item = byId.get(row.partId)!;
+          [answer, to] = [answerFor(item, row.unitId, levels), placeShown(item, row.unitId)];
+        }
+        return to?.kind === 'normal'
+          ? { ...answer, directions: await this.locations.directions(to.id) }
+          : answer;
+      }),
     );
   }
 }
@@ -62,6 +75,13 @@ function answerFor(
   const shown = item.stock.slice(0, 3).map((s) => `${amount(s.display)} ${at(s.place)}`);
   const more = item.stock.length > 3 ? `, and ${item.stock.length - 3} more places` : '';
   return { item: ref, unit: null, text: `${item.name}: ${shown.join(', ')}${more}.` };
+}
+
+/** The place an answer names first: where the unit is, or the first place with stock. */
+function placeShown(item: PartSummary, unitId: string | null): LocationSummary | null {
+  const unit = unitId && item.units.find((u) => u.id === unitId);
+  if (unit) return unit.loan ? null : unit.location;
+  return item.tracking === 'bulk' ? (item.stock[0]?.place ?? null) : null;
 }
 
 function buildAnswer(b: BuildBrief): WhereIsAnswer {

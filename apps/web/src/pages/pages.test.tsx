@@ -262,6 +262,8 @@ describe('location page', () => {
       wasInIt: [],
       loan: null,
       description: null,
+      hint: 'Behind the blue bin',
+      numberFrom: null,
       path: [
         {
           id: 'a',
@@ -304,6 +306,7 @@ describe('location page', () => {
     expect(await screen.findByRole('heading', { name: 'Box: vacuum parts' })).toBeTruthy();
     expect(screen.getByText('Cabinet A')).toBeTruthy();
     expect(screen.getByText('Bellows suction cup Ø30')).toBeTruthy();
+    expect(screen.getByText('Behind the blue bin')).toBeTruthy();
   });
 });
 
@@ -353,6 +356,8 @@ describe('carry page', () => {
       wasInIt: [],
       loan: null,
       description: null,
+      hint: null,
+      numberFrom: null,
       path: [
         {
           id: 'c',

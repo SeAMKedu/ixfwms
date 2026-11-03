@@ -79,6 +79,55 @@ describe('MCP tools', () => {
     expect(part.lots[0]!.path.map((p) => p.name)).toEqual(['Shelf 3', 'Box: vacuum parts']);
   });
 
+  it('gives where_is directions: hints and shelf positions, set by voice', async () => {
+    const lab = await call<{ code: string }>('create_location', {
+      name: 'Robotics lab',
+      type: 'room',
+    });
+    const cabinet = await call<{ code: string }>('create_location', {
+      name: 'Cabinet B',
+      type: 'cabinet',
+      parent: lab.code,
+      numberFrom: 'bottom',
+    });
+    const shelves: Record<string, string> = {};
+    for (const name of ['Shelf 10', 'Shelf 2', 'Shelf 1'])
+      shelves[name] = (
+        await call<{ code: string }>('create_location', {
+          name,
+          type: 'shelf',
+          parent: cabinet.code,
+        })
+      ).code;
+    const [hammer] = await call<{ lots: { lotId: string }[] }[]>('create_part_drafts', {
+      parts: [{ name: 'Claw hammer', stock: { amount: { mode: 'count', quantity: 1 } } }],
+    });
+    await call('move_stock', { lotId: hammer!.lots[0]!.lotId, to: shelves['Shelf 2'] });
+
+    await call('update_location', {
+      ref: cabinet.code,
+      hint: 'Grey two-door cabinet next to the project workbench',
+    });
+    const [answer] = await call<{ directions: unknown[] }[]>('where_is', { query: 'hammer' });
+    expect(answer!.directions).toEqual([
+      { name: 'Robotics lab', type: 'room' },
+      {
+        name: 'Cabinet B',
+        type: 'cabinet',
+        hint: 'Grey two-door cabinet next to the project workbench',
+      },
+      // Numbers sort as numbers: Shelf 1, 2, 10.
+      { name: 'Shelf 2', type: 'shelf', position: { n: 2, of: 3, from: 'bottom' } },
+    ]);
+    const place = await call<{ hint: string | null; numberFrom: string }>('get_location', {
+      ref: cabinet.code,
+    });
+    expect(place).toMatchObject({ numberFrom: 'bottom' });
+
+    await call('update_location', { ref: cabinet.code, hint: null });
+    expect(await call('get_location', { ref: cabinet.code })).toMatchObject({ hint: null });
+  });
+
   it('reports problems as tool errors, not crashes', async () => {
     await expect(call('get_part', { ref: 'nope' })).rejects.toThrow(/not found/);
     await expect(call('add_stock', { part: 'nope', amount: { mode: 'count' } })).rejects.toThrow(

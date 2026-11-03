@@ -105,6 +105,12 @@ export function LocationPage() {
       />
       {d.loan && <LoanNote loan={d.loan} code={d.code} />}
       {d.archivedAt && <ArchivedNote place={d} />}
+      {d.hint && (
+        <p className="max-w-prose text-sm">
+          <span className="text-muted">{t('places.hint')}: </span>
+          {d.hint}
+        </p>
+      )}
       {d.description && <p className="max-w-prose whitespace-pre-wrap text-sm">{d.description}</p>}
       {d.stayDays !== null && <TemporaryNote place={d} canEdit={canEdit} />}
       {d.clashes.length > 0 && (

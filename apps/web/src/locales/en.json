@@ -272,6 +272,17 @@
     "codeHint": "Code on the QR label; it never changes",
     "shortName": "Short name",
     "shortNameHint": "For the address, e.g. A or A140.1",
+    "hint": "How to find it",
+    "hintHelp": "Where it is inside the place it's in, for someone who just got there: landmarks and looks, not contents. E.g. \"Grey two-door cabinet next to the project workbench\".",
+    "numberFrom": "Places inside are numbered",
+    "numberFromHelp": "So \"Shelf 2\" can be told as \"the second shelf from the bottom\".",
+    "numberFromOptions": {
+      "none": "Not in any order",
+      "bottom": "From the bottom",
+      "top": "From the top",
+      "left": "From the left",
+      "right": "From the right"
+    },
     "addressRoot": "Address starts here",
     "addressRootHint": "For a lab or room: the building and floor above stay out of its address, so adding them later changes nothing. The short name must be unique among these places. Changing this on a place with levels above it changes addresses, so reprint its labels.",
     "clash": "{{names}} has the same short name, so the address {{address}} isn't unique. Give one of them another short name."
