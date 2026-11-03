@@ -37,11 +37,15 @@ export async function directionsTo(ex: Executor, loc: LocationRow): Promise<Plac
   return steps;
 }
 
-/** Which one `row` is among the places of its type next to it, in name order ("Shelf 1, 2, 10"). */
+/**
+ * Which one `row` is among the places of its type next to it, in order of their short names, or
+ * names where none is set ("Shelf 1, 2, 10"). Short names first, so drawers can be named after
+ * what's in them ("M3×10 DIN 912") and still be counted 1, 2, 3 from the left.
+ */
 async function positionAmong(ex: Executor, row: LocationRow) {
   const siblings = await many(
     ex
-      .select({ id: locations.id, name: locations.name })
+      .select({ id: locations.id, name: locations.name, shortName: locations.shortName })
       .from(locations)
       .where(
         and(
@@ -52,6 +56,7 @@ async function positionAmong(ex: Executor, row: LocationRow) {
       ),
   );
   if (siblings.length < 2) return null;
-  siblings.sort((a, b) => byName.compare(a.name, b.name));
+  const key = (s: (typeof siblings)[number]) => s.shortName || s.name;
+  siblings.sort((a, b) => byName.compare(key(a), key(b)));
   return { n: siblings.findIndex((s) => s.id === row.id) + 1, of: siblings.length };
 }

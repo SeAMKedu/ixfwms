@@ -57,4 +57,30 @@ describe('place hints', () => {
       'Behind the glass door',
     );
   });
+
+  it('counts drawers by short name, so they can be named after what is in them', async () => {
+    const { locations } = env.services;
+    const cabinet = await locations.create(
+      { name: 'Drawer cabinet', type: 'cabinet', numberFrom: 'left' },
+      env.admin,
+    );
+    const drawers: Record<string, string> = {};
+    for (const [short, name] of [
+      ['1', 'Zip ties'],
+      ['2', 'Allen keys'],
+      ['3', 'M3×10 DIN 912'],
+    ] as const)
+      drawers[short] = (
+        await locations.create(
+          { name, shortName: short, type: 'drawer', parent: cabinet.code },
+          env.admin,
+        )
+      ).code;
+
+    expect((await locations.directions(drawers['2']!)).at(-1)).toEqual({
+      name: 'Allen keys',
+      type: 'drawer',
+      position: { n: 2, of: 3, from: 'left' },
+    });
+  });
 });
