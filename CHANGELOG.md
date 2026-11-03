@@ -1,6 +1,24 @@
 # Changelog
 
 All notable changes to ixfwms.
+## 0.17.0 (2026-11-03)
+
+### Features
+- place hints and numbering for spoken directions
+
+### Fixes
+- count places by short name for directions, so drawers can be named after their contents
+
+### Documentation
+- keep internal planning notes out of the repo
+- directions to places, hints and numbering
+
+### Maintenance
+- check that the docs keep up with the code
+- release notes say what upgrading takes
+
+### Upgrading
+- Database migrations 0025_place_hints: applied when the server starts, after a backup. Going back to an older version means restoring that backup.
 ## 0.16.0 (2026-10-30)
 
 ### Features
