@@ -14,6 +14,12 @@ commit-msg:
     commitlint:
       run: npx commitlint --edit {1}
 
+# After a merge or pull: did the docs keep up with what came in? Warns, can't undo the merge.
+post-merge:
+  commands:
+    docs:
+      run: node scripts/docs-check.mjs --since ORIG_HEAD
+
 pre-push:
   commands:
     check:

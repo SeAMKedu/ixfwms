@@ -1,15 +1,17 @@
 #!/usr/bin/env node
 // Cuts a release: runs the check tier for the release type, bumps versions,
 // writes CHANGELOG.md with git-cliff, commits and tags. Does not push.
-//   npm run release -- patch|minor|major [--dry-run]
+//   npm run release -- patch|minor|major [--dry-run] [--docs-ok]
+// Features since the last release with no docs changed stop it; --docs-ok when that's right.
 import { spawnSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const type = process.argv[2];
 const dryRun = process.argv.includes('--dry-run');
+const docsOk = process.argv.includes('--docs-ok');
 const explicit = /^\d+\.\d+\.\d+$/.test(type ?? '') ? type : null;
 if (!explicit && !['patch', 'minor', 'major'].includes(type)) {
-  console.error('Usage: npm run release -- patch|minor|major|X.Y.Z [--dry-run]');
+  console.error('Usage: npm run release -- patch|minor|major|X.Y.Z [--dry-run] [--docs-ok]');
   process.exit(2);
 }
 
@@ -36,6 +38,8 @@ if (branch !== 'main' && !branch.startsWith('hotfix/')) {
   process.exit(1);
 }
 
+const lastTag = sh('git describe --tags --abbrev=0', { capture: true });
+sh(`node scripts/docs-check.mjs --since ${lastTag}${docsOk ? '' : ' --strict'}`);
 sh(`node scripts/check.mjs ${type === 'patch' ? 'patch' : 'release'}`);
 
 const PACKAGES = [

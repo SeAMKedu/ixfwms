@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Tiered quality checks. Same commands locally, in git hooks and in any future CI.
-//   node scripts/check.mjs check     fast: format, lint, types, unit tests (pre-push)
+//   node scripts/check.mjs check     fast: format, lint, types, docs, unit tests (pre-push)
 //   node scripts/check.mjs patch     + integration tests            (patch releases)
 //   node scripts/check.mjs release   + coverage, dead code, audit    (minor/major releases)
 import { spawnSync } from 'node:child_process';
@@ -10,6 +10,7 @@ const TIERS = {
     ['format', 'npm run format:check'],
     ['lint', 'npm run lint'],
     ['types', 'npm run typecheck'],
+    ['docs', 'node scripts/docs-check.mjs'],
     ['unit tests', 'npm run test:unit'],
   ],
   patch: [['integration tests', 'npm run test:integration']],

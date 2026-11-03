@@ -16,11 +16,22 @@ Every check is an npm script, so it works the same on macOS, Windows, Linux and 
 
 | Command                 | Runs                                                                                                      | When                                       |
 | ----------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| `npm run check`         | format, lint, typecheck, unit tests                                                                       | automatically before every push (lefthook) |
+| `npm run check`         | format, lint, typecheck, docs, unit tests                                                                 | automatically before every push (lefthook) |
 | `npm run check:patch`   | + integration tests                                                                                       | patch releases                             |
 | `npm run check:release` | + coverage thresholds, unused code (knip), runtime dependency audit, container scan if Trivy is installed | minor and major releases                   |
 
 Git hooks are installed by `npm install` (lefthook). Pre-commit formats and lints the staged files.
+
+### Docs
+
+`node scripts/docs-check.mjs` (part of `npm run check`) fails when:
+
+- an MCP tool isn't in the README's tool table, or the table lists one that's gone;
+- an `/api/<area>` the server answers isn't in the README's API table;
+- `docs/data-model.html` is out of date (it redraws it; commit the result);
+- a link in a Markdown file points at a file that doesn't exist.
+
+Code can't tell whether a feature needs its docs updated, so the script also looks at `feat:` commits: with `--since <rev>`, it lists the features since then when no README, CONTRIBUTING or `docs/*.md` changed with them. After a merge or pull (post-merge hook) that's a warning. A release stops on it; run it again with `--docs-ok` when the features really need no docs.
 
 ## Releases
 
@@ -31,7 +42,7 @@ npm run release -- major    # breaking API/MCP/schema changes
 npm run release -- 0.7.0    # or an explicit version, e.g. to match a roadmap milestone
 ```
 
-The release script must run on `main` with a clean tree. It runs the matching check tier (the full one for anything but a patch), bumps versions, writes `CHANGELOG.md` with git-cliff, commits and tags `vX.Y.Z`. Then build the image with `docker build -t ixfwms:X.Y.Z .`.
+The release script must run on `main` with a clean tree. It checks the docs kept up with the features since the last tag (see above), runs the matching check tier (the full one for anything but a patch), bumps versions, writes `CHANGELOG.md` with git-cliff, commits and tags `vX.Y.Z`. Then build the image with `docker build -t ixfwms:X.Y.Z .`.
 
 ## Database changes
 
