@@ -5,6 +5,7 @@
 // Features since the last release with no docs changed stop it; --docs-ok when that's right.
 import { spawnSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
+import { basename } from 'node:path';
 
 const type = process.argv[2];
 const dryRun = process.argv.includes('--dry-run');
@@ -69,7 +70,15 @@ for (const file of PACKAGES) {
   writeFileSync(file, `${JSON.stringify(pkg, null, 2)}\n`);
 }
 sh('npm install --package-lock-only --ignore-scripts --no-audit --no-fund');
-sh(`npx git-cliff --tag ${tag} -o CHANGELOG.md`);
+sh(`npx git-cliff --unreleased --tag ${tag} --prepend CHANGELOG.md`);
+const migrations = sh(
+  `git diff --name-only --diff-filter=A ${lastTag}..HEAD -- "apps/server/drizzle/*.sql"`,
+  { capture: true },
+)
+  .split('\n')
+  .filter(Boolean)
+  .map((f) => basename(f, '.sql'));
+if (migrations.length) noteMigrations(next, migrations);
 sh(`git add ${PACKAGES.join(' ')} package-lock.json CHANGELOG.md`);
 sh(`git commit -m "chore(release): ${tag}"`);
 sh(`git tag -a ${tag} -m "ixfwms ${tag}"`);
@@ -77,3 +86,23 @@ sh(`git tag -a ${tag} -m "ixfwms ${tag}"`);
 console.log(`\n✔ Tagged ${tag}. Next:
   docker build -t ixfwms:${next} -t ixfwms:latest .
   git push --follow-tags   (when a remote exists)`);
+
+/**
+ * Says under "Upgrading" in the new release's notes that it changes the database. The server
+ * migrates by itself, after a backup; the catch is that the older version can't use it after.
+ */
+function noteMigrations(version, names) {
+  const text = readFileSync('CHANGELOG.md', 'utf8');
+  const start = text.indexOf(`## ${version} `);
+  if (start === -1) throw new Error(`No ${version} in CHANGELOG.md to note migrations in`);
+  const end = text.indexOf('\n## ', start + 1);
+  const release = text.slice(start, end === -1 ? undefined : end + 1);
+  const note = `- Database migrations ${names.join(', ')}: applied when the server starts, after a backup. Going back to an older version means restoring that backup.`;
+  const updated = release.includes('### Upgrading\n')
+    ? release.replace('### Upgrading\n', `### Upgrading\n${note}\n`)
+    : `${release.trimEnd()}\n\n### Upgrading\n${note}\n`;
+  writeFileSync(
+    'CHANGELOG.md',
+    text.slice(0, start) + updated + text.slice(start + release.length),
+  );
+}

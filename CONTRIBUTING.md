@@ -10,6 +10,14 @@
 
 Use [Conventional Commits](https://www.conventionalcommits.org/) (`feat: …`, `fix: …`, `docs: …`, `chore: …`), enforced by a commit-msg hook. The changelog is generated from these messages.
 
+When a change needs something done on upgrade beyond restarting the server (reprint some labels, set a new setting, tell people something moved), say so in an `Upgrade:` footer. It's listed under **Upgrading** in the release notes, as are breaking changes (`feat!:` or a `BREAKING CHANGE:` footer):
+
+```text
+feat: drawers numbered by short name
+
+Upgrade: Give drawers short names 1, 2, 3… where they're named after their contents.
+```
+
 ## Checks
 
 Every check is an npm script, so it works the same on macOS, Windows, Linux and in any future CI.
@@ -42,11 +50,11 @@ npm run release -- major    # breaking API/MCP/schema changes
 npm run release -- 0.7.0    # or an explicit version, e.g. to match a roadmap milestone
 ```
 
-The release script must run on `main` with a clean tree. It checks the docs kept up with the features since the last tag (see above), runs the matching check tier (the full one for anything but a patch), bumps versions, writes `CHANGELOG.md` with git-cliff, commits and tags `vX.Y.Z`. Then build the image with `docker build -t ixfwms:X.Y.Z .`.
+The release script must run on `main` with a clean tree. It checks the docs kept up with the features since the last tag (see above), runs the matching check tier (the full one for anything but a patch), bumps versions, adds the release on top of `CHANGELOG.md` with git-cliff (with the database migrations it brings listed under **Upgrading**), commits and tags `vX.Y.Z`. Then build the image with `docker build -t ixfwms:X.Y.Z .`.
 
 ## Database changes
 
-Edit `apps/server/src/db/schema.ts`, then run `npm run db:generate` and commit the generated SQL in `apps/server/drizzle/`. The server applies pending migrations at startup, after taking a backup. Then run `npm run docs:data-model` to redraw the data model (`docs/data-model.html`); it fails if a drawn column is gone or a new foreign key isn't drawn, and the fix is in `scripts/data-model.ts`.
+Edit `apps/server/src/db/schema.ts`, then run `npm run db:generate` and commit the generated SQL in `apps/server/drizzle/`. The server applies pending migrations at startup, after taking a backup; the release notes list them, since going back to an older version then means restoring that backup. Then run `npm run docs:data-model` to redraw the data model (`docs/data-model.html`); it fails if a drawn column is gone or a new foreign key isn't drawn, and the fix is in `scripts/data-model.ts`.
 
 ## Database portability
 

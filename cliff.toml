@@ -1,4 +1,6 @@
-# git-cliff: changelog from Conventional Commits. Run via `npm run release`.
+# git-cliff: changelog from Conventional Commits. Run via `npm run release`, which adds the new
+# release on top of CHANGELOG.md and lists its database migrations under "Upgrading".
+# A commit's `Upgrade:` footer (a step to take when upgrading) and breaking changes go there too.
 [changelog]
 header = "# Changelog\n\nAll notable changes to ixfwms.\n"
 body = """
@@ -7,6 +9,11 @@ body = """
 ### {{ group | striptags | trim }}
 {% for commit in commits %}- {% if commit.scope %}**{{ commit.scope }}:** {% endif %}{{ commit.message | split(pat="\n") | first | trim }}
 {% endfor %}{% endfor %}
+{%- set_global upgrading = [] %}{% for commit in commits %}{% if commit.breaking %}{% set_global upgrading = upgrading | concat(with="**Breaking:** " ~ commit.breaking_description) %}{% endif %}{% for footer in commit.footers %}{% if footer.token == "Upgrade" %}{% set_global upgrading = upgrading | concat(with=footer.value) %}{% endif %}{% endfor %}{% endfor %}
+{%- if upgrading | length > 0 %}
+### Upgrading
+{% for note in upgrading %}- {{ note }}
+{% endfor %}{% endif %}
 """
 trim = true
 

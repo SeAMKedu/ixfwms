@@ -13,6 +13,9 @@ All notable changes to ixfwms.
 
 ### Documentation
 - draw the data model from the schema
+
+### Upgrading
+- Database migrations 0020_user_home_place, 0021_unit_purchase, 0022_unit_useful_life, 0023_user_language, 0024_address_root: applied when the server starts, after a backup. Going back to an older version means restoring that backup.
 ## 0.15.0 (2026-10-29)
 
 ### Features
@@ -26,6 +29,9 @@ All notable changes to ixfwms.
 
 ### Documentation
 - notes for Claude on splitting files and the KUKA fleet plan
+
+### Upgrading
+- Database migrations 0018_archive, 0019_container_loans: applied when the server starts, after a backup. Going back to an older version means restoring that backup.
 ## 0.14.0 (2026-10-25)
 
 ### Features
@@ -42,6 +48,9 @@ All notable changes to ixfwms.
 
 ### Documentation
 - plan builds, things made from parts
+
+### Upgrading
+- Database migrations 0016_builds, 0017_cut_stock: applied when the server starts, after a backup. Going back to an older version means restoring that backup.
 ## 0.13.0 (2026-10-24)
 
 ### Features
@@ -58,6 +67,9 @@ All notable changes to ixfwms.
 
 ### Fixes
 - undo keeps origin, lot races merge, search pages by unit rows
+
+### Upgrading
+- Database migrations 0015_whole_counts_and_search_text: applied when the server starts, after a backup. Going back to an older version means restoring that backup.
 ## 0.11.1 (2026-10-24)
 
 ### Features
@@ -84,6 +96,9 @@ All notable changes to ixfwms.
 ### Maintenance
 - **server:** keep the Postgres option; SQLite-only SQL moves to db/dialect.ts
 - browser tests for search-take, scan-carry-put down and clearing a bench
+
+### Upgrading
+- Database migrations 0014_lot_origin: applied when the server starts, after a backup. Going back to an older version means restoring that backup.
 ## 0.10.0 (2026-10-24)
 
 ### Features
@@ -101,6 +116,9 @@ All notable changes to ixfwms.
 - **web:** split the place page into section files
 - **web:** split the unit page into section files
 - **web:** one file per settings section
+
+### Upgrading
+- Database migrations 0012_merged_code_forward, 0013_codes_namespace: applied when the server starts, after a backup. Going back to an older version means restoring that backup.
 ## 0.9.0 (2026-10-24)
 
 ### Features
@@ -116,6 +134,9 @@ All notable changes to ixfwms.
 
 ### Documentation
 - plan status for 0.9
+
+### Upgrading
+- Database migrations 0011_user_disabled: applied when the server starts, after a backup. Going back to an older version means restoring that backup.
 ## 0.8.0 (2026-10-23)
 
 ### Features
@@ -131,6 +152,9 @@ All notable changes to ixfwms.
 - plan items with units, loans and reports, AMR fleet link, backlog ideas
 - tools, devices and units guide; README and plan for 0.8
 - plan status for 0.8
+
+### Upgrading
+- Database migrations 0010_items_and_units: applied when the server starts, after a backup. Going back to an older version means restoring that backup.
 ## 0.7.0 (2026-10-23)
 
 ### Features
@@ -141,6 +165,9 @@ All notable changes to ixfwms.
 ### Documentation
 - drop note about older label templates
 - plan status for 0.7, adapters move to 0.8
+
+### Upgrading
+- Database migrations 0006_shared_maps, 0007_drop_location_views, 0008_place_addresses, 0009_settings_and_temporary_places: applied when the server starts, after a backup. Going back to an older version means restoring that backup.
 ## 0.6.0 (2026-10-23)
 
 ### Features
