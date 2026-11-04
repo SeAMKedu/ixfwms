@@ -1,6 +1,16 @@
 import type { MapCheck, MapKind, MapLayer } from '@ixfwms/domain';
-import { Link2, Unlink, Upload } from 'lucide-react';
-import { useRef, useState, type ReactNode } from 'react';
+import {
+  Box,
+  Check,
+  Download,
+  Link2,
+  Map as MapIcon,
+  RefreshCw,
+  Trash2,
+  Unlink,
+  Upload,
+} from 'lucide-react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import {
@@ -14,9 +24,8 @@ import {
   useSetMapLink,
   useUpload,
 } from '../api/queries';
-import { PlacePicker } from './place-picker';
-import { MapView } from './svg-map';
-import { Button, Card, CodeLabel, ErrorBox, Field, Select } from './ui';
+import { LinkEditor } from './map-link-editor';
+import { Button, Card, CodeLabel, ErrorBox, Field, Pill, Select } from './ui';
 
 const ACCEPT = '.svg,.glb,image/svg+xml,model/gltf-binary';
 
@@ -25,11 +34,15 @@ export function UploadButton({
   label,
   busy,
   onFile,
+  iconOnly,
 }: {
-  label: ReactNode;
+  label: string;
   busy: boolean;
   onFile: (file: File) => Promise<void>;
+  /** Just a "replace" icon, with the label as its tooltip. */
+  iconOnly?: boolean;
 }) {
+  const Icon = iconOnly ? RefreshCw : Upload;
   const input = useRef<HTMLInputElement>(null);
   return (
     <>
@@ -44,9 +57,16 @@ export function UploadButton({
           if (file) void onFile(file).finally(() => input.current && (input.current.value = ''));
         }}
       />
-      <Button small busy={busy} onClick={() => input.current?.click()}>
-        <Upload className="size-4" aria-hidden />
-        {label}
+      <Button
+        small
+        variant={iconOnly ? 'ghost' : 'secondary'}
+        busy={busy}
+        aria-label={iconOnly ? label : undefined}
+        title={iconOnly ? label : undefined}
+        onClick={() => input.current?.click()}
+      >
+        {!(busy && iconOnly) && <Icon className="size-4" aria-hidden />}
+        {!iconOnly && label}
       </Button>
     </>
   );
@@ -62,21 +82,30 @@ function CheckReport({
 }) {
   const { t } = useTranslation();
   return (
-    <div className="flex flex-col gap-1.5 text-sm">
-      <span className={check.links.length ? 'text-ok' : 'text-muted'}>
+    <div className="flex flex-col gap-2 text-sm">
+      <span
+        className={`flex items-center gap-1.5 ${check.links.length ? 'text-ok' : 'text-muted'}`}
+      >
+        {check.links.length > 0 && <Check className="size-4" aria-hidden />}
         {t('maps.linked', { count: check.links.length })}
       </span>
       {check.broken.length > 0 && (
-        <div className="flex flex-col gap-1 text-crit">
-          <span>{t('maps.broken', { count: check.broken.length })}</span>
-          <ul className="flex flex-col gap-1 pl-3">
+        <div className="flex flex-col gap-1.5 rounded-lg bg-crit-soft px-3 py-2 text-crit">
+          <span className="text-[13px]">{t('maps.broken', { count: check.broken.length })}</span>
+          <ul className="flex flex-col gap-1">
             {check.broken.map((l) => (
               <li key={l.elementKey} className="flex flex-wrap items-center gap-2">
-                <Link to={`/l/${l.code}`} className="hover:underline">
+                <Link to={`/l/${l.code}`} className="font-semibold hover:underline">
                   {l.name}
                 </Link>
                 <CodeLabel code={l.elementKey} />
-                <Button small variant="ghost" onClick={() => onUnlink(l.elementKey)}>
+                <Button
+                  small
+                  variant="ghost"
+                  className="ml-auto"
+                  onClick={() => onUnlink(l.elementKey)}
+                >
+                  <Unlink className="size-3.5" aria-hidden />
                   {t('maps.unlink')}
                 </Button>
               </li>
@@ -85,117 +114,20 @@ function CheckReport({
         </div>
       )}
       {check.notLinked.length > 0 && (
-        <span className="text-warn">
-          {t('maps.notLinked')}{' '}
-          {check.notLinked.map((p, i) => (
-            <span key={p.code}>
-              {i > 0 && ', '}
-              <Link to={`/l/${p.code}`} className="hover:underline">
-                {p.name}
-              </Link>
-            </span>
+        <div className="flex flex-wrap items-center gap-1.5 text-[13px]">
+          <span className="text-muted">{t('maps.notLinked')}</span>
+          {check.notLinked.map((p) => (
+            <Link key={p.code} to={`/l/${p.code}`} className="hover:underline">
+              <Pill tone="warn">{p.name}</Pill>
+            </Link>
           ))}
-        </span>
+        </div>
       )}
       {check.unknown.length > 0 && (
-        <span className="text-crit">{t('maps.unknown', { codes: check.unknown.join(', ') })}</span>
+        <span className="text-[13px] text-crit">
+          {t('maps.unknown', { codes: check.unknown.join(', ') })}
+        </span>
       )}
-    </div>
-  );
-}
-
-/** Click a shape, then the place it stands for. */
-function LinkEditor({ code, layer, check }: { code: string; layer: MapLayer; check: MapCheck }) {
-  const { t } = useTranslation();
-  const [selected, setSelected] = useState<{ key: string; parents: string[] } | null>(null);
-  const [other, setOther] = useState('');
-  const setLink = useSetMapLink(code);
-  const kind = layer.kind;
-  const current = selected ? check.links.find((l) => l.elementKey === selected.key) : undefined;
-  const link = async (target: string | null) => {
-    if (!selected) return;
-    await setLink.mutateAsync({ kind, elementKey: selected.key, target });
-    setOther('');
-  };
-  return (
-    <div className="grid gap-3 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-      <MapView
-        layer={layer}
-        editing={{
-          selected: selected?.key ?? null,
-          onSelect: (key, parents) => setSelected(key ? { key, parents } : null),
-        }}
-      />
-      <div className="flex flex-col gap-3 text-sm">
-        {!selected ? (
-          <p className="text-muted">{t('maps.pickShape')}</p>
-        ) : (
-          <>
-            <div className="flex flex-col gap-1">
-              <span className="text-muted">{t('maps.selectedShape')}</span>
-              <span className="flex flex-wrap items-center gap-2">
-                <CodeLabel code={selected.key} />
-                {current && (
-                  <span>
-                    → <Link to={`/l/${current.code}`}>{current.name}</Link>
-                    {current.auto && <span className="text-muted"> ({t('maps.byName')})</span>}
-                  </span>
-                )}
-              </span>
-              {selected.parents[0] && (
-                <Button
-                  small
-                  variant="ghost"
-                  className="self-start"
-                  onClick={() =>
-                    setSelected({ key: selected.parents[0]!, parents: selected.parents.slice(1) })
-                  }
-                >
-                  {t('maps.selectGroup', { id: selected.parents[0] })}
-                </Button>
-              )}
-            </div>
-            {check.notLinked.length > 0 && (
-              <div className="flex flex-col gap-1">
-                <span className="text-muted">{t('maps.linkTo')}</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {check.notLinked.map((p) => (
-                    <Button
-                      key={p.code}
-                      small
-                      busy={setLink.isPending && setLink.variables?.target === p.code}
-                      onClick={() => void link(p.code)}
-                    >
-                      <Link2 className="size-3.5" aria-hidden />
-                      {p.name}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            )}
-            <Field label={t('maps.linkOther')}>
-              {(id) => (
-                <PlacePicker
-                  id={id}
-                  value={other}
-                  onChange={(c) => {
-                    setOther(c);
-                    if (c) void link(c);
-                  }}
-                  exclude={(p) => p.code === code || !p.pathCodes.includes(code)}
-                />
-              )}
-            </Field>
-            {current && !current.auto && (
-              <Button small variant="ghost" className="self-start" onClick={() => void link(null)}>
-                <Unlink className="size-4" aria-hidden />
-                {t('maps.unlink')}
-              </Button>
-            )}
-          </>
-        )}
-        <ErrorBox error={setLink.error} />
-      </div>
     </div>
   );
 }
@@ -232,17 +164,52 @@ function PlaceMap({ code, layer }: { code: string; layer: MapLayer }) {
 
   if (!check.data) return <ErrorBox error={check.error} />;
   const c = check.data;
+  const KindIcon = kind === 'gltf_3d' ? Box : MapIcon;
   return (
-    <div className="flex flex-col gap-3 border-t border-line pt-3 first:border-t-0 first:pt-0">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <span className="font-semibold">
-          {t(`maps.kinds.${kind}`)}: {c.drawing.name}
+    <div
+      className={`flex min-w-0 flex-col gap-3 rounded-lg border border-line p-3 ${editing ? 'lg:col-span-2' : ''}`}
+    >
+      <div className="flex items-start gap-2">
+        <span
+          className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-surface-2 text-muted"
+          title={t(`maps.kinds.${kind}`)}
+        >
+          <KindIcon className="size-4" aria-hidden />
         </span>
-        {shared && (
-          <Link to="/maps" className="text-[13px] text-link hover:underline">
-            {t('maps.sharedWith', { count: c.drawing.usedBy - 1 })}
-          </Link>
-        )}
+        <div className="flex min-w-0 flex-1 flex-col">
+          <span className="text-[11px] tracking-[0.08em] text-muted uppercase">
+            {t(`maps.kinds.${kind}`)}
+          </span>
+          <span className="truncate font-semibold" title={c.drawing.name}>
+            {c.drawing.name}
+          </span>
+          {shared && (
+            <Link to="/maps" className="text-[13px] text-link hover:underline">
+              {t('maps.sharedWith', { count: c.drawing.usedBy - 1 })}
+            </Link>
+          )}
+        </div>
+        <div className="flex shrink-0 items-center">
+          <UploadButton
+            iconOnly
+            label={t('maps.replace')}
+            busy={upload.isPending || replace.isPending}
+            onFile={onReplace}
+          />
+          <Button
+            small
+            variant="ghost"
+            className="text-crit hover:bg-crit-soft"
+            aria-label={t('maps.remove')}
+            title={t('maps.remove')}
+            busy={remove.isPending}
+            onClick={() => {
+              if (window.confirm(t('maps.removeConfirm'))) remove.mutate(kind);
+            }}
+          >
+            {!remove.isPending && <Trash2 className="size-4" aria-hidden />}
+          </Button>
+        </div>
       </div>
       <CheckReport
         check={c}
@@ -254,47 +221,40 @@ function PlaceMap({ code, layer }: { code: string; layer: MapLayer }) {
           {replaced.broken > 0 && t('maps.brokenAfter', { count: replaced.broken })}
         </p>
       )}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="mt-auto flex flex-wrap items-end gap-2">
         <Button small variant={editing ? 'dark' : 'secondary'} onClick={() => setEditing(!editing)}>
           <Link2 className="size-4" aria-hidden />
           {t(editing ? 'maps.doneLinking' : 'maps.linkShapes')}
         </Button>
-        <UploadButton
-          label={t('maps.replace')}
-          busy={upload.isPending || replace.isPending}
-          onFile={onReplace}
-        />
-        <Button small variant="ghost" busy={remove.isPending} onClick={() => remove.mutate(kind)}>
-          {t('maps.remove')}
-        </Button>
+        {shared && others.length > 0 && (
+          <div className="ml-auto flex items-end gap-2">
+            <Field label={t('maps.copyLinksFrom')}>
+              {(id) => (
+                <Select id={id} value={copyFrom} onChange={(e) => setCopyFrom(e.target.value)}>
+                  <option value="">—</option>
+                  {others.map((u) => (
+                    <option key={u.location.code} value={u.location.code}>
+                      {u.location.name} ({t('maps.linked', { count: u.linked })})
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </Field>
+            <Button
+              small
+              disabled={!copyFrom}
+              busy={copy.isPending}
+              onClick={() => {
+                if (c.links.some((l) => !l.auto) && !window.confirm(t('maps.copyOverwrites')))
+                  return;
+                copy.mutate({ kind, from: copyFrom });
+              }}
+            >
+              {t('maps.copyLinks')}
+            </Button>
+          </div>
+        )}
       </div>
-      {shared && others.length > 0 && (
-        <div className="flex flex-wrap items-end gap-2">
-          <Field label={t('maps.copyLinksFrom')}>
-            {(id) => (
-              <Select id={id} value={copyFrom} onChange={(e) => setCopyFrom(e.target.value)}>
-                <option value="">—</option>
-                {others.map((u) => (
-                  <option key={u.location.code} value={u.location.code}>
-                    {u.location.name} ({t('maps.linked', { count: u.linked })})
-                  </option>
-                ))}
-              </Select>
-            )}
-          </Field>
-          <Button
-            small
-            disabled={!copyFrom}
-            busy={copy.isPending}
-            onClick={() => {
-              if (c.links.some((l) => !l.auto) && !window.confirm(t('maps.copyOverwrites'))) return;
-              copy.mutate({ kind, from: copyFrom });
-            }}
-          >
-            {t('maps.copyLinks')}
-          </Button>
-        </div>
-      )}
       {editing && <LinkEditor code={code} layer={layer} check={c} />}
       <ErrorBox
         error={upload.error ?? replace.error ?? remove.error ?? setLink.error ?? copy.error}
@@ -376,12 +336,18 @@ export function MapManager({ code, layers }: { code: string; layers: MapLayer[] 
   const setMap = useSetMap(code);
   return (
     <Card title={t('maps.manage')}>
-      <p className="text-[13px] text-muted">{t('maps.howTo', { example: `loc-${code}` })}</p>
-      {layers.map((l) => (
-        <PlaceMap key={l.kind} code={code} layer={l} />
-      ))}
-      <div className="flex flex-col gap-3 border-t border-line pt-3">
-        <div className="flex flex-wrap items-center gap-3">
+      {layers.length > 0 && (
+        <div className="grid gap-3 lg:grid-cols-2">
+          {layers.map((l) => (
+            <PlaceMap key={l.kind} code={code} layer={l} />
+          ))}
+        </div>
+      )}
+      <div className="flex flex-col gap-3 rounded-lg bg-surface-2 p-3">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <span className="text-sm font-semibold">
+            {t(layers.length ? 'maps.addAnother' : 'maps.add')}
+          </span>
           <UploadButton
             label={t('maps.upload')}
             busy={upload.isPending || setMap.isPending}
@@ -392,12 +358,17 @@ export function MapManager({ code, layers }: { code: string; layers: MapLayer[] 
           <a
             href={`/api/locations/${code}/map/starter.svg`}
             download
-            className="text-[13px] text-link hover:underline"
+            className="inline-flex items-center gap-1 text-[13px] text-link hover:underline"
           >
+            <Download className="size-3.5" aria-hidden />
             {t('maps.starter')}
           </a>
         </div>
         <UseExisting code={code} taken={layers.map((l) => l.kind)} />
+        <details className="text-[13px] text-muted" open={layers.length === 0}>
+          <summary className="cursor-pointer select-none">{t('maps.help')}</summary>
+          <p className="mt-1.5">{t('maps.howTo', { example: `loc-${code}` })}</p>
+        </details>
       </div>
       <ErrorBox error={upload.error ?? setMap.error} />
     </Card>
