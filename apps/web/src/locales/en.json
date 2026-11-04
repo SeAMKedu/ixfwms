@@ -4,6 +4,8 @@
     "tagline": "Lab inventory"
   },
   "nav": {
+    "menu": "Menu",
+    "closeMenu": "Close menu",
     "parts": "Items",
     "places": "Places",
     "inbox": "Inbox",
@@ -31,6 +33,27 @@
     "network": "Network list",
     "builds": "Builds",
     "writeOffs": "Depreciation list"
+  },
+  "home": {
+    "title": "What are you looking for?",
+    "placeholder": "Glue gun, M3 screw, 6ES7 214…",
+    "scan": "Scan a label",
+    "scanHint": "What it is and where it goes",
+    "report": "Report a problem",
+    "reportHint": "Broken or running low: scan its label, then Report",
+    "browse": "Browse",
+    "allItems": "All items and filters",
+    "nothing": "Nothing found. Try another word, or an order number.",
+    "noneInStock": "None in stock",
+    "morePlaces_one": "+ {{count}} more place",
+    "morePlaces_other": "+ {{count}} more places",
+    "position": "({{n}} of {{of}} {{from}})",
+    "from": {
+      "bottom": "from the bottom",
+      "top": "from the top",
+      "left": "from the left",
+      "right": "from the right"
+    }
   },
   "common": {
     "save": "Save",

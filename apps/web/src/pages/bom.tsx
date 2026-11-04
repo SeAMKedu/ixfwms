@@ -294,7 +294,10 @@ export function BomPage() {
                 {t('bom.tag')}
               </Button>
               {tagged !== null && (
-                <Link to={`/?tag=${encodeURIComponent(tag.trim())}`} className="text-sm text-link">
+                <Link
+                  to={`/items?tag=${encodeURIComponent(tag.trim())}`}
+                  className="text-sm text-link"
+                >
                   {t('bom.tagged', { count: tagged })}
                 </Link>
               )}

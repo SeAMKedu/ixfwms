@@ -125,7 +125,7 @@ export function PartPage() {
           {p.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {p.tags.map((tag) => (
-                <ButtonLink key={tag} to={`/?tag=${encodeURIComponent(tag)}`} small>
+                <ButtonLink key={tag} to={`/items?tag=${encodeURIComponent(tag)}`} small>
                   {tag}
                 </ButtonLink>
               ))}

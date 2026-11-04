@@ -287,7 +287,7 @@ export function CategoryPath({ path }: { path: string }) {
       {levels.map((name, i) => (
         <span key={i} className="inline-flex items-center gap-1">
           <Link
-            to={`/?category=${encodeURIComponent(levels.slice(0, i + 1).join('/'))}`}
+            to={`/items?category=${encodeURIComponent(levels.slice(0, i + 1).join('/'))}`}
             className="text-muted hover:text-link hover:underline"
           >
             {name}

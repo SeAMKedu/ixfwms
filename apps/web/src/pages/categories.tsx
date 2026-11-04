@@ -109,7 +109,7 @@ function FieldsForm({
       <PageHeader
         title={path}
         actions={
-          <Link to={`/?category=${encodeURIComponent(path)}`} className="text-sm text-link">
+          <Link to={`/items?category=${encodeURIComponent(path)}`} className="text-sm text-link">
             {t('categories.showParts')}
           </Link>
         }

@@ -13,12 +13,14 @@ import {
   MapPin,
   Blocks,
   Map as MapIcon,
+  Menu,
   Network,
   QrCode,
   ScanLine,
   Search,
+  X,
 } from 'lucide-react';
-import { useState, type ComponentType } from 'react';
+import { useEffect, useState, type ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, NavLink, Outlet, useLocation, useMatch } from 'react-router';
 import { useCarry, useParts, useReports } from '../api/queries';
@@ -40,7 +42,7 @@ function useNavItems(): NavItem[] {
   const reports = useReports().data?.length ?? 0;
   const { user } = useSession();
   return [
-    { to: '/', label: t('nav.parts'), icon: Search },
+    { to: '/items', label: t('nav.parts'), icon: Search },
     ...(user
       ? [{ to: '/inbox', label: t('nav.inbox'), icon: Inbox, badge: drafts + reports }]
       : []),
@@ -176,14 +178,10 @@ function MoreLinks({ links }: { links: SideLinkItem[] }) {
   );
 }
 
-/** Desktop: sidebar. Phone: top bar plus bottom tabs with Scan in the middle, as in the plan's sketch. */
-export function Layout() {
+/** The sidebar's links: everyday pages, then the occasional ones under "More" once logged in. */
+function SideNav({ items, onHelp }: { items: NavItem[]; onHelp?: () => void }) {
   const { t } = useTranslation();
-  const { setHelpOpen } = useShortcutRegistry();
   const { user } = useSession();
-  // Settings has its own section list down the side, so it gets more room than other pages.
-  const wide = useMatch('/settings/*') !== null;
-  const items = useNavItems();
   const secondary: SideLinkItem[] = [
     ...(user ? [{ to: '/import', label: t('nav.import'), icon: FileSpreadsheet }] : []),
     { to: '/bom', label: t('nav.bom'), icon: ListChecks },
@@ -199,6 +197,97 @@ export function Layout() {
     { to: '/settings', label: t('nav.settings'), icon: Settings },
   ];
   return (
+    <>
+      <nav aria-label={t('nav.mainNav')} className="flex flex-col gap-0.5">
+        {items.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            className={({ isActive }) =>
+              `flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-[14px] ${isActive ? 'bg-link-soft text-link font-semibold' : 'text-ink hover:bg-surface-2'}`
+            }
+          >
+            <span className="inline-flex items-center gap-2">
+              <item.icon className="size-4" aria-hidden />
+              {item.label}
+            </span>
+            {!!item.badge && <span className="font-mono text-[12px] text-muted">{item.badge}</span>}
+          </NavLink>
+        ))}
+      </nav>
+      <SideLinks links={secondary} className="mt-3" />
+      {user && <MoreLinks links={more} />}
+      <div className="mt-auto flex flex-col gap-3 px-2 pt-4">
+        <CarryIndicator className="self-start" compact />
+        {onHelp && (
+          <button
+            type="button"
+            onClick={onHelp}
+            className="self-start text-[12px] text-muted hover:text-link"
+          >
+            {t('shortcuts.hint')}
+          </button>
+        )}
+        <UserBox />
+      </div>
+    </>
+  );
+}
+
+/** Phones: the sidebar's links in a panel from the left, for the pages the bottom tabs don't have. */
+function NavDrawer({ items, onClose }: { items: NavItem[]; onClose: () => void }) {
+  const { t } = useTranslation();
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div className="md:hidden fixed inset-0 z-40 flex">
+      <aside
+        aria-label={t('nav.menu')}
+        className="flex w-72 max-w-[85vw] flex-col gap-1 overflow-y-auto bg-surface px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow"
+      >
+        <div className="flex items-center justify-between px-2 pb-3">
+          <Link to="/" className="font-display text-xl font-bold">
+            {t('app.name')}
+          </Link>
+          <button type="button" onClick={onClose} aria-label={t('nav.closeMenu')} className="p-1">
+            <X className="size-5" aria-hidden />
+          </button>
+        </div>
+        <SideNav items={items} />
+      </aside>
+      <button
+        type="button"
+        aria-label={t('nav.closeMenu')}
+        onClick={onClose}
+        className="flex-1 bg-ink/30"
+      />
+    </div>
+  );
+}
+
+/**
+ * Desktop: sidebar. Phone: top bar with a menu (the sidebar's links in a drawer) plus bottom tabs
+ * with Scan in the middle, as in the plan's sketch.
+ */
+export function Layout() {
+  const { t } = useTranslation();
+  const { setHelpOpen } = useShortcutRegistry();
+  const { user } = useSession();
+  // Settings has its own section list down the side, so it gets more room than other pages.
+  const wide = useMatch('/settings/*') !== null;
+  const items = useNavItems();
+  const [menu, setMenu] = useState(false);
+  const { pathname } = useLocation();
+  const [menuPath, setMenuPath] = useState(pathname);
+  // Opening a page from the menu closes it.
+  if (menuPath !== pathname) {
+    setMenuPath(pathname);
+    setMenu(false);
+  }
+  return (
     <div className="min-h-dvh md:grid md:grid-cols-[220px_minmax(0,1fr)]">
       <GlobalShortcuts />
       <ShortcutHelp />
@@ -206,46 +295,26 @@ export function Layout() {
         <Link to="/" className="px-2 pb-4 font-display text-2xl font-bold">
           {t('app.name')}
         </Link>
-        <nav aria-label={t('nav.mainNav')} className="flex flex-col gap-0.5">
-          {items.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === '/'}
-              className={({ isActive }) =>
-                `flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-[14px] ${isActive ? 'bg-link-soft text-link font-semibold' : 'text-ink hover:bg-surface-2'}`
-              }
-            >
-              <span className="inline-flex items-center gap-2">
-                <item.icon className="size-4" aria-hidden />
-                {item.label}
-              </span>
-              {!!item.badge && (
-                <span className="font-mono text-[12px] text-muted">{item.badge}</span>
-              )}
-            </NavLink>
-          ))}
-        </nav>
-        <SideLinks links={secondary} className="mt-3" />
-        {user && <MoreLinks links={more} />}
-        <div className="mt-auto flex flex-col gap-3 px-2">
-          <CarryIndicator className="self-start" compact />
-          <button
-            type="button"
-            onClick={() => setHelpOpen(true)}
-            className="self-start text-[12px] text-muted hover:text-link"
-          >
-            {t('shortcuts.hint')}
-          </button>
-          <UserBox />
-        </div>
+        <SideNav items={items} onHelp={() => setHelpOpen(true)} />
       </aside>
+      {menu && <NavDrawer items={items} onClose={() => setMenu(false)} />}
 
       <div className="flex min-h-dvh flex-col min-w-0">
         <header className="md:hidden sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-2.5 pt-[max(0.625rem,env(safe-area-inset-top))]">
-          <Link to="/" className="font-display text-xl font-bold">
-            {t('app.name')}
-          </Link>
+          <span className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setMenu(true)}
+              aria-label={t('nav.menu')}
+              aria-expanded={menu}
+              className="-ml-1 p-1"
+            >
+              <Menu className="size-5" aria-hidden />
+            </button>
+            <Link to="/" className="font-display text-xl font-bold">
+              {t('app.name')}
+            </Link>
+          </span>
           <UserBox />
         </header>
         <main
@@ -262,7 +331,6 @@ export function Layout() {
             <NavLink
               key={item.to}
               to={item.to}
-              end={item.to === '/'}
               className={({ isActive }) =>
                 `relative flex flex-col items-center gap-0.5 py-1 text-[11px] ${isActive ? 'text-link' : 'text-muted'}`
               }

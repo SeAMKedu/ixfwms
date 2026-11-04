@@ -4,6 +4,8 @@
     "tagline": "Laboratorion varasto"
   },
   "nav": {
+    "menu": "Valikko",
+    "closeMenu": "Sulje valikko",
     "parts": "Tavarat",
     "places": "Paikat",
     "inbox": "Saapuneet",
@@ -31,6 +33,27 @@
     "network": "Verkkolista",
     "builds": "Rakennelmat",
     "writeOffs": "Poistolista"
+  },
+  "home": {
+    "title": "Mitä etsit?",
+    "placeholder": "Kuumaliimapistooli, M3-ruuvi, 6ES7 214…",
+    "scan": "Skannaa tarra",
+    "scanHint": "Mikä se on ja minne se kuuluu",
+    "report": "Ilmoita viasta",
+    "reportHint": "Rikki tai loppumassa: skannaa tarra ja valitse Ilmoita",
+    "browse": "Selaa",
+    "allItems": "Kaikki tavarat ja suodattimet",
+    "nothing": "Ei löytynyt. Kokeile toista sanaa tai tilausnumeroa.",
+    "noneInStock": "Ei varastossa",
+    "morePlaces_one": "+ {{count}} muu paikka",
+    "morePlaces_other": "+ {{count}} muuta paikkaa",
+    "position": "({{n}}/{{of}} {{from}})",
+    "from": {
+      "bottom": "alhaalta",
+      "top": "ylhäältä",
+      "left": "vasemmalta",
+      "right": "oikealta"
+    }
   },
   "common": {
     "save": "Tallenna",

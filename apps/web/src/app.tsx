@@ -30,6 +30,7 @@ import { PartPage } from './pages/part';
 import { PartEditPage } from './pages/part-edit';
 import { PlacesPage } from './pages/places';
 import { ScanPage } from './pages/scan';
+import { HomePage } from './pages/home';
 import { SearchPage } from './pages/search';
 import { SessionPage } from './pages/session';
 import { BuildsPage } from './pages/builds';
@@ -49,7 +50,8 @@ const routes = [
   {
     element: <Layout />,
     children: [
-      { path: '/', element: <SearchPage /> },
+      { path: '/', element: <HomePage /> },
+      { path: '/items', element: <SearchPage /> },
       { path: '/parts/new', element: <PartEditPage /> },
       { path: '/p/:code', element: <PartPage /> },
       { path: '/p/:code/edit', element: <PartEditPage /> },

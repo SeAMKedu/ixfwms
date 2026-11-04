@@ -14,9 +14,9 @@ export function GlobalShortcuts() {
   useShortcut('/', t('shortcuts.search'), () => {
     const input = document.querySelector<HTMLInputElement>('[data-shortcut-search]');
     if (input) input.focus();
-    else void navigate('/?focus=1');
+    else void navigate('/items?focus=1');
   });
-  useShortcut('g p', t('shortcuts.goParts'), go('/'));
+  useShortcut('g p', t('shortcuts.goParts'), go('/items'));
   useShortcut('g i', t('shortcuts.goInbox'), go('/inbox'), !!user);
   useShortcut('g l', t('shortcuts.goPlaces'), go('/places'));
   useShortcut('g s', t('shortcuts.goScan'), go('/scan'));

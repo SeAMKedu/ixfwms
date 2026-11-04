@@ -19,7 +19,7 @@ test.describe('everyday flows on a phone', () => {
       stock: { location: shelf.code, amount: { mode: 'count', quantity: 10 } },
     });
 
-    await page.goto('/');
+    await page.goto('/items');
     await page.getByLabel('Search items').fill(name);
     await page.getByRole('link', { name }).click();
     await expect(page.getByRole('heading', { name })).toBeVisible();
@@ -52,7 +52,7 @@ test.describe('everyday flows on a phone', () => {
       units: [{}, { serialNo: 'SN-2' }],
     });
 
-    await page.goto('/');
+    await page.goto('/items');
     await page.getByLabel('Search items').fill(name);
     await expect(page.getByRole('link', { name: first!.name })).toBeVisible();
     await page.getByRole('link', { name: second!.name }).click();
