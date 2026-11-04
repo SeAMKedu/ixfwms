@@ -103,6 +103,7 @@ describe('lab settings', () => {
       carryForgottenHours: 4,
       labelTape: '12',
       anonymousActions: 'workstation',
+      anonymousView: 'limited',
       stockLevels: DEFAULT_STOCK_LEVELS,
     });
     expect(await settings.update({ labelTape: '24' }, env.admin)).toMatchObject({

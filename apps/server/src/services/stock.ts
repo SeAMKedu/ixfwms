@@ -21,7 +21,7 @@ import { amountOf, checkCut, checkWhole, merge, toAmount } from './amounts.js';
 import { checkNotLent } from './loans.js';
 import { LotStore } from './lots.js';
 import { PieceMoves } from './piece-moves.js';
-import { requireScope, type Actor } from './context.js';
+import { detail, requireScope, type Actor } from './context.js';
 import type { LocationRow, LocationService } from './locations.js';
 import type { PartResolver } from './parts.js';
 import type { SettingsService } from './settings.js';
@@ -331,7 +331,7 @@ export class StockService {
       amount,
       display: formatAmount(amount),
       estimatedCount: estimateCount(amount, part?.unitMassG),
-      note: lot.note,
+      note: detail(lot.note),
       lastCheckedAt: lot.lastCheckedAt,
       location: path[path.length - 1]!,
       path,

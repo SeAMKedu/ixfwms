@@ -68,6 +68,8 @@ Anyone on the lab network can look things up and **report a problem** with a uni
 
 Never without an account: lending, pallets, editing or deleting.
 
+What they see is set there too. People's names (who moved, reported or is responsible for something, whose carry list), a temporary place's contact, why something is lent out, network details and prices always need a login. By default notes, log entry texts, problem report texts, serial numbers and firmware versions need one as well; **Everything but people and network details** shows those to anyone on the lab network.
+
 ## Asking an assistant
 
 With the MCP connection (see the README), `where_is` answers "where is the impact drill?" with one short sentence per unit, e.g. _"Drill 2: now at Robolab-WB2; it belongs at Robolab-A-3."_ A voice client (for example Home Assistant Assist with its MCP client) can read these out as they are, or turn the `directions` that come with each answer into _"in the grey cabinet next to the project workbench, second shelf from the bottom"_ (see [directions](directions.md)). Other tools: `get_unit`, `add_units`, `update_unit`, `move_unit`, `put_back`, `lend_unit`, `return_unit`, `list_loans`, `log_unit_event`, `report_problem`, `list_reports`, `resolve_report`, `list_units_needing_attention`.

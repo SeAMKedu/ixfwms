@@ -912,6 +912,15 @@
       "workstation": "Also gather tools and parts at a workstation, and clear it again."
     },
     "guestsNever": "Never without an account: lending, pallets, editing or deleting.",
+    "guestsView": "What they see",
+    "guestViews": {
+      "limited": "Leave out serial numbers, notes and firmware",
+      "full": "Everything but people and network details"
+    },
+    "guestViewHints": {
+      "limited": "Item and place descriptions stay. Notes, log entries, problem report texts, serial numbers and firmware versions need a login.",
+      "full": "Names, contacts, loan reasons, network details and prices always need a login."
+    },
     "workstation": "Workstation",
     "levels": "Stock levels",
     "levelsIntro": "The levels offered for stock tracked as a level, best first. Each one means OK, low (shows in the low-stock list) or empty. A level some stock is at can't be removed until that stock is set to another one.",

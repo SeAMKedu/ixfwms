@@ -5,7 +5,7 @@ import { categories, codes, locations, parts, stockLots, units, users } from '..
 import { invalid } from '../lib/errors.js';
 import type { LabelData } from '../labels/render.js';
 import { allocateCode, claimCode, lookupCode, reserveCodes, retireCode } from './codes.js';
-import { audit, personName, requireScope, type Actor } from './context.js';
+import { audit, detail, personName, requireScope, type Actor } from './context.js';
 import type { LocationRow, LocationService } from './locations.js';
 
 const MAX_BLANK = 500;
@@ -245,7 +245,7 @@ export class LabelService {
       code,
       kind: 'unit',
       name: row?.name ?? row?.part ?? '',
-      path: [row?.name ? row.part : null, row?.serial ? `S/N ${row.serial}` : null]
+      path: [row?.name ? row.part : null, detail(row?.serial) ? `S/N ${row!.serial}` : null]
         .filter(Boolean)
         .join(' · '),
       type: 'unit',

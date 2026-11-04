@@ -912,6 +912,15 @@
       "workstation": "Myös kerätä työkaluja ja osia työpisteelle ja siivota se taas."
     },
     "guestsNever": "Ei koskaan ilman tunnusta: lainaaminen, lavat, muokkaus tai poistaminen.",
+    "guestsView": "Mitä he näkevät",
+    "guestViews": {
+      "limited": "Ei sarjanumeroita, muistiinpanoja eikä laiteohjelmistoja",
+      "full": "Kaiken paitsi ihmiset ja verkkotiedot"
+    },
+    "guestViewHints": {
+      "limited": "Tavaroiden ja paikkojen kuvaukset näkyvät. Muistiinpanot, lokimerkinnät, vikailmoitusten tekstit, sarjanumerot ja laiteohjelmistoversiot vaativat kirjautumisen.",
+      "full": "Nimet, yhteyshenkilöt, lainojen syyt, verkkotiedot ja hinnat vaativat aina kirjautumisen."
+    },
     "workstation": "Työpiste",
     "levels": "Saldotasot",
     "levelsIntro": "Tasona seurattavan saldon vaihtoehdot, paras ensin. Kukin tarkoittaa riittää, vähissä (näkyy vähissä-listalla) tai loppu. Tasoa, jolla jotain on, ei voi poistaa ennen kuin se on vaihdettu toiseen.",

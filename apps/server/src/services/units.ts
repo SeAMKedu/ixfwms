@@ -42,7 +42,7 @@ import {
 import { invalid, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
 import { allocateCode, claimCode } from './codes.js';
-import { audit, personName, requireScope, type Actor } from './context.js';
+import { audit, detail, detailsHidden, personName, requireScope, type Actor } from './context.js';
 import type { LocationRow, LocationService } from './locations.js';
 import type { PartResolver } from './parts.js';
 import { unitSearchText } from './search-text.js';
@@ -257,7 +257,7 @@ export class UnitService {
       ),
     ];
     const places = await this.placeSummaries(placeIds);
-    const firmware = events.find(({ e }) => e.kind === 'firmware' && e.value);
+    const firmware = !detailsHidden() && events.find(({ e }) => e.kind === 'firmware' && e.value);
     const loanRows = await many(
       this.db.select().from(loans).where(eq(loans.unitId, unit.id)).orderBy(desc(loans.outAt)),
     );
@@ -288,7 +288,7 @@ export class UnitService {
       macAddress: hidden ? null : unit.macAddress,
       networkHidden: hidden && !!(unit.ipAddress || unit.hostname || unit.macAddress),
       purchase: purchaseFor(unit, actor),
-      notes: unit.notes,
+      notes: detail(unit.notes),
       nextCheckAt: unit.nextCheckAt,
       checkDue: !!unit.nextCheckAt && unit.nextCheckAt <= today(),
       firmware: firmware ? { version: firmware.e.value!, at: firmware.e.at } : null,
@@ -300,13 +300,13 @@ export class UnitService {
         owner: 'unit' as const,
         target: { code: unit.code, name: brief!.name },
         kind: r.kind,
-        note: r.note,
+        note: detail(r.note),
         by: personName(user ?? r.reporterName),
         guest: !user,
         createdAt: r.createdAt,
         resolvedAt: r.resolvedAt,
         resolvedBy: null,
-        resolution: r.resolution,
+        resolution: detail(r.resolution),
       })),
     };
   }
@@ -456,7 +456,7 @@ export class UnitService {
         code: r.code,
         name: r.name ?? `${partNames.get(r.partId) ?? '?'} ${r.code}`,
         ownName: r.name,
-        serialNo: r.serialNo,
+        serialNo: detail(r.serialNo),
         status: r.status,
         location: summaryById.get(r.locationId)!,
         home: home ? summaryById.get(home.id)! : null,

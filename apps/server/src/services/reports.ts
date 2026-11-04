@@ -4,7 +4,7 @@ import { many, one, type Db } from '../db/client.js';
 import { locations, parts, reports, units, users } from '../db/schema.js';
 import { notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
-import { audit, personName, placeName, requireScope, type Actor } from './context.js';
+import { audit, detail, personName, placeName, requireScope, type Actor } from './context.js';
 import type { LocationService } from './locations.js';
 import type { PartResolver } from './parts.js';
 import type { UnitService } from './units.js';
@@ -169,13 +169,13 @@ export class ReportService {
       owner: r.ownerType,
       target: targets.get(r.ownerId) ?? { code: '?', name: '(removed)' },
       kind: r.kind,
-      note: r.note,
+      note: detail(r.note),
       by: personName(r.userId ? names.get(r.userId) : r.reporterName),
       guest: !r.userId,
       createdAt: r.createdAt,
       resolvedAt: r.resolvedAt,
       resolvedBy: r.resolvedBy ? personName(names.get(r.resolvedBy)) : null,
-      resolution: r.resolution,
+      resolution: detail(r.resolution),
     }));
   }
 }

@@ -4,6 +4,7 @@ import { AmountInput, ContainerInput, PieceSchema } from './amount-input.js';
 import { DEFAULT_STOCK_LEVELS, LEVEL_STATES } from './quantity.js';
 import {
   ANONYMOUS_ACTIONS,
+  ANONYMOUS_VIEWS,
   ATTACHMENT_KINDS,
   PART_KINDS,
   PART_STATUSES,
@@ -256,6 +257,8 @@ export const LabSettings = z.object({
   labelTape: z.enum(['9', '12', '24']).default('12'),
   /** What people without an account may do besides looking and reporting problems. */
   anonymousActions: z.enum(ANONYMOUS_ACTIONS).default('workstation'),
+  /** What people without an account see: `limited` leaves out serial numbers, notes and firmware. */
+  anonymousView: z.enum(ANONYMOUS_VIEWS).default('limited'),
   /** Stock levels for stock tracked as a level, best first. */
   stockLevels: z
     .array(StockLevelDefSchema)

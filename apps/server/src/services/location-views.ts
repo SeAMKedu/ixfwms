@@ -3,6 +3,7 @@ import { and, asc, eq, inArray, isNotNull, like, sql } from 'drizzle-orm';
 import { many, one, type Db } from '../db/client.js';
 import { locations, locationTypes, parts, stockLots } from '../db/schema.js';
 import type { BuildService } from './builds.js';
+import { personName } from './context.js';
 import type { FileService } from './files.js';
 import type { LoanService } from './loans.js';
 import type { LocationService } from './locations.js';
@@ -112,7 +113,7 @@ export class LocationViews {
               .where(eq(locationTypes.id, loc.typeId)),
           )
         )?.stayDays ?? null,
-      contact: loc.contact,
+      contact: personName(loc.contact),
       lastActivityAt: loc.lastActivityAt ?? loc.updatedAt,
       createdAt: loc.createdAt,
       wasInIt: summary.build ? await this.builds.wasInIt(loc) : [],

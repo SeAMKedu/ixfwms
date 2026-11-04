@@ -55,6 +55,8 @@ export type ReportKind = (typeof REPORT_KINDS)[number];
  * things back, and also bring things to a workstation (and clear one). Each level includes the ones before.
  */
 export const ANONYMOUS_ACTIONS = ['report', 'put_back', 'workstation'] as const;
+/** What people without an account see: everything but people and network details, or less. */
+export const ANONYMOUS_VIEWS = ['limited', 'full'] as const;
 export type AnonymousActions = (typeof ANONYMOUS_ACTIONS)[number];
 
 export function anonymousAllows(setting: AnonymousActions, wanted: AnonymousActions): boolean {

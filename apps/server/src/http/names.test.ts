@@ -66,7 +66,8 @@ describe('names for readers without a login', () => {
     const [loan] = (await get('/api/loans')).json<Record<string, unknown>[]>();
     expect(loan).toMatchObject({ responsible: null, description: null, overdue: false });
     const [report] = (await get('/api/reports')).json<Record<string, unknown>[]>();
-    expect(report).toMatchObject({ by: null, kind: 'broken', note: 'Chuck slips' });
+    // What was wrong needs a login too, unless the lab shows readers everything.
+    expect(report).toMatchObject({ by: null, kind: 'broken', note: null });
     const detail = (await get(`/api/units/${unit.code}`)).json<{
       loan: Record<string, unknown>;
       events: { kind: string; by: string | null }[];
@@ -97,6 +98,63 @@ describe('names for readers without a login', () => {
     const shown = await viewAs(env.admin, () => units.detail(unit.code, env.admin));
     expect(shown.loan?.responsible).toBe('Ulla');
     expect(shown.reports[0]?.by).toBe('Pekka');
+  });
+
+  it('leaves out serial numbers, notes and firmware unless the lab shows them', async () => {
+    const { locations, parts, units, stock, settings } = env.services;
+    const room = await locations.create({ name: 'Robotics lab', type: 'room' }, env.admin);
+    const pallet = await locations.create(
+      { name: 'Pallet', type: 'pallet', parent: room.code, contact: 'Ulla, 040 123' },
+      env.admin,
+    );
+    const robot = await parts.create(
+      { name: 'Robot arm', kind: 'device', status: 'active', notes: 'Key in the drawer' },
+      env.admin,
+    );
+    const [unit] = await units.add(
+      { part: robot.code, units: [{ serialNo: 'SN-4471', notes: 'Spare cable' }] },
+      env.admin,
+    );
+    await units.log(unit!.code, { kind: 'firmware', value: 'V4.6' }, env.admin);
+    await units.log(unit!.code, { kind: 'note', text: 'Recalibrated' }, env.admin);
+    const screws = await parts.create({ name: 'M3 screw', status: 'active' }, env.admin);
+    await stock.add(
+      {
+        part: screws.code,
+        location: pallet.code,
+        amount: { mode: 'count', quantity: 5 },
+        note: 'Bag 2',
+      },
+      env.admin,
+    );
+    const secrets = /SN-4471|Spare cable|V4\.6|Recalibrated|Key in the drawer|Bag 2|Ulla/;
+    const urls = [
+      `/api/units/${unit!.code}`,
+      `/api/parts/${robot.code}`,
+      `/api/parts/${screws.code}`,
+      `/api/locations/${pallet.code}`,
+      `/api/parts?q=robot`,
+      '/api/history',
+      `/?q=robot`,
+    ];
+    for (const url of urls) {
+      expect((await get(url)).body, url).not.toMatch(secrets);
+      expect((await get(url, readToken)).body, url).toMatch(secrets);
+    }
+    expect((await get(`/api/units/${unit!.code}`)).json()).toMatchObject({
+      serialNo: null,
+      notes: null,
+      firmware: null,
+    });
+
+    // Contacts are people: hidden whatever the setting. The rest shows when the lab chooses.
+    await settings.update({ anonymousView: 'full' }, env.admin);
+    expect((await get(`/api/locations/${pallet.code}`)).json()).toMatchObject({ contact: null });
+    expect((await get(`/api/units/${unit!.code}`)).json()).toMatchObject({
+      serialNo: 'SN-4471',
+      notes: 'Spare cable',
+      firmware: { version: 'V4.6' },
+    });
   });
 
   it('keeps the export for admins', async () => {

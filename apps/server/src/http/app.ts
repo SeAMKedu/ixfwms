@@ -43,8 +43,14 @@ export async function buildApp(
     if (!actor) throw fail('unauthorized', 'auth.unknownToken');
     request.actor = actor;
   });
-  // Without a login, the handler's views leave people's names out.
-  app.addHook('preHandler', (request, _reply, done) => viewAs(request.actor, done));
+  // Without a login, the handler's views leave people's names out, and maybe more.
+  app.addHook('preHandler', (request, _reply, done) => {
+    if (request.actor) return viewAs(request.actor, done);
+    services.settings.get().then(
+      (s) => viewAs(null, done, s.anonymousView === 'limited'),
+      (err: Error) => done(err),
+    );
+  });
 
   app.setErrorHandler((raw, request, reply) => {
     const error = ruleConflict(raw) ?? raw;
