@@ -20,7 +20,7 @@ const viewer = new AsyncLocalStorage<{ anonymous: boolean; limited: boolean }>()
 
 /**
  * Runs `fn` for this caller. Without an account (`null`), views leave people's names out: who is
- * responsible, who reported, who moved it, whose carry list, a place's contact. With `limited`
+ * responsible, who reported, who moved it, whose carry list. With `limited`
  * (the lab's `anonymousView` setting) they also leave out serial numbers, notes and firmware.
  * The HTTP layer wraps every request.
  */

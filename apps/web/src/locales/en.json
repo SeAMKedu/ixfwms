@@ -919,7 +919,7 @@
     },
     "guestViewHints": {
       "limited": "Item and place descriptions stay. Notes, log entries, problem report texts, serial numbers and firmware versions need a login.",
-      "full": "Names, contacts, loan reasons, network details and prices always need a login."
+      "full": "Names, loan reasons, network details and prices always need a login. Contacts of temporary places always show."
     },
     "workstation": "Workstation",
     "levels": "Stock levels",

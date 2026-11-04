@@ -127,12 +127,11 @@ describe('names for readers without a login', () => {
       },
       env.admin,
     );
-    const secrets = /SN-4471|Spare cable|V4\.6|Recalibrated|Key in the drawer|Bag 2|Ulla/;
+    const secrets = /SN-4471|Spare cable|V4\.6|Recalibrated|Key in the drawer|Bag 2/;
     const urls = [
       `/api/units/${unit!.code}`,
       `/api/parts/${robot.code}`,
       `/api/parts/${screws.code}`,
-      `/api/locations/${pallet.code}`,
       `/api/parts?q=robot`,
       '/api/history',
       `/?q=robot`,
@@ -147,9 +146,13 @@ describe('names for readers without a login', () => {
       firmware: null,
     });
 
-    // Contacts are people: hidden whatever the setting. The rest shows when the lab chooses.
+    // Who to ask about a place shows whatever the setting.
+    expect((await get(`/api/locations/${pallet.code}`)).json()).toMatchObject({
+      contact: 'Ulla, 040 123',
+    });
+
+    // The rest shows when the lab chooses.
     await settings.update({ anonymousView: 'full' }, env.admin);
-    expect((await get(`/api/locations/${pallet.code}`)).json()).toMatchObject({ contact: null });
     expect((await get(`/api/units/${unit!.code}`)).json()).toMatchObject({
       serialNo: 'SN-4471',
       notes: 'Spare cable',

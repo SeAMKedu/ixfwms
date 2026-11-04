@@ -2,7 +2,7 @@ import type { LocationSummary, OverduePlace } from '@ixfwms/domain';
 import { eq } from 'drizzle-orm';
 import { many, type Db } from '../db/client.js';
 import { locations } from '../db/schema.js';
-import { audit, personName, requireScope, type Actor } from './context.js';
+import { audit, requireScope, type Actor } from './context.js';
 import type { LocationService } from './locations.js';
 
 /**
@@ -36,7 +36,7 @@ export class TemporaryPlaces {
       late.map(async ({ s, row }) => ({
         place: s,
         path: await this.locations.pathOf(row),
-        contact: personName(row.contact),
+        contact: row.contact,
         lastActivityAt: row.lastActivityAt ?? row.updatedAt,
       })),
     );
