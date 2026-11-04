@@ -37,13 +37,19 @@ async function svgToPng(svgUrl: string): Promise<Blob> {
   }
 }
 
-/** Preview and downloads for one code's label: PNG for the P-touch app, SVG, DXF for laser marking. */
+/**
+ * Preview and downloads for one code's label: PNG for the P-touch app, SVG, DXF for laser marking.
+ * `version` changes when what the label shows may have (the page's data was fetched again), so the
+ * browser doesn't keep showing the label from before a rename.
+ */
 export function LabelPanel({
   code,
+  version,
   csvHref,
   fix,
 }: {
   code: string;
+  version: number;
   csvHref?: string;
   fix?: 'location' | 'part' | 'unit';
 }) {
@@ -53,7 +59,7 @@ export function LabelPanel({
   const tape = chosen ?? settings.data?.labelTape ?? '12';
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
-  const svgUrl = `/api/labels/${code}/label.svg?tape=${tape}`;
+  const svgUrl = `/api/labels/${code}/label.svg?tape=${tape}&v=${version}`;
   const png = async () => {
     setBusy(true);
     setError(null);

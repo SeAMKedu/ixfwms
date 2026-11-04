@@ -205,6 +205,7 @@ export function LocationPage() {
       {d.kind === 'normal' && can('inventory') && (
         <LabelPanel
           code={d.code}
+          version={loc.dataUpdatedAt}
           csvHref={`/api/labels.csv?location=${d.code}&recursive=1`}
           fix="location"
         />

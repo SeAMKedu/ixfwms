@@ -78,7 +78,7 @@ export function UnitPage() {
           </Card>
         )}
       </div>
-      {can('inventory') && <LabelPanel code={u.code} fix="unit" />}
+      {can('inventory') && <LabelPanel code={u.code} version={unit.dataUpdatedAt} fix="unit" />}
     </>
   );
 }
