@@ -62,6 +62,7 @@ describe('keyboard shortcuts', () => {
       kind: 'part',
       tracking: 'bulk',
       cut: null,
+      container: null,
       aliases: [],
       units: [],
       category: null,

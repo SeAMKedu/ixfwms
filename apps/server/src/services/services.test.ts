@@ -208,6 +208,7 @@ describe('parts and stock', () => {
       },
       env.admin,
     );
+    expect(weighed.amount.quantity).toBe(312);
     expect(weighed.estimatedCount).toBe(260);
     const level = await env.services.stock.add(
       { part: part.code, location: box.code, amount: { mode: 'level', level: 'plenty' } },
@@ -219,6 +220,69 @@ describe('parts and stock', () => {
     expect((await env.services.parts.search({ inStock: true, limit: 10, offset: 0 })).total).toBe(
       1,
     );
+  });
+});
+
+describe('containers', () => {
+  const spool = () =>
+    env.services.parts.create(
+      {
+        name: 'PETG Galaxy Black 1.75',
+        container: { name: 'spool', massG: 200, holds: 1000, unit: 'g' },
+        identifiers: [],
+        tags: [],
+        attributes: {},
+        status: 'draft',
+      },
+      env.admin,
+    );
+
+  it("adds full containers as what they hold and weighs what's in them", async () => {
+    const { box } = await lab();
+    const part = await spool();
+    expect((await env.services.parts.get(part.code)).container).toEqual({
+      name: 'spool',
+      massG: 200,
+      holds: 1000,
+      unit: 'g',
+    });
+    const lot = await env.services.stock.add(
+      { part: part.code, location: box.code, amount: { mode: 'count', full: 2 } },
+      env.admin,
+    );
+    expect(lot.amount).toMatchObject({ mode: 'measure', quantity: 2000, unit: 'g' });
+    // An opened spool weighed with its spool: 1180 g on the scale is 980 g of filament.
+    const weighed = await env.services.stock.add(
+      {
+        part: part.code,
+        location: box.code,
+        amount: { mode: 'measure', quantity: 1180, unit: 'g', tareG: 200 },
+      },
+      env.admin,
+    );
+    expect(weighed.id).toBe(lot.id);
+    expect(weighed.amount.quantity).toBe(2980);
+    // Both spools on the scale later: 1500 g less two spools is 1100 g.
+    const later = await env.services.stock.stocktake(
+      lot.id,
+      { mode: 'measure', quantity: 1500, unit: 'g', tareG: 400 },
+      env.admin,
+    );
+    expect(later.amount.quantity).toBe(1100);
+  });
+
+  it('refuses full containers when the item says nothing about them', async () => {
+    const { box } = await lab();
+    const part = await env.services.parts.create(
+      { name: 'Loose bolts', identifiers: [], tags: [], attributes: {}, status: 'draft' },
+      env.admin,
+    );
+    await expect(
+      env.services.stock.add(
+        { part: part.code, location: box.code, amount: { mode: 'count', full: 1 } },
+        env.admin,
+      ),
+    ).rejects.toThrow(/full container/);
   });
 });
 

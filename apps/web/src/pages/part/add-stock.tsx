@@ -23,7 +23,7 @@ export function AddStock({ part }: { part: PartDetail }) {
   }
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    const a = toAmountInput(amount);
+    const a = toAmountInput(amount, part.container);
     if (!a) return;
     await add.mutateAsync({
       part: part.code,
@@ -41,14 +41,14 @@ export function AddStock({ part }: { part: PartDetail }) {
       <Field label={t('part.location')} hint={t('part.initialStockHint')}>
         {(id) => <PlacePicker id={id} value={location} onChange={setLocation} />}
       </Field>
-      <AmountFields value={amount} onChange={setAmount} cut={part.cut} />
+      <AmountFields value={amount} onChange={setAmount} cut={part.cut} container={part.container} />
       <ErrorBox error={add.error} />
       <div className="flex gap-2">
         <Button
           type="submit"
           variant="primary"
           busy={add.isPending}
-          disabled={!toAmountInput(amount)}
+          disabled={!toAmountInput(amount, part.container)}
         >
           {t('common.add')}
         </Button>

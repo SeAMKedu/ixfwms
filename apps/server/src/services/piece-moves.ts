@@ -116,7 +116,7 @@ export class PieceMoves {
       placeId,
       belongs,
       countAmount(n),
-      { note: null, lastCheckedAt: nowIso(), tareG: null },
+      { note: null, lastCheckedAt: nowIso() },
     );
   }
 
@@ -252,7 +252,7 @@ export class PieceMoves {
       dest.id,
       belongs,
       cutAmount(pieces),
-      { note: null, lastCheckedAt: nowIso(), tareG: null },
+      { note: null, lastCheckedAt: nowIso() },
     );
     await this.stock.record(tx, destId, 'move', {
       from: lot.locationId,

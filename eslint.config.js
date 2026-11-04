@@ -53,7 +53,7 @@ export default tseslint.config(
   // Files over the limits when they were set. Lower a number when you split one; never raise it.
   ...Object.entries({
     'apps/server/src/db/schema.ts': [450],
-    'apps/server/src/mcp/server.ts': [510, 470],
+    'apps/server/src/mcp/server.ts': [500, 470],
     'apps/server/src/services/locations.ts': [430],
     'apps/server/src/services/maps.ts': [550],
     'apps/server/src/services/parts.ts': [540],

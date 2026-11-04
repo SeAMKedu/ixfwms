@@ -1,4 +1,10 @@
-import { normalizeCode, type CutShape, type LotView, type StockLevel } from '@ixfwms/domain';
+import {
+  normalizeCode,
+  type Container,
+  type CutShape,
+  type LotView,
+  type StockLevel,
+} from '@ixfwms/domain';
 import { Map as MapIcon, Undo2 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -42,6 +48,7 @@ export function LotRow({
   first,
   cut = null,
   unitMassG = null,
+  container = null,
 }: {
   lot: LotView;
   canEdit: boolean;
@@ -49,6 +56,8 @@ export function LotRow({
   /** The item's cut shape, for cutting a piece off. */
   cut?: CutShape | null;
   unitMassG?: number | null;
+  /** What the item comes in, so a re-weigh can take it off. */
+  container?: Container | null;
 }) {
   const { t } = useTranslation();
   const [action, setAction] = useState<LotAction>(null);
@@ -111,7 +120,7 @@ export function LotRow({
     if (action === 'bench')
       await bench.mutateAsync({ lotId: lot.id, to: normalizeCode(dest), ...by });
     if (action === 'count') {
-      const a = toAmountInput({ ...amount, unit: lot.amount.unit ?? amount.unit });
+      const a = toAmountInput({ ...amount, unit: lot.amount.unit ?? amount.unit }, container);
       if (a) await count.mutateAsync({ lotId: lot.id, amount: a });
     }
     setAction(null);
@@ -303,6 +312,7 @@ export function LotRow({
               lockMode
               allowUncounted={false}
               cut={cut}
+              container={container}
             />
           )}
           {action === 'carry' && (

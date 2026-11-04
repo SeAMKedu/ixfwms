@@ -1,4 +1,5 @@
 import { Pencil } from 'lucide-react';
+import { unitLabel } from '@ixfwms/domain';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
 import { useShortcut } from '../lib/shortcuts';
@@ -91,6 +92,7 @@ export function PartPage() {
                       first={i === 0}
                       cut={p.cut}
                       unitMassG={p.unitMassG}
+                      container={p.container}
                     />
                   ))}
                 </ul>
@@ -136,7 +138,7 @@ export function PartPage() {
           </Card>
         )}
         <Files part={p} canEdit={canEdit} />
-        {(p.description || p.notes || p.source || p.unitMassG) && (
+        {(p.description || p.notes || p.source || p.unitMassG || p.container) && (
           <Card title={t('part.notes')}>
             <dl className="flex flex-col gap-2 text-sm">
               {p.description && (
@@ -161,6 +163,24 @@ export function PartPage() {
                 <div>
                   <dt className="text-muted">{t('part.unitMass')}</dt>
                   <dd className="tabular">{p.unitMassG}</dd>
+                </div>
+              )}
+              {p.container && (
+                <div>
+                  <dt className="text-muted">{t('container.title')}</dt>
+                  <dd>
+                    {[
+                      p.container.name || t('amount.container'),
+                      p.container.massG != null &&
+                        t('container.emptyIs', { mass: p.container.massG }),
+                      p.container.holds != null &&
+                        t('container.holdsAmount', {
+                          amount: `${p.container.holds} ${p.container.unit ? unitLabel(p.container.unit) : t('container.pieces')}`,
+                        }),
+                    ]
+                      .filter(Boolean)
+                      .join(', ')}
+                  </dd>
                 </div>
               )}
             </dl>

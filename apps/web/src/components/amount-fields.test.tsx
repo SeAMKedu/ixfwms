@@ -7,6 +7,7 @@ const state = (over: Partial<AmountState>): AmountState => ({
   unit: 'g',
   level: 'plenty',
   tare: '',
+  containers: '',
   uncounted: false,
   pieces: '',
   shape: 'length',
@@ -51,5 +52,24 @@ describe('amount fields', () => {
       ],
     });
     expect(toAmountInput(state({ mode: 'cut', shape: 'sheet', pieces: '1250' }))).toBeNull();
+  });
+
+  it('weighs with the containers on and adds full ones by number', () => {
+    const spool = { name: 'spool', massG: 200, holds: 1000, unit: 'g' as const };
+    const weighed = state({ mode: 'measure', quantity: '1180', containers: '1' });
+    expect(toAmountInput(weighed, spool)).toEqual({
+      mode: 'measure',
+      quantity: 1180,
+      unit: 'g',
+      tareG: 200,
+    });
+    // Without the item's own weight, the containers' weight is typed.
+    expect(toAmountInput({ ...weighed, tare: '150' })).toMatchObject({ tareG: 150 });
+    expect(toAmountInput({ ...weighed, quantity: '150' }, spool)).toBeNull();
+    expect(toAmountInput(state({ mode: 'full', containers: '3' }), spool)).toEqual({
+      mode: 'count',
+      full: 3,
+    });
+    expect(toAmountInput(state({ mode: 'full', containers: '1.5' }), spool)).toBeNull();
   });
 });

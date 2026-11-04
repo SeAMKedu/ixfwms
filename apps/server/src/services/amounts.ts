@@ -1,5 +1,8 @@
 import {
+  fullAmount,
   isUnknown,
+  netOfReading,
+  type Container,
   levelState,
   type CutShape,
   type Piece,
@@ -14,14 +17,13 @@ import { invalid } from '../lib/errors.js';
 type LotRow = typeof stockLots.$inferSelect;
 
 export function amountOf(
-  lot: Pick<LotRow, 'mode' | 'quantity' | 'unit' | 'level' | 'tareG' | 'pieces'>,
+  lot: Pick<LotRow, 'mode' | 'quantity' | 'unit' | 'level' | 'pieces'>,
 ): StockAmount {
   return {
     mode: lot.mode,
     quantity: lot.quantity,
     unit: lot.unit,
     level: lot.level,
-    tareG: lot.tareG,
     pieces: lot.mode === 'cut' ? (lot.pieces ?? []) : null,
   };
 }
@@ -35,16 +37,29 @@ export const cutAmount = (pieces: Piece[]): StockAmount => ({
   pieces,
 });
 
-/** An amount as given; `uncounted` leaves the quantity or level empty (see isUnknown). */
-export function toAmount(input: AmountInput): StockAmount {
+/**
+ * An amount as given, as it is kept: full containers become what they hold, and a weighing
+ * loses the containers weighed with it. `uncounted` leaves the quantity or level empty (see
+ * isUnknown).
+ */
+export function toAmount(
+  input: AmountInput,
+  part: { name: string; container: Container | null },
+): StockAmount {
+  if (input.full != null) {
+    const full = fullAmount(part.container, input.full);
+    if (!full) throw invalid('stock.noFullAmount', { name: part.name });
+    return full;
+  }
   if (input.mode === 'cut') return cutAmount(input.pieces ?? []);
   const counted = !input.uncounted;
+  let quantity = input.mode === 'level' || !counted ? null : (input.quantity ?? null);
+  if (quantity != null && input.tareG) quantity = netOfReading(quantity, input.unit!, input.tareG);
   return {
     mode: input.mode,
-    quantity: input.mode === 'level' || !counted ? null : (input.quantity ?? null),
+    quantity,
     unit: input.mode === 'measure' ? (input.unit ?? null) : null,
     level: input.mode === 'level' && counted ? (input.level ?? null) : null,
-    tareG: input.tareG ?? null,
   };
 }
 

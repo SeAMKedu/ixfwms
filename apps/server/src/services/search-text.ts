@@ -9,6 +9,14 @@ type PartText = Pick<
 >;
 type UnitText = Pick<typeof units.$inferSelect, 'name' | 'serialNo'>;
 
+/** Aliases without blanks or repeats (case-insensitive), in the order given. */
+export function cleanAliases(aliases: string[]): string[] {
+  const seen = new Set<string>();
+  return aliases
+    .map((a) => a.trim())
+    .filter((a) => a && !seen.has(a.toLowerCase()) && seen.add(a.toLowerCase()));
+}
+
 /** What search finds a part by, folded: its name, description, maker and aliases. */
 export const partSearchText = (p: PartText): string =>
   fold([p.name, p.description, p.manufacturer, ...p.aliases].filter(Boolean).join('\n'));

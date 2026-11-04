@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { IDENTIFIER_KINDS } from './identifiers.js';
-import { DEFAULT_STOCK_LEVELS, LEVEL_STATES, MEASURE_UNITS, STOCK_MODES } from './quantity.js';
+import { AmountInput, ContainerInput, PieceSchema } from './amount-input.js';
+import { DEFAULT_STOCK_LEVELS, LEVEL_STATES } from './quantity.js';
 import {
   ANONYMOUS_ACTIONS,
   ATTACHMENT_KINDS,
@@ -20,10 +21,6 @@ import { HintSchema, NumberFromSchema } from './directions.js';
 
 /** A location or part reference: internal id or short code. */
 export const RefSchema = z.string().trim().min(1).max(64);
-
-/** A size in mm: [length] or [width, height]. */
-export const PieceSchema = z.array(z.number().positive().max(1_000_000)).min(1).max(2);
-const PiecesSchema = z.array(PieceSchema).max(1000);
 
 /** A place's short name for its address, e.g. "A" for Cabinet A; empty means guess it from the name. */
 /** Expected stay of a temporary place in days: null = as its type says, 0 = not temporary. */
@@ -99,54 +96,6 @@ export const IdentifierInput = z.object({
 });
 export type IdentifierInput = z.infer<typeof IdentifierInput>;
 
-export const AmountInput = z
-  .object({
-    mode: z.enum(STOCK_MODES).default('count'),
-    quantity: z.number().nonnegative().nullish(),
-    unit: z.enum(MEASURE_UNITS).nullish(),
-    level: z
-      .string()
-      .trim()
-      .min(1)
-      .max(60)
-      .nullish()
-      .describe("A stock level's key or name, e.g. plenty, low, empty (the lab's own list)"),
-    tareG: z.number().nonnegative().nullish(),
-    pieces: PiecesSchema.nullish().describe(
-      'cut mode: each piece in mm, [length] for bars or [width, height] for sheets',
-    ),
-    uncounted: z
-      .boolean()
-      .optional()
-      .describe(
-        'Not counted yet: the amount is unknown. Give no quantity or level (a unit still for measure).',
-      ),
-  })
-  .superRefine((a, ctx) => {
-    if (a.mode === 'cut') {
-      const n = a.pieces?.[0]?.length;
-      if (a.uncounted || !a.pieces || a.pieces.some((p) => p.length !== n))
-        ctx.addIssue({ code: 'custom', message: 'cut mode needs the pieces, all of one shape' });
-      return;
-    }
-    if (a.uncounted) {
-      if (a.quantity != null || a.level != null)
-        ctx.addIssue({ code: 'custom', message: 'an uncounted amount has no quantity or level' });
-      if (a.mode === 'measure' && a.unit == null)
-        ctx.addIssue({ code: 'custom', message: 'measure mode needs a unit' });
-      return;
-    }
-    if (a.mode === 'count' && a.quantity == null)
-      ctx.addIssue({ code: 'custom', message: 'count mode needs a quantity' });
-    if (a.mode === 'count' && a.quantity != null && !Number.isInteger(a.quantity))
-      ctx.addIssue({ code: 'custom', message: 'a count is a whole number' });
-    if (a.mode === 'measure' && (a.quantity == null || a.unit == null))
-      ctx.addIssue({ code: 'custom', message: 'measure mode needs a quantity and a unit' });
-    if (a.mode === 'level' && a.level == null)
-      ctx.addIssue({ code: 'custom', message: 'level mode needs a level (plenty, low, empty)' });
-  });
-export type AmountInput = z.infer<typeof AmountInput>;
-
 export const CreatePartInput = z.object({
   name: z.string().trim().min(1).max(300),
   description: z.string().trim().max(5000).nullish(),
@@ -175,6 +124,9 @@ export const CreatePartInput = z.object({
     .nullish()
     .describe('Mass of one piece in grams, lets weighed stock show an estimated count'),
   minStock: z.number().nonnegative().nullish(),
+  container: ContainerInput.nullish().describe(
+    'What it comes in (a filament spool, wire reel, box of screws): its empty weight comes off weighings, and a full one can be added as one',
+  ),
   cut: z
     .enum(CUT_SHAPES)
     .nullish()

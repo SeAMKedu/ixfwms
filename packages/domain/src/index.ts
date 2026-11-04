@@ -3,6 +3,7 @@ export * from './enums.js';
 export * from './identifiers.js';
 export * from './qr.js';
 export * from './quantity.js';
+export * from './amount-input.js';
 export * from './schemas.js';
 export * from './api.js';
 export * from './attributes.js';

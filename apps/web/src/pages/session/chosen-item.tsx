@@ -84,7 +84,7 @@ function AddHere({
   const { t } = useTranslation();
   const [amount, setAmount] = useAmountState();
   const addStock = useAddStock();
-  const a = toAmountInput(amount);
+  const a = toAmountInput(amount, part.container);
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!a) return;
@@ -93,7 +93,7 @@ function AddHere({
   };
   return (
     <form onSubmit={(e) => void submit(e)} className="flex flex-col gap-3">
-      <AmountFields value={amount} onChange={setAmount} />
+      <AmountFields value={amount} onChange={setAmount} container={part.container} />
       <ErrorBox error={addStock.error} />
       <Button type="submit" variant="primary" busy={addStock.isPending} disabled={!a}>
         {t('session.addHereNext')}

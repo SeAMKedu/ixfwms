@@ -67,7 +67,7 @@ export class LotStore {
     locationId: string,
     origin: string | null,
     amount: StockAmount,
-    fresh: Pick<LotRow, 'note' | 'lastCheckedAt' | 'tareG'>,
+    fresh: Pick<LotRow, 'note' | 'lastCheckedAt'>,
   ): Promise<string> {
     const merged = await this.mergeInto(tx, like, locationId, origin, amount);
     if (merged) return merged;

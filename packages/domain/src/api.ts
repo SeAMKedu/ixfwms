@@ -21,7 +21,7 @@ import type {
 } from './enums.js';
 import type { BuildBrief } from './builds.js';
 import type { CutShape } from './cut.js';
-import type { StockAmount } from './quantity.js';
+import type { Container, StockAmount } from './quantity.js';
 
 export interface LocationSummary {
   id: string;
@@ -129,6 +129,8 @@ export interface PartSummary {
   tracking: TrackingMode;
   /** Cut stock: by length or as sheets. */
   cut: CutShape | null;
+  /** What it comes in (spool, reel, box), when anyone has said. */
+  container: Container | null;
   aliases: string[];
   /** Individually tracked items: their units. */
   units: UnitBrief[];

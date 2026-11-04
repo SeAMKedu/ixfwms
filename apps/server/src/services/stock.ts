@@ -68,7 +68,7 @@ export class StockService {
         tx,
         part.id,
         input.location ?? null,
-        toAmount(input.amount),
+        toAmount(input.amount, part),
         who,
         input.note ?? null,
       );
@@ -105,7 +105,6 @@ export class StockService {
       note,
       // Stock nobody has counted hasn't been checked either.
       lastCheckedAt: isUnknown(amount) ? null : nowIso(),
-      tareG: amount.tareG ?? null,
     });
     await this.record(tx, lotId, reason, { to: location.id, delta: amount.quantity, note, who });
     return lotId;
@@ -155,15 +154,15 @@ export class StockService {
     return this.db.transaction(async (tx) => {
       const lot = await this.lot(tx, lotId);
       if (amount.uncounted) throw invalid('stock.countIt');
-      const next = toAmount(amount);
-      checkCut(await this.parts.resolve(lot.partId, tx), next);
+      const part = await this.parts.resolve(lot.partId, tx);
+      const next = toAmount(amount, part);
+      checkCut(part, next);
       if (next.mode === 'level' && next.level) next.level = await this.levelKey(next.level);
       checkWhole(next.mode, next.quantity);
       await tx
         .update(stockLots)
         .set({
           ...next,
-          tareG: next.tareG ?? lot.tareG,
           lastCheckedAt: nowIso(),
           updatedAt: nowIso(),
         })
@@ -256,7 +255,6 @@ export class StockService {
       destLotId = await this.lots.put(tx, lot, dest.id, belongs, moved, {
         note: lot.note,
         lastCheckedAt: lot.lastCheckedAt,
-        tareG: null,
       });
       if (whole) await tx.delete(stockLots).where(eq(stockLots.id, lot.id));
       else

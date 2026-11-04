@@ -71,13 +71,50 @@ export interface StockAmount {
   quantity: number | null;
   unit: MeasureUnit | null;
   level: StockLevel | null;
-  /** Container weight to subtract when a lot is weighed. */
-  tareG?: number | null;
   /** `cut`: the pieces, in mm (quantity is how many). */
   pieces?: Piece[] | null;
 }
 
 const TO_GRAMS: Partial<Record<MeasureUnit, number>> = { g: 1, kg: 1000 };
+
+/** Weights are what a scale can give, and what a container's weight comes off. */
+export const isWeight = (unit: MeasureUnit | null | undefined): boolean =>
+  unit != null && TO_GRAMS[unit] != null;
+
+/**
+ * What an item comes in: a spool, reel, box or bottle. Its empty weight comes off when it is
+ * weighed with what's in it, and what a full one holds lets stock be added as "3 spools".
+ */
+export interface Container {
+  /** What people call it: "spool", "reel", "box". */
+  name: string | null;
+  /** The empty container, in grams. */
+  massG: number | null;
+  /** How much a full one holds, in `unit`; pieces when `unit` is null. */
+  holds: number | null;
+  unit: MeasureUnit | null;
+}
+
+/** Floating point leftovers off: 1.18 kg less 200 g is 0.98 kg, not 0.9799999999999999. */
+const tidy = (n: number) => Math.round(n * 1e6) / 1e6;
+
+/**
+ * A scale reading less the containers weighed with it, in the reading's unit. Null when the
+ * unit isn't a weight; below zero when the containers weigh more than the reading.
+ */
+export function netOfReading(quantity: number, unit: MeasureUnit, tareG: number): number | null {
+  const factor = TO_GRAMS[unit];
+  return factor == null ? null : tidy((quantity * factor - tareG) / factor);
+}
+
+/** `n` full containers as an amount; null when the item doesn't say what a full one holds. */
+export function fullAmount(container: Container | null | undefined, n: number): StockAmount | null {
+  if (!container?.holds) return null;
+  const quantity = tidy(container.holds * n);
+  return container.unit
+    ? { mode: 'measure', quantity, unit: container.unit, level: null }
+    : { mode: 'count', quantity, unit: null, level: null };
+}
 
 /** Estimated piece count of a weighed lot ("312 g ≈ 260 pcs"), or null when it can't be estimated. */
 export function estimateCount(
@@ -88,8 +125,7 @@ export function estimateCount(
   if (amount.mode !== 'measure' || amount.quantity == null || amount.unit == null) return null;
   const factor = TO_GRAMS[amount.unit];
   if (factor == null || !unitMassG || unitMassG <= 0) return null;
-  const netG = amount.quantity * factor - (amount.tareG ?? 0);
-  return Math.max(0, Math.round(netG / unitMassG));
+  return Math.max(0, Math.round((amount.quantity * factor) / unitMassG));
 }
 
 /**

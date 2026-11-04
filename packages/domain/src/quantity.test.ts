@@ -3,6 +3,8 @@ import {
   DEFAULT_STOCK_LEVELS,
   estimateCount,
   findLevel,
+  fullAmount,
+  netOfReading,
   formatAmount,
   isCompatible,
   isEmpty,
@@ -11,13 +13,34 @@ import {
 } from './quantity.js';
 
 describe('quantity', () => {
-  it('estimates a count from weight, minus the tare', () => {
-    expect(
-      estimateCount({ mode: 'measure', quantity: 342, unit: 'g', level: null, tareG: 30 }, 1.2),
-    ).toBe(260);
+  it('estimates a count from weight', () => {
+    expect(estimateCount({ mode: 'measure', quantity: 312, unit: 'g', level: null }, 1.2)).toBe(
+      260,
+    );
     expect(estimateCount({ mode: 'measure', quantity: 0.342, unit: 'kg', level: null }, 1.2)).toBe(
       285,
     );
+  });
+
+  it('takes containers off a weighing', () => {
+    expect(netOfReading(1180, 'g', 200)).toBe(980);
+    expect(netOfReading(1.18, 'kg', 200)).toBe(0.98);
+    expect(netOfReading(150, 'g', 200)).toBe(-50);
+    expect(netOfReading(3, 'm', 200)).toBeNull();
+  });
+
+  it('turns full containers into what they hold', () => {
+    const spool = { name: 'spool', massG: 200, holds: 1000, unit: 'g' as const };
+    expect(fullAmount(spool, 3)).toEqual({
+      mode: 'measure',
+      quantity: 3000,
+      unit: 'g',
+      level: null,
+    });
+    const box = { name: 'box', massG: null, holds: 500, unit: null };
+    expect(fullAmount(box, 2)).toEqual({ mode: 'count', quantity: 1000, unit: null, level: null });
+    expect(fullAmount({ ...box, holds: null }, 2)).toBeNull();
+    expect(fullAmount(null, 2)).toBeNull();
   });
 
   it('returns null when no estimate is possible', () => {

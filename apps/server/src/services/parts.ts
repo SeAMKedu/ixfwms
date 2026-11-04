@@ -39,7 +39,7 @@ import { audit, placeName, requireScope, type Actor } from './context.js';
 import type { FileService } from './files.js';
 import type { LocationService } from './locations.js';
 import { PartSearch, type SearchInput } from './part-search.js';
-import { contains, partSearchText } from './search-text.js';
+import { cleanAliases, contains, partSearchText } from './search-text.js';
 import type { StockService } from './stock.js';
 import type { UnitService } from './units.js';
 
@@ -104,6 +104,7 @@ export class PartService {
           aliases: cleanAliases(input.aliases),
         }),
         unitMassG: input.unitMassG ?? null,
+        container: input.container ?? null,
         cut: input.cut ?? null,
         minStock: input.minStock ?? null,
         attributes: await this.normalizeAttributes(tx, input.category ?? null, input.attributes),
@@ -119,7 +120,7 @@ export class PartService {
           tx,
           id,
           input.stock.location ?? null,
-          toAmount(input.stock.amount),
+          toAmount(input.stock.amount, { name: input.name, container: input.container ?? null }),
           who,
           null,
         );
@@ -171,6 +172,7 @@ export class PartService {
     if (input.description !== undefined) patch.description = input.description ?? null;
     if (input.manufacturer !== undefined) patch.manufacturer = input.manufacturer ?? null;
     if (input.unitMassG !== undefined) patch.unitMassG = input.unitMassG ?? null;
+    if (input.container !== undefined) patch.container = input.container ?? null;
     if (input.cut !== undefined) patch.cut = input.cut ?? null;
     if (input.minStock !== undefined) patch.minStock = input.minStock ?? null;
     if (input.notes !== undefined) patch.notes = input.notes ?? null;
@@ -289,6 +291,7 @@ export class PartService {
         'manufacturer',
         'categoryId',
         'unitMassG',
+        'container',
         'minStock',
         'cut',
         'source',
@@ -474,6 +477,7 @@ export class PartService {
       kind: r.kind,
       tracking: r.tracking,
       cut: r.cut,
+      container: r.container,
       aliases: r.aliases,
       units: unitsByPart.get(r.id) ?? [],
       category: r.categoryId ? (catPath.get(r.categoryId) ?? null) : null,
@@ -572,12 +576,4 @@ export class PartService {
       await ex.insert(partTags).values({ partId, tagId: tag.id }).onConflictDoNothing();
     }
   }
-}
-
-/** Aliases without blanks or repeats (case-insensitive), in the order given. */
-function cleanAliases(aliases: string[]): string[] {
-  const seen = new Set<string>();
-  return aliases
-    .map((a) => a.trim())
-    .filter((a) => a && !seen.has(a.toLowerCase()) && seen.add(a.toLowerCase()));
 }

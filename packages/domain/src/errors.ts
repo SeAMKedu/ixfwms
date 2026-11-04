@@ -94,6 +94,8 @@ export const ERROR_MESSAGES = {
   'stock.uncountedPart':
     "Nobody has counted this stock, so part of it can't be moved; move all of it, or count it first",
   'stock.noneLeft': 'This is marked empty; nothing can come out of it',
+  'stock.noFullAmount':
+    "{{name}} doesn't say how much a full container holds; give the amount, or set it on the item first",
   'stock.notCutStock': "{{name}} isn't cut stock; set it to be cut by length or as sheets first",
   'stock.wrongShape':
     'Give each piece as a length, or as width × height for sheets, to match the item',

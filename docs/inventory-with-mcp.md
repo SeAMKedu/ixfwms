@@ -38,11 +38,12 @@ For each photo, the assistant:
 - matches it against Inbox drafts and moves that stock into the box, or
 - checks for similar parts, then creates a new draft with its best identification and a note on how sure it is,
 - uploads the photo (`curl` to `/api/files`) and attaches it,
-- records the amount: a count, a weight (screws: give the gross weight and box weight) or a level (plenty / low / empty).
+- records the amount: a count, a weight (screws: the scale reading with the box weight as `tareG`, so what's kept is what's inside) or a level (plenty / low / empty).
 
 ## Tips
 
 - Parts with printed order numbers (Festo, SMC, Schmalz, Phoenix Contact, Siemens) are identified reliably. Unmarked screws and fittings get a good description but rarely an exact order number. That's fine: drafts can be completed later.
 - For fasteners, give `unitMassG` (mass of one piece). Weighed stock then shows an estimated count.
+- For things that come in containers (filament spools, wire reels, boxes of screws), give the item a `container`: its name, empty weight `massG`, and what a full one `holds` (with `unit`, or none for pieces). Unopened ones can then be added as `{ "full": 3 }`, and an opened one weighed with `tareG` = its empty weight.
 - Make a backup before a big session: `npm run cli -- backup`.
 - Every change is logged with who made it. Drafts can be fixed or merged during review in the web UI (0.2).

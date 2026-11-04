@@ -25,6 +25,12 @@ import { useSession } from '../auth/session';
 import { PlacePicker } from '../components/place-picker';
 import { AmountFields, toAmountInput, useAmountState } from '../components/amount-fields';
 import {
+  ContainerFields,
+  containerDraft,
+  containerOf,
+  type ContainerDraft,
+} from './part/container-fields';
+import {
   AttributeInputs,
   fromDraft,
   toDraft,
@@ -62,6 +68,7 @@ interface FormState {
   unitMassG: string;
   minStock: string;
   cut: CutShape | '';
+  container: ContainerDraft;
   notes: string;
   source: string;
 }
@@ -81,6 +88,7 @@ const fromPart = (p?: PartDetail, kind?: string | null): FormState => ({
   unitMassG: p?.unitMassG?.toString() ?? '',
   minStock: p?.minStock?.toString() ?? '',
   cut: p?.cut ?? '',
+  container: containerDraft(p?.container),
   notes: p?.notes ?? '',
   source: p?.source ?? '',
 });
@@ -140,6 +148,7 @@ function PartForm({ part }: { part?: PartDetail }) {
       unitMassG: parseNumber(form.unitMassG) ?? null,
       minStock: parseNumber(form.minStock) ?? null,
       cut: form.cut || null,
+      container: containerOf(form.container),
       notes: form.notes || null,
       source: form.source || null,
       attributes: fromDraft(attrs, fields),
@@ -163,7 +172,7 @@ function PartForm({ part }: { part?: PartDetail }) {
       void navigate(`/p/${part.code}`);
     } else {
       const individual = form.tracking === 'individual';
-      const a = individual ? null : toAmountInput(amount);
+      const a = individual ? null : toAmountInput(amount, containerOf(form.container));
       const created = await create.mutateAsync({
         ...common,
         identifiers: idents.map((i) => ({ kind: i.kind, value: i.value.trim() })),
@@ -376,6 +385,7 @@ function PartForm({ part }: { part?: PartDetail }) {
             )}
           </Field>
         </div>
+        <ContainerFields value={form.container} onChange={(c) => set({ container: c })} />
         <Field label={t('part.notes')}>
           {(id) => (
             <TextArea id={id} value={form.notes} onChange={(e) => set({ notes: e.target.value })} />
@@ -419,7 +429,12 @@ function PartForm({ part }: { part?: PartDetail }) {
               <Field label={t('part.location')} hint={t('part.initialStockHint')}>
                 {(id) => <PlacePicker id={id} value={location} onChange={setLocation} />}
               </Field>
-              <AmountFields value={amount} onChange={setAmount} cut={form.cut || null} />
+              <AmountFields
+                value={amount}
+                onChange={setAmount}
+                cut={form.cut || null}
+                container={containerOf(form.container)}
+              />
             </>
           )}
           {can('write') && (
