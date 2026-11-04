@@ -55,7 +55,7 @@ const initialAmount = (mode: StockMode = 'count'): AmountState => ({
 });
 
 /** The weight of the containers on the scale, in g: the item's own times how many, or as typed. */
-export function tareOf(s: AmountState, container?: Container | null): number | null {
+function tareOf(s: AmountState, container?: Container | null): number | null {
   if (s.mode !== 'measure' || !isWeight(s.unit)) return null;
   if (container?.massG) {
     const n = parseNumber(s.containers);
