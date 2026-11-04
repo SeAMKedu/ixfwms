@@ -39,7 +39,7 @@ Seven identical cabinets need one drawing, not seven:
 - For cabinets that already exist: on the cabinet, **Or use a drawing from the library**, pick the
   drawing, and **Linked like** another cabinet. Links are matched by name (Shelf 3 ↔ Shelf 3), or by
   position if the names differ. **Link like** on a place whose map is shared does the same later.
-- **Replace map** on a shared drawing updates every place that uses it (you're asked first). If a
+- **Replace map** (the circular-arrows icon on the map) on a shared drawing updates every place that uses it (you're asked first). If a
   shape was removed or lost its id, its links are listed as lost, on the place and on
   **More › Maps**. Uploading on the place page with **Upload** instead gives just that place a
   drawing of its own.
