@@ -23,7 +23,9 @@ export class SettingsService {
   }
 
   async update(patch: Partial<LabSettings>, actor: Actor | null): Promise<LabSettings> {
-    const who = requireScope(actor, 'write');
+    // What people without an account may do and see is security policy, so it's for admins.
+    const policy = 'anonymousActions' in patch || 'anonymousView' in patch;
+    const who = requireScope(actor, policy ? 'admin' : 'write');
     const valid = LabSettings.partial().parse(patch);
     if ('stockLevels' in patch && valid.stockLevels) await this.checkLevelsInUse(valid.stockLevels);
     for (const [key, value] of Object.entries(valid)) {

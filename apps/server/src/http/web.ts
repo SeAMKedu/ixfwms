@@ -12,6 +12,23 @@ export function defaultWebDir(): string {
 const API_PREFIXES = ['/api/', '/mcp', '/healthz'];
 
 /**
+ * For the app's pages: scripts only from this server, so an injected one can't run and read the
+ * login token, and no other site may frame the app. Styles inline are fine (React sets them).
+ */
+const APP_CSP = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "font-src 'self' data:",
+  "connect-src 'self' blob: data:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join('; ');
+
+/**
  * Serves the web app with a single-page-app fallback: any other GET gets index.html,
  * so deep links like /L/A3F9 from a QR label open the right screen.
  * Returns false when no build exists (the server then serves its minimal HTML pages instead).
@@ -24,6 +41,7 @@ export async function registerWebApp(app: FastifyInstance, webDir: string): Prom
     root: webDir,
     wildcard: false,
     setHeaders(res, path) {
+      if (path.endsWith('.html')) res.header('content-security-policy', APP_CSP);
       res.header(
         'cache-control',
         path.includes(assets) ? 'public, max-age=31536000, immutable' : 'no-cache',
@@ -42,7 +60,10 @@ export async function registerWebApp(app: FastifyInstance, webDir: string): Prom
     if (path.startsWith('/assets/')) {
       return reply.status(404).send({ error: 'not_found', message: `No file ${path}` });
     }
-    return reply.header('cache-control', 'no-cache').sendFile('index.html');
+    return reply
+      .header('cache-control', 'no-cache')
+      .header('content-security-policy', APP_CSP)
+      .sendFile('index.html');
   });
   return true;
 }

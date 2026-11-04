@@ -13,7 +13,15 @@ import {
   users,
 } from '../db/schema.js';
 import { invalid, notFound } from '../lib/errors.js';
-import { detail, loanReason, personName, placeName, requireScope, type Actor } from './context.js';
+import {
+  detail,
+  eventValue,
+  loanReason,
+  personName,
+  placeName,
+  requireScope,
+  type Actor,
+} from './context.js';
 import type { LocationService } from './locations.js';
 import type { StockService } from './stock.js';
 
@@ -179,7 +187,7 @@ export class HistoryService {
         to: place(e.toLocationId),
         delta: null,
         unit: { code, name: name ?? partName },
-        value: e.kind === 'firmware' ? detail(e.value) : e.value,
+        value: eventValue(e.kind, e.value),
         text: e.kind === 'lent' ? loanReason(e.text) : detail(e.text),
         undoable: false,
       })),

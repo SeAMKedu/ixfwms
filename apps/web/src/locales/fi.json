@@ -1174,6 +1174,7 @@
       "badScopes": "Oikeuksien on oltava näistä: {{scopes}}",
       "badRole": "Roolin on oltava jokin näistä: {{roles}}",
       "notYourself": "Omaa tiliä ei voi poistaa käytöstä",
+      "scopeAboveRole": "Roolilla {{role}} ei voi olla tunnusta, jolla on oikeus \"{{scope}}\"",
       "lastAdmin": "Tämä on viimeinen ylläpitäjä; tee ensin joku muu ylläpitäjäksi",
       "hasLoans": "{{name}} vastaa {{count}} lainasta labran ulkopuolella; palauta ne tai lainaa ne uudelleen jonkun muun nimiin ensin",
       "isCarrying": "{{name}} kantaa mukanaan {{count}} asiaa; laskekaa ne ensin alas",

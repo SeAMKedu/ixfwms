@@ -136,3 +136,82 @@ describe('your own account over HTTP', () => {
     ).toBeGreaterThanOrEqual(400);
   });
 });
+
+describe('when someone’s access changes', () => {
+  const session = async (name: string) =>
+    (await env.services.auth.login(name, 'long enough')).token;
+
+  it('a new password logs out the old one’s browsers, but not the one changing it', async () => {
+    const { auth } = env.services;
+    await auth.createUser('pat', 'member');
+    await auth.setPassword('pat', 'long enough');
+    const laptop = await session('pat');
+    const phone = await session('pat');
+    const { token: script } = await auth.createToken('pat', 'script', ['inventory']);
+
+    const pat = (await auth.verify(laptop))!;
+    await auth.changeOwnPassword(pat.userId, 'long enough', 'even longer', laptop);
+    expect(await auth.verify(laptop)).not.toBeNull();
+    expect(await auth.verify(phone)).toBeNull();
+    expect(await auth.verify(script)).not.toBeNull();
+
+    // An admin resetting it logs out every browser.
+    await auth.setPassword('pat', 'reset by admin');
+    expect(await auth.verify(laptop)).toBeNull();
+  });
+
+  it('a new role takes effect at once, for web sessions and API tokens alike', async () => {
+    const { auth } = env.services;
+    await auth.createUser('ada', 'admin');
+    await auth.setPassword('ada', 'long enough');
+    const web = await session('ada');
+    const { token: api } = await auth.createToken('ada', 'script', ['admin']);
+
+    await auth.setRole('ada', 'viewer');
+    expect((await auth.verify(web))!.scopes).toEqual(['read']);
+    expect((await auth.verify(api))!.scopes).toEqual(['read']);
+    await auth.setRole('ada', 'member');
+    expect((await auth.verify(web))!.scopes).toEqual(['write']);
+    expect((await auth.verify(api))!.scopes).toEqual(['write']);
+    await expect(auth.createToken('ada', 'more', ['admin'])).rejects.toThrow(/member can't/);
+  });
+
+  it('keeps one admin: the last one can’t be made something else', async () => {
+    const { auth } = env.services;
+    await expect(auth.setRole('admin', 'member')).rejects.toThrow(/last admin/);
+    await auth.createUser('ada', 'admin');
+    await auth.setRole('admin', 'member');
+    expect((await auth.verify(env.adminToken))!.scopes).toEqual(['write']);
+  });
+
+  it('times a login the same whether or not the name exists', async () => {
+    const { auth } = env.services;
+    await auth.createUser('pat', 'member');
+    await auth.setPassword('pat', 'long enough');
+    const time = async (name: string) => {
+      const start = performance.now();
+      await auth.login(name, 'wrong password').catch(() => {});
+      return performance.now() - start;
+    };
+    await time('nobody'); // makes the stand-in hash
+    const known = await time('pat');
+    const unknown = await time('nobody');
+    expect(unknown).toBeGreaterThan(known / 3);
+  });
+});
+
+describe('who may change what guests can do', () => {
+  it('is for admins only, while members change other lab settings', async () => {
+    const { settings, auth } = env.services;
+    const member = (await auth.verify(
+      (await auth.createToken('assistant', 'w', ['write'])).token,
+    ))!;
+    await expect(settings.update({ anonymousView: 'full' }, member)).rejects.toThrow(/admin/);
+    await expect(settings.update({ anonymousActions: 'put_back' }, member)).rejects.toThrow(
+      /admin/,
+    );
+    await settings.update({ labelTape: '24' }, member);
+    await settings.update({ anonymousView: 'full' }, env.admin);
+    expect(await settings.get()).toMatchObject({ labelTape: '24', anonymousView: 'full' });
+  });
+});

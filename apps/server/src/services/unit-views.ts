@@ -6,7 +6,7 @@ import {
   type UpdateUnitInput,
 } from '@ixfwms/domain';
 import type { unitEvents, units } from '../db/schema.js';
-import { detail, loanReason, personName, type Actor } from './context.js';
+import { detail, eventValue, loanReason, personName, type Actor } from './context.js';
 
 export function eventView(
   e: typeof unitEvents.$inferSelect,
@@ -17,7 +17,7 @@ export function eventView(
     id: e.id,
     kind: e.kind,
     text: e.kind === 'lent' ? loanReason(e.text) : detail(e.text),
-    value: e.kind === 'firmware' ? detail(e.value) : e.value,
+    value: eventValue(e.kind, e.value),
     from: e.fromLocationId ? (places.get(e.fromLocationId) ?? null) : null,
     to: e.toLocationId ? (places.get(e.toLocationId) ?? null) : null,
     by: personName(user ?? e.reporterName),

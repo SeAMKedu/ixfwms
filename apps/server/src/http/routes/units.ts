@@ -8,7 +8,7 @@ import {
 } from '@ixfwms/domain';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { parse, QueryBool, type AppDeps } from '../context.js';
+import { OPEN, parse, QueryBool, type AppDeps } from '../context.js';
 
 const RefParams = z.object({ ref: z.string() });
 const Guest = z.object({ name: z.string().trim().max(80).nullish() });
@@ -18,7 +18,7 @@ export function registerUnitRoutes(app: FastifyInstance, { services }: AppDeps):
   const { units, loans, reports, open, where } = services;
 
   /** A lost unit turned up: here (`to`), or back home. */
-  app.post('/api/units/:ref/found', async (request) => {
+  app.post('/api/units/:ref/found', OPEN, async (request) => {
     const { ref } = parse(z.object({ ref: z.string() }), request.params);
     const body = parse(
       z.object({ to: z.string().nullish(), name: z.string().trim().max(80).nullish() }),
@@ -64,7 +64,7 @@ export function registerUnitRoutes(app: FastifyInstance, { services }: AppDeps):
   );
 
   /** Open to people without an account, as far as the lab's setting allows. */
-  app.post('/api/units/:ref/move', async (request) => {
+  app.post('/api/units/:ref/move', OPEN, async (request) => {
     const body = parse(OpenMoveInput, request.body);
     return open.moveUnit(
       parse(RefParams, request.params).ref,
@@ -74,7 +74,7 @@ export function registerUnitRoutes(app: FastifyInstance, { services }: AppDeps):
     );
   });
 
-  app.post('/api/units/:ref/put-back', async (request) =>
+  app.post('/api/units/:ref/put-back', OPEN, async (request) =>
     open.putBackUnit(
       parse(RefParams, request.params).ref,
       parse(Guest, request.body).name ?? null,
@@ -122,7 +122,7 @@ export function registerUnitRoutes(app: FastifyInstance, { services }: AppDeps):
   });
 
   /** Anyone may report a problem. */
-  app.post('/api/reports', async (request, reply) =>
+  app.post('/api/reports', OPEN, async (request, reply) =>
     reply.status(201).send(await reports.create(parse(ReportInput, request.body), request.actor)),
   );
 
@@ -141,18 +141,18 @@ export function registerUnitRoutes(app: FastifyInstance, { services }: AppDeps):
   });
 
   /** Stock moves open to people without an account (to a workstation, or back where it came from). */
-  app.post('/api/stock/:lotId/open-move', async (request) => {
+  app.post('/api/stock/:lotId/open-move', OPEN, async (request) => {
     const { lotId } = parse(z.object({ lotId: z.string() }), request.params);
     const body = parse(OpenMoveInput, request.body);
     return open.moveLot(lotId, body.to, body, body.name ?? null, request.actor);
   });
 
-  app.post('/api/stock/:lotId/put-back', async (request) => {
+  app.post('/api/stock/:lotId/put-back', OPEN, async (request) => {
     const { lotId } = parse(z.object({ lotId: z.string() }), request.params);
     return open.putBackLot(lotId, parse(Guest, request.body).name ?? null, request.actor);
   });
 
-  app.post('/api/locations/:ref/clear', async (request) =>
+  app.post('/api/locations/:ref/clear', OPEN, async (request) =>
     open.clear(
       parse(RefParams, request.params).ref,
       parse(Guest, request.body).name ?? null,

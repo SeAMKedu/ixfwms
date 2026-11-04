@@ -8,7 +8,7 @@ import {
 } from '@ixfwms/domain';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { parse, QueryBool, type AppDeps } from '../context.js';
+import { OPEN, parse, QueryBool, type AppDeps } from '../context.js';
 
 const RefParams = z.object({ ref: z.string() });
 
@@ -56,7 +56,7 @@ export function registerPartRoutes(app: FastifyInstance, { services }: AppDeps):
     return reply.status(201).send(created);
   });
 
-  app.post('/api/parts/similar', async (request) => {
+  app.post('/api/parts/similar', OPEN, async (request) => {
     const body = parse(
       z.object({ name: z.string().nullish(), identifiers: z.array(z.string()).default([]) }),
       request.body,

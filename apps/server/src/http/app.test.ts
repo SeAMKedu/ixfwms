@@ -38,6 +38,44 @@ describe('HTTP API', () => {
     expect(ok.statusCode).toBe(201);
   });
 
+  it('takes changes without a login only on the routes meant for guests', async () => {
+    // Every route that changes something, from Fastify's route tree.
+    const changes: string[] = [];
+    const stack: string[] = [];
+    for (const line of env.app.printRoutes({ commonPrefix: false }).split('\n')) {
+      const at = line.search(/[├└]── /);
+      if (at < 0) continue;
+      const [, segment, methods] = /^(\S+)(?: \(([A-Z, ]+)\))?/.exec(line.slice(at + 4))!;
+      const depth = at / 4;
+      stack.length = depth;
+      stack.push((stack[depth - 1] ?? '') + segment);
+      for (const method of methods?.split(', ') ?? [])
+        if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method))
+          changes.push(`${method} ${stack[depth]}`);
+    }
+    expect(changes.length).toBeGreaterThan(80);
+    const open: string[] = [];
+    for (const route of changes) {
+      const [method, path] = route.split(' ') as ['POST', string];
+      const res = await env.app.inject({ method, url: path.replace(/:[^/]+/g, 'x'), payload: {} });
+      if (res.statusCode !== 401) open.push(route);
+    }
+    // Adding to this list lets people without an account do something new: on purpose only.
+    expect(open.sort()).toEqual([
+      'DELETE /api/session',
+      'POST /api/bom/check',
+      'POST /api/locations/:ref/clear',
+      'POST /api/parts/similar',
+      'POST /api/reports',
+      'POST /api/session',
+      'POST /api/stock/:lotId/open-move',
+      'POST /api/stock/:lotId/put-back',
+      'POST /api/units/:ref/found',
+      'POST /api/units/:ref/move',
+      'POST /api/units/:ref/put-back',
+    ]);
+  });
+
   it('returns 400 with details for invalid input and 404 for unknown refs', async () => {
     const res = await env.app.inject({
       method: 'POST',
@@ -146,6 +184,9 @@ describe('serving the web app', () => {
       const res = await env.app.inject({ url });
       expect(res.statusCode).toBe(200);
       expect(res.body).toContain('ixfwms app');
+      expect(res.headers['content-security-policy'], url).toMatch(
+        /script-src 'self';.*frame-ancestors 'none'/,
+      );
     }
     const asset = await env.app.inject({ url: '/assets/app-123.js' });
     expect(asset.headers['cache-control']).toContain('immutable');

@@ -1,11 +1,6 @@
+import { createHash, randomBytes } from 'node:crypto';
 import {
-  createHash,
-  randomBytes,
-  scrypt as scryptCb,
-  timingSafeEqual,
-  type ScryptOptions,
-} from 'node:crypto';
-import {
+  hasScope,
   SCOPES,
   USER_ROLES,
   type LoginResult,
@@ -21,13 +16,13 @@ import { apiTokens, loans, locations, stockLots, units, users } from '../db/sche
 import { conflict, fail, invalid, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
 import { audit, type Actor } from './context.js';
+import { checkPassword, hashPassword, unknownUserHash, weakHash } from './passwords.js';
 import { eraseUser, REMOVED_USER_ID, REMOVED_USER_NAME, USER_REFERENCES } from './user-erase.js';
 
 const TOKEN_PREFIX = 'ixf_';
 const LAST_USED_RESOLUTION_MS = 60_000;
 const SESSION_DAYS = 30;
 const MIN_PASSWORD_LENGTH = 8;
-const SCRYPT = { N: 16384, r: 8, p: 1, keylen: 32 } as const;
 const MAX_FAILED_LOGINS = 10;
 const FAILED_LOGIN_WINDOW_MS = 10 * 60_000;
 
@@ -37,35 +32,6 @@ const ROLE_SCOPES: Record<UserRole, Scope[]> = {
   member: ['write'],
   admin: ['admin'],
 };
-
-function scrypt(
-  password: string,
-  salt: Buffer,
-  keylen: number,
-  options: ScryptOptions,
-): Promise<Buffer> {
-  return new Promise((resolve, reject) =>
-    scryptCb(password, salt, keylen, options, (err, key) => (err ? reject(err) : resolve(key))),
-  );
-}
-
-async function hashPassword(password: string): Promise<string> {
-  const salt = randomBytes(16);
-  const key = await scrypt(password, salt, SCRYPT.keylen, SCRYPT);
-  return `scrypt$${SCRYPT.N}$${SCRYPT.r}$${SCRYPT.p}$${salt.toString('base64')}$${key.toString('base64')}`;
-}
-
-async function checkPassword(password: string, stored: string): Promise<boolean> {
-  const [scheme, n, r, p, salt, hash] = stored.split('$');
-  if (scheme !== 'scrypt' || !salt || !hash) return false;
-  const expected = Buffer.from(hash, 'base64');
-  const key = await scrypt(password, Buffer.from(salt, 'base64'), expected.length, {
-    N: Number(n),
-    r: Number(r),
-    p: Number(p),
-  });
-  return timingSafeEqual(key, expected);
-}
 
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
@@ -77,7 +43,11 @@ export class AuthService {
 
   constructor(private readonly db: Db) {}
 
-  async setPassword(userName: string, password: string): Promise<void> {
+  /**
+   * Sets a password and ends the user's web sessions, so a browser that had the old one is
+   * logged out (`keepSession`: the one doing the change). API tokens stay; they don't use it.
+   */
+  async setPassword(userName: string, password: string, keepSession?: string): Promise<void> {
     if (password.length < MIN_PASSWORD_LENGTH)
       throw invalid('auth.passwordTooShort', { min: MIN_PASSWORD_LENGTH });
     const user = await this.byName(userName);
@@ -85,6 +55,17 @@ export class AuthService {
       .update(users)
       .set({ passwordHash: await hashPassword(password) })
       .where(eq(users.id, user.id));
+    await this.db
+      .update(apiTokens)
+      .set({ revokedAt: nowIso() })
+      .where(
+        and(
+          eq(apiTokens.userId, user.id),
+          eq(apiTokens.kind, 'session'),
+          isNull(apiTokens.revokedAt),
+          keepSession ? ne(apiTokens.tokenHash, hashToken(keepSession)) : undefined,
+        ),
+      );
   }
 
   /** Web login: checks the password and issues a session token that expires. */
@@ -98,13 +79,19 @@ export class AuthService {
       throw fail('forbidden', 'auth.tooManyLogins');
     }
     const user = await one(this.db.select().from(users).where(eq(users.name, userName)));
-    const ok = user?.passwordHash ? await checkPassword(password, user.passwordHash) : false;
-    if (!user || !ok) {
+    // An unknown name runs scrypt too, so the time taken doesn't tell which names exist.
+    const ok = await checkPassword(password, user?.passwordHash ?? (await unknownUserHash()));
+    if (!user?.passwordHash || !ok) {
       this.failedLogins.set(key, [...recent, now]);
       throw fail('unauthorized', 'auth.wrongLogin');
     }
     if (user.disabledAt) throw fail('forbidden', 'auth.accountOff');
     this.failedLogins.delete(key);
+    if (weakHash(user.passwordHash))
+      await this.db
+        .update(users)
+        .set({ passwordHash: await hashPassword(password) })
+        .where(eq(users.id, user.id));
     const token = TOKEN_PREFIX + randomBytes(24).toString('base64url');
     const expiresAt = new Date(now + SESSION_DAYS * 86_400_000).toISOString();
     const scopes = ROLE_SCOPES[user.role];
@@ -196,6 +183,9 @@ export class AuthService {
     const bad = scopes.filter((s) => !SCOPES.includes(s));
     if (bad.length || scopes.length === 0)
       throw invalid('users.badScopes', { scopes: SCOPES.join(', ') });
+    for (const scope of scopes)
+      if (!hasScope(ROLE_SCOPES[user.role], scope))
+        throw invalid('users.scopeAboveRole', { scope, role: user.role });
     const token = TOKEN_PREFIX + randomBytes(24).toString('base64url');
     const id = newId();
     await this.db
@@ -260,16 +250,26 @@ export class AuthService {
     if (!USER_ROLES.includes(role))
       throw invalid('users.badRole', { roles: USER_ROLES.join(', ') });
     const user = await this.byName(userName);
+    if (user.role === 'admin' && role !== 'admin' && (await this.activeAdmins(user.id)) === 0)
+      throw invalid('users.lastAdmin');
     await this.db.update(users).set({ role }).where(eq(users.id, user.id));
   }
 
-  /** Lets a logged-in person change their own password (they must know the current one). */
-  async changeOwnPassword(userId: string, current: string, next: string): Promise<void> {
+  /**
+   * Lets a logged-in person change their own password (they must know the current one).
+   * Their other browsers are logged out; `session` (the one asking) stays.
+   */
+  async changeOwnPassword(
+    userId: string,
+    current: string,
+    next: string,
+    session?: string,
+  ): Promise<void> {
     const user = await one(this.db.select().from(users).where(eq(users.id, userId)));
     if (!user?.passwordHash || !(await checkPassword(current, user.passwordHash))) {
       throw fail('forbidden', 'auth.wrongPassword');
     }
-    await this.setPassword(user.name, next);
+    await this.setPassword(user.name, next, session);
   }
 
   async revokeToken(id: string): Promise<void> {
@@ -433,11 +433,18 @@ export class AuthService {
         .set({ lastUsedAt: nowIso() })
         .where(eq(apiTokens.id, row.token.id));
     }
+    // Scopes follow the user's role as it is now: a web session gets the role's, and an API
+    // token never more than the role allows, so a demotion takes effect at once.
+    const role = ROLE_SCOPES[row.user.role];
+    const scopes =
+      row.token.kind === 'session'
+        ? role
+        : [...new Set(row.token.scopes.map((s) => (hasScope(role, s) ? s : role[0]!)))];
     return {
       userId: row.user.id,
       name: row.user.name,
       role: row.user.role,
-      scopes: row.token.scopes,
+      scopes,
       webLogin: row.token.kind === 'session',
     };
   }

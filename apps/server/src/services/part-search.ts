@@ -24,6 +24,7 @@ import {
 import { withinCategory, type CategoryService } from './categories.js';
 import type { LocationService } from './locations.js';
 import { belowMinimum } from './low-stock.js';
+import { detailsHidden } from './context.js';
 import { contains, unitSearchText } from './search-text.js';
 import type { StockService } from './stock.js';
 
@@ -75,8 +76,7 @@ export class PartSearch {
 
     const q = input.q ? fold(input.q) : '';
     const code = input.q ? normalizeCode(input.q) : '';
-    const named = (u: LiveUnit) =>
-      !!q && ((u.searchText ?? unitSearchText(u)).includes(q) || u.code === code);
+    const named = (u: LiveUnit) => !!q && (unitText(u).includes(q) || u.code === code);
     const items = found.sort(byName).flatMap((part): PartSearchRow[] => {
       const own =
         input.byUnit !== false && part.tracking === 'individual' ? (live.get(part.id) ?? []) : [];
@@ -181,7 +181,7 @@ export class PartSearch {
   /** The filters, as SQL on parts (text filters on category fields are checked afterwards). */
   private async condition(input: SearchInput): Promise<SQL | undefined> {
     const where: SQL[] = [];
-    if (input.q) where.push(this.matchesText(input.q));
+    if (input.q) where.push(await this.matchesText(input.q));
     if (input.status) where.push(eq(parts.status, input.status));
     // Archived items only on asking for them, or by their own code.
     else
@@ -327,10 +327,31 @@ export class PartSearch {
     return inside.map((r) => r.id);
   }
 
+  /** Ids of units whose own name contains `text` (not their serial number). */
+  private async unitsNamed(text: string): Promise<string[]> {
+    const q = fold(text);
+    const rows = await many(
+      this.db
+        .select({
+          id: units.id,
+          name: units.name,
+          serialNo: units.serialNo,
+          searchText: units.searchText,
+        })
+        .from(units)
+        .where(and(ne(units.status, 'archived'), contains(units.searchText, text))),
+    );
+    return rows.filter((u) => unitText(u).includes(q)).map((u) => u.id);
+  }
+
   /** Name, description, maker, aliases, code, identifiers, or a live unit's name, serial or code. */
-  private matchesText(text: string): SQL {
+  private async matchesText(text: string): Promise<SQL> {
     const norm = normalizeIdentifier(text);
     const code = normalizeCode(text);
+    // Readers who don't see serial numbers can't find a unit by one either.
+    const unitMatch = detailsHidden()
+      ? inArray(units.id, await this.unitsNamed(text))
+      : contains(units.searchText, text);
     const conditions: SQL[] = [
       contains(parts.searchText, text),
       eq(parts.code, code),
@@ -342,7 +363,7 @@ export class PartSearch {
             and(
               eq(units.partId, parts.id),
               ne(units.status, 'archived'),
-              or(contains(units.searchText, text), eq(units.code, code)),
+              or(unitMatch, eq(units.code, code)),
             ),
           ),
       ),
@@ -364,6 +385,12 @@ export class PartSearch {
     }
     return or(...conditions)!;
   }
+}
+
+/** What a unit is found by: its name and serial number, or just its name for those who don't see serials. */
+function unitText(u: Pick<LiveUnit, 'name' | 'serialNo' | 'searchText'>): string {
+  if (detailsHidden()) return unitSearchText({ name: u.name, serialNo: null });
+  return u.searchText ?? unitSearchText(u);
 }
 
 /** Filters only items have (builds have no status, category, stock…). */

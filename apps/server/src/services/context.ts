@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import type { Scope, UserRole } from '@ixfwms/domain';
-import { hasScope } from '@ixfwms/domain';
+import { hasScope, UNIT_LOG_KINDS } from '@ixfwms/domain';
 import type { Executor } from '../db/client.js';
 import { auditLog } from '../db/schema.js';
 import { fail } from '../lib/errors.js';
@@ -46,6 +46,11 @@ export function detailsHidden(): boolean {
 /** A serial number, note or firmware version, or null when this reader sees less. */
 export function detail<T extends string | null | undefined>(text: T): T | null {
   return detailsHidden() ? null : text;
+}
+
+/** A unit event's value: a log entry's (firmware version, a reading) is a detail, a status isn't. */
+export function eventValue(kind: string, value: string | null): string | null {
+  return (UNIT_LOG_KINDS as readonly string[]).includes(kind) ? detail(value) : value;
 }
 
 /** Why something was lent out: only for people with a login, others just see that it's out. */

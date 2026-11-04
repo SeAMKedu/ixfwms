@@ -117,6 +117,7 @@ describe('names for readers without a login', () => {
     );
     await units.log(unit!.code, { kind: 'firmware', value: 'V4.6' }, env.admin);
     await units.log(unit!.code, { kind: 'note', text: 'Recalibrated' }, env.admin);
+    await units.log(unit!.code, { kind: 'maintenance', value: 'Torque 12 Nm' }, env.admin);
     const screws = await parts.create({ name: 'M3 screw', status: 'active' }, env.admin);
     await stock.add(
       {
@@ -127,7 +128,7 @@ describe('names for readers without a login', () => {
       },
       env.admin,
     );
-    const secrets = /SN-4471|Spare cable|V4\.6|Recalibrated|Key in the drawer|Bag 2/;
+    const secrets = /SN-4471|Spare cable|V4\.6|Recalibrated|Torque 12|Key in the drawer|Bag 2/;
     const urls = [
       `/api/units/${unit!.code}`,
       `/api/parts/${robot.code}`,
@@ -145,6 +146,9 @@ describe('names for readers without a login', () => {
       notes: null,
       firmware: null,
     });
+    // Nor can a serial number be guessed through search.
+    expect((await get('/api/parts?q=4471')).json()).toMatchObject({ total: 0 });
+    expect((await get('/api/parts?q=4471', readToken)).json()).toMatchObject({ total: 1 });
 
     // Who to ask about a place shows whatever the setting.
     expect((await get(`/api/locations/${pallet.code}`)).json()).toMatchObject({

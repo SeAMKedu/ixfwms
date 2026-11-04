@@ -124,7 +124,8 @@ export function registerUserRoutes(app: FastifyInstance, { services }: AppDeps):
       z.object({ current: z.string().min(1).max(500), next: z.string().max(500) }),
       request.body,
     );
-    await auth.changeOwnPassword(request.actor.userId, body.current, body.next);
+    const session = /^Bearer\s+(\S+)$/i.exec(request.headers.authorization ?? '')?.[1];
+    await auth.changeOwnPassword(request.actor.userId, body.current, body.next, session);
     return reply.status(204).send();
   });
 }

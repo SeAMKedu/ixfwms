@@ -16,7 +16,7 @@ export function GuestsSection() {
       <Card>
         <p className="max-w-prose text-[13px] text-muted">{t('settings.guestsIntro')}</p>
         {settings.data ? (
-          <fieldset className="flex flex-col gap-2" disabled={!can('write')}>
+          <fieldset className="flex flex-col gap-2" disabled={!can('admin')}>
             {ANONYMOUS_ACTIONS.map((level) => (
               <label key={level} className="flex items-start gap-2 text-sm">
                 <input
@@ -40,7 +40,7 @@ export function GuestsSection() {
         )}
         <p className="text-[13px] text-muted">{t('settings.guestsNever')}</p>
         {settings.data && (
-          <fieldset className="flex flex-col gap-2" disabled={!can('write')}>
+          <fieldset className="flex flex-col gap-2" disabled={!can('admin')}>
             <legend className="mb-1 text-sm font-medium">{t('settings.guestsView')}</legend>
             {ANONYMOUS_VIEWS.map((view) => (
               <label key={view} className="flex items-start gap-2 text-sm">

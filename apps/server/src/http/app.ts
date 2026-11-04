@@ -23,6 +23,8 @@ import { registerUnitRoutes } from './routes/units.js';
 import { registerUserRoutes } from './routes/users.js';
 import { defaultWebDir, registerWebApp } from './web.js';
 
+const CHANGES = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
 export async function buildApp(
   deps: AppDeps,
   logger: FastifyServerOptions['logger'] = false,
@@ -37,11 +39,15 @@ export async function buildApp(
   app.decorateRequest('actor', null);
   app.addHook('onRequest', async (request) => {
     const header = request.headers.authorization;
-    if (!header) return;
-    const match = /^Bearer\s+(\S+)$/i.exec(header);
-    const actor = match?.[1] ? await services.auth.verify(match[1]) : null;
-    if (!actor) throw fail('unauthorized', 'auth.unknownToken');
-    request.actor = actor;
+    if (header) {
+      const match = /^Bearer\s+(\S+)$/i.exec(header);
+      const actor = match?.[1] ? await services.auth.verify(match[1]) : null;
+      if (!actor) throw fail('unauthorized', 'auth.unknownToken');
+      request.actor = actor;
+    }
+    // Changes need a login unless the route is marked OPEN, so a new route can't forget it.
+    if (!request.actor && CHANGES.has(request.method) && !request.routeOptions.config.open)
+      throw fail('unauthorized', 'auth.needToken');
   });
   // Without a login, the handler's views leave people's names out, and maybe more.
   app.addHook('preHandler', (request, _reply, done) => {

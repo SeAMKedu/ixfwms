@@ -7,7 +7,14 @@ declare module 'fastify' {
   interface FastifyRequest {
     actor: Actor | null;
   }
+  interface FastifyContextConfig {
+    /** Takes changes without a login too (the handler decides what a guest may do). */
+    open?: boolean;
+  }
 }
+
+/** Route options for a change people without an account may make. */
+export const OPEN = { config: { open: true } } as const;
 
 export interface AppDeps {
   config: Config;

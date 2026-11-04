@@ -3,12 +3,12 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { fail } from '../../lib/errors.js';
 import { requireScope, type Actor } from '../../services/context.js';
-import { parse, type AppDeps } from '../context.js';
+import { OPEN, parse, type AppDeps } from '../context.js';
 import { saveUserSettings } from './users.js';
 
 /** Web login. The returned token is sent as a Bearer token like any API token. */
 export function registerSessionRoutes(app: FastifyInstance, { services }: AppDeps): void {
-  app.post('/api/session', async (request, reply) => {
+  app.post('/api/session', OPEN, async (request, reply) => {
     const body = parse(
       z.object({ name: z.string().trim().min(1).max(100), password: z.string().min(1).max(500) }),
       request.body,
@@ -64,7 +64,7 @@ export function registerSessionRoutes(app: FastifyInstance, { services }: AppDep
     return reply.status(204).send();
   });
 
-  app.delete('/api/session', async (request, reply) => {
+  app.delete('/api/session', OPEN, async (request, reply) => {
     const token = /^Bearer\s+(\S+)$/i.exec(request.headers.authorization ?? '')?.[1];
     if (token) await services.auth.logout(token);
     return reply.status(204).send();

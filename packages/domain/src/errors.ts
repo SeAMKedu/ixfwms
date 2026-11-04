@@ -40,6 +40,7 @@ export const ERROR_MESSAGES = {
   'users.badScopes': 'Scopes must be some of: {{scopes}}',
   'users.badRole': 'Role must be one of {{roles}}',
   'users.notYourself': "You can't turn off your own account",
+  'users.scopeAboveRole': 'A {{role}} can\'t have a token with the "{{scope}}" scope',
   'users.lastAdmin': 'This is the last admin; make someone else an admin first',
   'users.hasLoans':
     '{{name}} is responsible for {{count}} loan(s) out of the lab; return them or lend them again under someone else first',
