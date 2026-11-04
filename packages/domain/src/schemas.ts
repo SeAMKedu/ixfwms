@@ -123,7 +123,11 @@ export const CreatePartInput = z.object({
     .positive()
     .nullish()
     .describe('Mass of one piece in grams, lets weighed stock show an estimated count'),
-  minStock: z.number().nonnegative().nullish(),
+  minStock: z
+    .number()
+    .nonnegative()
+    .nullish()
+    .describe("In pieces, or in the container's unit when it has one (g for filament)"),
   container: ContainerInput.nullish().describe(
     'What it comes in (a filament spool, wire reel, box of screws): its empty weight comes off weighings, and a full one can be added as one',
   ),

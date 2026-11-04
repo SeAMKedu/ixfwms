@@ -190,6 +190,7 @@
     "checked": "tarkistettu {{date}}",
     "unitMass": "Kappaleen paino (g)",
     "minStock": "Minimisaldo",
+    "minStockIn": "Valinnainen, yksikkö {{unit}}: pakkauksen yksikkö, jos sellainen on",
     "manufacturer": "Valmistaja",
     "category": "Kategoria",
     "categoryHint": "Polku, esim. Pneumatics/Vacuum/Suction cups",

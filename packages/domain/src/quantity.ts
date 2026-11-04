@@ -61,6 +61,28 @@ export function levelKey(name: string, taken: string[]): string {
 export const MEASURE_UNITS = ['g', 'kg', 'm', 'mm', 'm2', 'ml', 'l'] as const;
 export type MeasureUnit = (typeof MEASURE_UNITS)[number];
 
+/** What each unit measures, and how many of that measure's base unit it is. */
+const UNIT_SCALE: Record<MeasureUnit, [measure: string, base: number]> = {
+  g: ['mass', 1],
+  kg: ['mass', 1000],
+  mm: ['length', 0.001],
+  m: ['length', 1],
+  m2: ['area', 1],
+  ml: ['volume', 0.001],
+  l: ['volume', 1],
+};
+
+/** What one `from` is in `to` (1 kg is 1000 g); null when they measure different things. */
+export function unitFactor(from: MeasureUnit, to: MeasureUnit): number | null {
+  const [a, x] = UNIT_SCALE[from];
+  const [b, y] = UNIT_SCALE[to];
+  return a === b ? x / y : null;
+}
+
+/** The unit an item's minimum stock is in: its container's, or pieces (null). */
+export const minStockUnit = (container: Container | null | undefined): MeasureUnit | null =>
+  container?.unit ?? null;
+
 /** How a unit is written: m2 is "m²". */
 export const unitLabel = (unit: MeasureUnit | null | undefined): string =>
   unit === 'm2' ? 'm²' : (unit ?? '');

@@ -4,6 +4,7 @@ import {
   estimateCount,
   findLevel,
   fullAmount,
+  unitFactor,
   netOfReading,
   formatAmount,
   isCompatible,
@@ -27,6 +28,13 @@ describe('quantity', () => {
     expect(netOfReading(1.18, 'kg', 200)).toBe(0.98);
     expect(netOfReading(150, 'g', 200)).toBe(-50);
     expect(netOfReading(3, 'm', 200)).toBeNull();
+  });
+
+  it('converts between units that measure the same thing', () => {
+    expect(unitFactor('kg', 'g')).toBe(1000);
+    expect(unitFactor('mm', 'm')).toBe(0.001);
+    expect(unitFactor('l', 'l')).toBe(1);
+    expect(unitFactor('g', 'm')).toBeNull();
   });
 
   it('turns full containers into what they hold', () => {

@@ -28,6 +28,7 @@ import {
   ContainerFields,
   containerDraft,
   containerOf,
+  minStockHint,
   type ContainerDraft,
 } from './part/container-fields';
 import {
@@ -361,7 +362,7 @@ function PartForm({ part }: { part?: PartDetail }) {
               />
             )}
           </Field>
-          <Field label={t('part.minStock')} hint={t('common.optional')}>
+          <Field label={t('part.minStock')} hint={minStockHint(form.container, t)}>
             {(id) => (
               <TextInput
                 id={id}

@@ -190,6 +190,7 @@
     "checked": "checked {{date}}",
     "unitMass": "Mass per piece (g)",
     "minStock": "Minimum stock",
+    "minStockIn": "Optional, in {{unit}}: a container's unit if it has one",
     "manufacturer": "Manufacturer",
     "category": "Category",
     "categoryHint": "Path like Pneumatics/Vacuum/Suction cups",

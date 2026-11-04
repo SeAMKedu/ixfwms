@@ -229,6 +229,7 @@ describe('containers', () => {
       {
         name: 'PETG Galaxy Black 1.75',
         container: { name: 'spool', massG: 200, holds: 1000, unit: 'g' },
+        minStock: 1500,
         identifiers: [],
         tags: [],
         attributes: {},
@@ -262,6 +263,9 @@ describe('containers', () => {
     );
     expect(weighed.id).toBe(lot.id);
     expect(weighed.amount.quantity).toBe(2980);
+    const low = () =>
+      env.services.parts.search({ q: 'Galaxy', lowStock: true, limit: 10, offset: 0 });
+    expect((await low()).total).toBe(0);
     // Both spools on the scale later: 1500 g less two spools is 1100 g.
     const later = await env.services.stock.stocktake(
       lot.id,
@@ -269,6 +273,17 @@ describe('containers', () => {
       env.admin,
     );
     expect(later.amount.quantity).toBe(1100);
+    expect((await low()).total).toBe(1);
+    // A spool kept in kg counts toward the minimum in grams: 1100 g + 0.5 kg is enough.
+    await env.services.stock.add(
+      {
+        part: part.code,
+        location: box.code,
+        amount: { mode: 'measure', quantity: 0.5, unit: 'kg' },
+      },
+      env.admin,
+    );
+    expect((await low()).total).toBe(0);
   });
 
   it('refuses full containers when the item says nothing about them', async () => {

@@ -23,6 +23,7 @@ import {
 } from '../db/schema.js';
 import { withinCategory, type CategoryService } from './categories.js';
 import type { LocationService } from './locations.js';
+import { belowMinimum } from './low-stock.js';
 import { contains, unitSearchText } from './search-text.js';
 import type { StockService } from './stock.js';
 
@@ -267,8 +268,7 @@ export class PartSearch {
     if (input.lowStock) {
       const low = keysWhere((s) => s !== 'ok');
       const freeUncounted = sql`exists (select 1 from ${stockLots} where ${stockLots.partId} = ${parts.id} and (${uncounted}) and ${freeLot})`;
-      // Below the minimum only when every free lot is counted: uncounted stock may be plenty.
-      where.push(sql`((${parts.minStock} is not null and not ${freeUncounted} and coalesce((select sum(${stockLots.quantity}) from ${stockLots} where ${stockLots.partId} = ${parts.id} and ${stockLots.mode} = 'count' and ${freeLot}), 0) + ${usableUnits} < ${parts.minStock})
+      where.push(sql`(${belowMinimum(freeLot, freeUncounted, usableUnits)}
         or exists (select 1 from ${stockLots} where ${stockLots.partId} = ${parts.id} and ${inArray(stockLots.level, low)} and ${freeLot}))`);
     }
     for (const filter of input.attributes ?? [])

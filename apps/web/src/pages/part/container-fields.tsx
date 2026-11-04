@@ -1,4 +1,5 @@
 import { MEASURE_UNITS, unitLabel, type Container, type MeasureUnit } from '@ixfwms/domain';
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { Field, Select, TextInput } from '../../components/ui';
 import { parseNumber } from '../../lib/format';
@@ -28,6 +29,10 @@ export function containerOf(d: ContainerDraft): Container | null {
   };
   return c.name || c.massG || c.holds ? c : null;
 }
+
+/** What unit the minimum stock is in: the container's, or pieces. */
+export const minStockHint = (d: ContainerDraft, t: TFunction): string =>
+  t('part.minStockIn', { unit: d.unit ? unitLabel(d.unit) : t('container.pieces') });
 
 /** The item editor's "Comes in" fields. */
 export function ContainerFields({

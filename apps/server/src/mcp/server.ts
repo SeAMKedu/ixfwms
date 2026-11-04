@@ -264,7 +264,7 @@ export function createMcpServer(
         aliases: z.array(z.string()).optional().describe('Replaces the other names people use'),
         unitMassG: z.number().positive().optional(),
         container: ContainerInput.nullable().optional(),
-        minStock: z.number().nonnegative().optional(),
+        minStock: CreatePartInput.shape.minStock,
         attributes: z.record(z.string(), z.unknown()).optional(),
         notes: z.string().optional(),
         source: z.string().optional(),
