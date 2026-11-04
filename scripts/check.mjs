@@ -57,9 +57,17 @@ for (const [name, command] of steps) {
       }
     }
     const image = `ixfwms:check`;
-    const build = spawnSync(`docker build -q -t ${image} .`, { shell: true, stdio: 'inherit' });
+    const build = spawnSync(`docker build --pull -q -t ${image} .`, {
+      shell: true,
+      stdio: 'inherit',
+    });
     if (build.status !== 0) fail(name);
-    run(name, `trivy image --exit-code 1 --severity HIGH,CRITICAL ${image}`);
+    // Only what a newer package would fix stops a release: the base image's unfixed findings
+    // are listed but can't be acted on until Debian ships a fix (--pull picks that up).
+    run(
+      name,
+      `trivy image -q --table-mode detailed --exit-code 1 --ignore-unfixed --severity HIGH,CRITICAL ${image}`,
+    );
     continue;
   }
   run(name, command);

@@ -26,7 +26,10 @@ COPY --from=build /app/apps/server/package.json apps/server/
 COPY --from=build /app/apps/server/dist apps/server/dist
 COPY --from=build /app/apps/server/drizzle apps/server/drizzle
 COPY --from=build /app/apps/web/dist apps/web/dist
-RUN mkdir -p /data && chown node:node /data
+# The server runs with node alone; npm, npx and corepack only add code (and its CVEs) to the image.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+      /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
+    && mkdir -p /data && chown node:node /data
 USER node
 VOLUME /data
 EXPOSE 3000

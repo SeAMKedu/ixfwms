@@ -28,7 +28,7 @@ Every check is an npm script, so it works the same on macOS, Windows, Linux and 
 | `npm run check:patch`   | + integration tests, runtime dependency audit (fails on high or critical)                   | patch releases                             |
 | `npm run check:release` | + browser tests, coverage thresholds, unused code (knip), container scan (Docker and Trivy) | minor and major releases                   |
 
-The container scan builds the image and has [Trivy](https://trivy.dev) look for known vulnerabilities in it, including the Debian packages of the base image that `npm audit` can't see. Install it with `brew install trivy` and have Docker running. On a machine that can't, `IXF_SKIP_IMAGE_SCAN=1` releases without the scan, and says so.
+The container scan builds the image and has [Trivy](https://trivy.dev) look for known vulnerabilities in it, including the Debian packages of the base image that `npm audit` can't see. Only high or critical findings that a newer package fixes stop a release; ones Debian hasn't fixed yet can't be acted on, so they don't (building with `--pull` picks up fixes as they ship). Install it with `brew install trivy` and have Docker running. On a machine that can't, `IXF_SKIP_IMAGE_SCAN=1` releases without the scan, and says so.
 
 Git hooks are installed by `npm install` (lefthook). Pre-commit formats and lints the staged files.
 
