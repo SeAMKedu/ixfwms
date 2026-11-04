@@ -98,6 +98,50 @@ describe('starter map', () => {
   });
 });
 
+describe('nested starter map', () => {
+  it('draws the places inside each sub-place too, in the order they are numbered', async () => {
+    const { locations, maps, files } = env.services;
+    const cab = await locations.create(
+      { name: 'Drawer cabinet', type: 'cabinet', numberFrom: 'top' },
+      env.admin,
+    );
+    for (const row of ['Row 2', 'Row 1']) {
+      const r = await locations.create(
+        { name: row, type: 'shelf', parent: cab.code, numberFrom: 'left' },
+        env.admin,
+      );
+      for (const [short, name] of [
+        ['2', 'M4 nuts'],
+        ['1', 'M3 screws'],
+      ] as const)
+        await locations.create(
+          { name, shortName: short, type: 'drawer', parent: r.code },
+          env.admin,
+        );
+    }
+    const svg = await maps.starterSvg(cab.code);
+    // Row 1 above row 2, drawer 1 left of drawer 2, labelled by short name.
+    const ys = [...svg.matchAll(/<text x="\d+" y="(\d+)"[^>]*>(Row \d)</g)].map((m) => [
+      m[2],
+      +m[1]!,
+    ]);
+    expect(ys[0]![0]).toBe('Row 1');
+    expect(ys[0]![1]).toBeLessThan(ys[1]![1] as number);
+    const xs = [...svg.matchAll(/<text x="(\d+)" y="\d+"[^>]*>([12])</g)]
+      .slice(0, 2)
+      .map((m) => m[2]);
+    expect(xs).toEqual(['1', '2']);
+    const file = await files.store(
+      Buffer.from(svg),
+      { filename: 'starter.svg', mime: 'image/svg+xml' },
+      env.admin,
+    );
+    const check = await maps.setMap(cab.code, file.id, env.admin);
+    expect(check.links).toHaveLength(6);
+    expect(check.notLinked).toEqual([]);
+  });
+});
+
 describe('3D models', () => {
   it('accepts a .glb next to the SVG and links objects named loc-<code>', async () => {
     const { locations, maps, files } = env.services;

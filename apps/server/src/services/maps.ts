@@ -17,6 +17,7 @@ import { invalid, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
 import { audit, requireScope, type Actor } from './context.js';
 import type { FileService } from './files.js';
+import { starterSvg } from './map-starter.js';
 import type { LocationRow, LocationService } from './locations.js';
 
 const MAX_SVG_BYTES = 10 * 1024 * 1024;
@@ -381,38 +382,9 @@ export class MapService {
     return layers;
   }
 
-  /**
-   * A starting point for drawing a map: one labelled box per sub-place, already carrying the right
-   * ids, laid out in a grid. Move and reshape them in Inkscape to match the room, then upload.
-   */
+  /** A starting drawing: a linked box per sub-place, with the places inside each (see map-starter.ts). */
   async starterSvg(ref: string): Promise<string> {
-    const loc = await this.locations.resolve(ref);
-    const children = await this.locations.children(loc.id);
-    const cols = Math.max(1, Math.ceil(Math.sqrt(children.length)));
-    const [w, h, gap, pad] = [180, 110, 30, 40];
-    const rows = Math.max(1, Math.ceil(children.length / cols));
-    const width = pad * 2 + cols * w + (cols - 1) * gap;
-    const height = pad * 2 + 40 + rows * h + (rows - 1) * gap;
-    const esc = (s: string) =>
-      s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
-    const boxes = children
-      .map((c, i) => {
-        const x = pad + (i % cols) * (w + gap);
-        const y = pad + 40 + Math.floor(i / cols) * (h + gap);
-        return (
-          `<g id="loc:${c.code}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="#f6f8f8" stroke="#586672" stroke-width="2"/>` +
-          `<text x="${x + 12}" y="${y + 30}" font-family="sans-serif" font-size="16" fill="#15202a">${esc(c.name)}</text>` +
-          `<text x="${x + 12}" y="${y + 54}" font-family="monospace" font-size="13" fill="#586672">${c.code}</text></g>`
-        );
-      })
-      .join('\n  ');
-    return (
-      `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">\n` +
-      `  <!-- ixfwms starter map for ${esc(loc.name)} (${loc.code}). Rearrange freely; shapes can also be linked by clicking them in ixfwms. -->\n` +
-      `  <rect width="${width}" height="${height}" fill="#ffffff"/>\n` +
-      `  <text x="${pad}" y="${pad + 8}" font-family="sans-serif" font-size="22" font-weight="bold" fill="#15202a">${esc(loc.name)}</text>\n` +
-      `  ${boxes}\n</svg>\n`
-    );
+    return starterSvg(this.db, await this.locations.resolve(ref));
   }
 
   // --- internals -------------------------------------------------------------------------------

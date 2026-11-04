@@ -8,7 +8,10 @@ place is set in ixfwms, by clicking.
 ## Quickest start
 
 1. On a place page (e.g. the lab), open **Map of this place › Download a starter drawing**. You get
-   an SVG with one labelled box per place inside it, already linked.
+   an SVG with one labelled box per place inside it and, inside each box, the places inside that
+   (a drawer cabinet's rows with their drawers), all already linked. Places whose parent says which
+   way they are numbered are drawn in that order: rows numbered from the top in one column,
+   drawers numbered from the left in one row.
 2. Open it in Inkscape, move and resize the boxes to match the room (add walls, doors, benches as
    decoration), and save.
 3. **Upload SVG map** on the same place page. The check below the map lists what's linked, which
