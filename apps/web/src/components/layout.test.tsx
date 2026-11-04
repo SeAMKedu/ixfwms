@@ -14,6 +14,7 @@ describe('navigation without a login', () => {
       expect(screen.getAllByRole('link', { name: 'Items' }).length).toBeGreaterThan(0),
     );
     expect(screen.getAllByRole('link', { name: 'Places' }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('link', { name: 'Home' }).length).toBeGreaterThan(0);
     expect(screen.queryByRole('link', { name: /Inbox/ })).toBeNull();
     expect(screen.queryByRole('link', { name: 'Import' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'More' })).toBeNull();

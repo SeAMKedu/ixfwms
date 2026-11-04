@@ -4,6 +4,7 @@
     "tagline": "Lab inventory"
   },
   "nav": {
+    "home": "Home",
     "menu": "Menu",
     "closeMenu": "Close menu",
     "parts": "Items",

@@ -7,6 +7,7 @@ import {
   Settings,
   Smartphone,
   Hand,
+  House,
   Inbox,
   ListChecks,
   LogIn,
@@ -42,6 +43,8 @@ function useNavItems(): NavItem[] {
   const reports = useReports().data?.length ?? 0;
   const { user } = useSession();
   return [
+    // Logged in, the start page is the Items list, so Items is the way back to it.
+    ...(user ? [] : [{ to: '/', label: t('nav.home'), icon: House }]),
     { to: '/items', label: t('nav.parts'), icon: Search },
     ...(user
       ? [{ to: '/inbox', label: t('nav.inbox'), icon: Inbox, badge: drafts + reports }]
@@ -203,6 +206,7 @@ function SideNav({ items, onHelp }: { items: NavItem[]; onHelp?: () => void }) {
           <NavLink
             key={item.to}
             to={item.to}
+            end={item.to === '/'}
             className={({ isActive }) =>
               `flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-[14px] ${isActive ? 'bg-link-soft text-link font-semibold' : 'text-ink hover:bg-surface-2'}`
             }
@@ -275,7 +279,6 @@ function NavDrawer({ items, onClose }: { items: NavItem[]; onClose: () => void }
 export function Layout() {
   const { t } = useTranslation();
   const { setHelpOpen } = useShortcutRegistry();
-  const { user } = useSession();
   // Settings has its own section list down the side, so it gets more room than other pages.
   const wide = useMatch('/settings/*') !== null;
   const items = useNavItems();
@@ -325,12 +328,13 @@ export function Layout() {
         <CarryIndicator className="md:hidden fixed bottom-24 left-1/2 z-10 -translate-x-1/2" />
         <nav
           aria-label={t('nav.mainNav')}
-          className={`md:hidden fixed inset-x-0 bottom-0 z-10 grid ${user ? 'grid-cols-5' : 'grid-cols-4'} border-t border-line bg-surface px-1 pt-1.5 pb-[max(0.75rem,env(safe-area-inset-bottom))]`}
+          className={`md:hidden fixed inset-x-0 bottom-0 z-10 grid grid-cols-5 border-t border-line bg-surface px-1 pt-1.5 pb-[max(0.75rem,env(safe-area-inset-bottom))]`}
         >
           {items.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
+              end={item.to === '/'}
               className={({ isActive }) =>
                 `relative flex flex-col items-center gap-0.5 py-1 text-[11px] ${isActive ? 'text-link' : 'text-muted'}`
               }

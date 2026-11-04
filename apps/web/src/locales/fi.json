@@ -4,6 +4,7 @@
     "tagline": "Laboratorion varasto"
   },
   "nav": {
+    "home": "Etusivu",
     "menu": "Valikko",
     "closeMenu": "Sulje valikko",
     "parts": "Tavarat",
