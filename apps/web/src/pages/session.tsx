@@ -2,12 +2,11 @@ import type { PartSummary, SimilarPart } from '@ixfwms/domain';
 import { Camera } from 'lucide-react';
 import { useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, Navigate, useParams } from 'react-router';
+import { Link, useParams } from 'react-router';
 import { api } from '../api/client';
 import { useAttach, useUpload } from '../api/files';
 import { useLocation } from '../api/locations';
 import { useCreatePart } from '../api/parts';
-import { useSession } from '../auth/session';
 import { AmountFields, toAmountInput, useAmountState } from '../components/amount-fields';
 import { ItemSuggest } from '../components/item-suggest';
 import {
@@ -32,7 +31,6 @@ import { ChosenItem, type Added } from './session/chosen-item';
 export function SessionPage() {
   const { t } = useTranslation();
   const { code = '' } = useParams();
-  const { user, checking } = useSession();
   const place = useLocation(code, false);
   const [name, setName] = useState('');
   const [orderNo, setOrderNo] = useState('');
@@ -47,7 +45,6 @@ export function SessionPage() {
   const upload = useUpload();
   const attach = useAttach();
 
-  if (!checking && !user) return <Navigate to={`/login?next=/l/${code}/add`} replace />;
   if (place.isPending) return <Loading />;
   if (!place.data) return <ErrorBox error={place.error} />;
   const here = place.data;

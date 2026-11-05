@@ -1,7 +1,7 @@
 import type { WriteOffRow } from '@ixfwms/domain';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, Navigate } from 'react-router';
+import { Link } from 'react-router';
 import { useWriteOffs } from '../api/write-offs';
 import { useSession } from '../auth/session';
 import { Button, CodeLabel, Empty, ErrorBox, Loading, PageHeader, Select } from '../components/ui';
@@ -31,11 +31,10 @@ const hasDetails = ({ purchase: p }: WriteOffRow) =>
 /** Finance's list, for depreciation: everything with purchase details, or what has been removed. */
 export function WriteOffsPage() {
   const { t, i18n } = useTranslation();
-  const { user, checking, can } = useSession();
+  const { can } = useSession();
   const list = useWriteOffs();
   const [all, setAll] = useState(true);
   const [center, setCenter] = useState('');
-  if (!checking && !user) return <Navigate to="/login?next=/write-offs" replace />;
 
   const rows = list.data ?? [];
   const centers = [...new Set(rows.flatMap((r) => r.purchase.costCenter ?? []))].sort();

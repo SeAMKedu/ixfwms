@@ -1,7 +1,7 @@
 import { normalizeCode, type PartDetail } from '@ixfwms/domain';
 import { useDeferredValue, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { useCategories, useCategoryFields } from '../api/categories';
 import { useCreatePart, usePart, useTags, useUpdatePart } from '../api/parts';
 import { useAddUnits } from '../api/units';
@@ -45,7 +45,7 @@ function PartForm({ part }: { part?: PartDetail }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const { can, user, checking } = useSession();
+  const { can } = useSession();
   const [form, setForm] = useState<FormState>(() => fromPart(part, params.get('kind')));
   const [unitCount, setUnitCount] = useState('1');
   const [location, setLocation] = useState(params.get('location') ?? '');
@@ -59,14 +59,6 @@ function PartForm({ part }: { part?: PartDetail }) {
   const addUnits = useAddUnits();
   const categories = useCategories().data ?? [];
   const tags = useTags().data ?? [];
-
-  if (!checking && !user)
-    return (
-      <Navigate
-        to={`/login?next=${encodeURIComponent(location ? `/parts/new?location=${location}` : '/parts/new')}`}
-        replace
-      />
-    );
 
   const set = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
 

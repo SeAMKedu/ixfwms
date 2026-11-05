@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createBrowserRouter, Navigate, RouterProvider, useLocation } from 'react-router';
 import { ApiError } from './api/client';
+import { LOGIN_ONLY } from './auth/require-login';
 import { SessionProvider } from './auth/session';
 import { ShortcutProvider } from './lib/shortcuts';
 import { Layout } from './components/layout';
@@ -52,20 +53,21 @@ const routes = [
     children: [
       { path: '/', element: <HomePage /> },
       { path: '/items', element: <SearchPage /> },
-      { path: '/parts/new', element: <PartEditPage /> },
+      { path: '/parts/new', element: <PartEditPage />, handle: LOGIN_ONLY },
       { path: '/p/:code', element: <PartPage /> },
-      { path: '/p/:code/edit', element: <PartEditPage /> },
+      { path: '/p/:code/edit', element: <PartEditPage />, handle: LOGIN_ONLY },
       { path: '/u/:code', element: <UnitPage /> },
       { path: '/places', element: <PlacesPage /> },
       { path: '/builds', element: <BuildsPage /> },
       { path: '/l/:code', element: <LocationPage /> },
-      { path: '/l/:code/add', element: <SessionPage /> },
-      { path: '/carry', element: <CarryPage /> },
-      { path: '/labels', element: <LabelsPage /> },
-      { path: '/maps', element: <MapsPage /> },
+      { path: '/l/:code/add', element: <SessionPage />, handle: LOGIN_ONLY },
+      { path: '/carry', element: <CarryPage />, handle: LOGIN_ONLY },
+      { path: '/labels', element: <LabelsPage />, handle: LOGIN_ONLY },
+      { path: '/maps', element: <MapsPage />, handle: LOGIN_ONLY },
       {
         path: '/settings',
         element: <SettingsLayout />,
+        handle: LOGIN_ONLY,
         children: [
           { index: true, element: <SettingsIndex /> },
           { path: 'types', element: <TypesSection /> },
@@ -82,16 +84,16 @@ const routes = [
         ],
       },
       { path: '/categories', element: <Redirect to="/settings/categories" /> },
-      { path: '/import', element: <ImportPage /> },
-      { path: '/bom', element: <BomPage /> },
-      { path: '/history', element: <HistoryPage /> },
-      { path: '/write-offs', element: <WriteOffsPage /> },
-      { path: '/network', element: <NetworkPage /> },
+      { path: '/import', element: <ImportPage />, handle: LOGIN_ONLY },
+      { path: '/bom', element: <BomPage />, handle: LOGIN_ONLY },
+      { path: '/history', element: <HistoryPage />, handle: LOGIN_ONLY },
+      { path: '/write-offs', element: <WriteOffsPage />, handle: LOGIN_ONLY },
+      { path: '/network', element: <NetworkPage />, handle: LOGIN_ONLY },
       { path: '/users', element: <Redirect to="/settings/users" /> },
       { path: '/backups', element: <Redirect to="/settings/backups" /> },
       { path: '/setup', element: <SetupPage /> },
-      { path: '/account', element: <AccountPage /> },
-      { path: '/inbox', element: <InboxPage /> },
+      { path: '/account', element: <AccountPage />, handle: LOGIN_ONLY },
+      { path: '/inbox', element: <InboxPage />, handle: LOGIN_ONLY },
       { path: '/scan', element: <ScanPage /> },
       { path: '/login', element: <LoginPage /> },
       { path: '*', element: <NotFoundPage /> },

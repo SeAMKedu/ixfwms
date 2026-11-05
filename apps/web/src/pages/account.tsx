@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, Navigate } from 'react-router';
+import { Link } from 'react-router';
 import { hasScope, SCOPES } from '@ixfwms/domain';
 import {
   useCreateMyToken,
@@ -18,7 +18,7 @@ import { Button, Card, ErrorBox, Field, PageHeader, TextInput } from '../compone
 /** Your account. On a phone also the pages that don't fit the bottom tabs: it has no sidebar. */
 export function AccountPage() {
   const { t } = useTranslation();
-  const { user, checking, logout, can } = useSession();
+  const { user, can, logout } = useSession();
   const change = useChangePassword();
   const save = useSaveSettings();
   const tokens = useMyTokens(can('inventory'));
@@ -27,7 +27,6 @@ export function AccountPage() {
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [done, setDone] = useState(false);
-  if (!checking && !user) return <Navigate to="/login?next=/account" replace />;
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();

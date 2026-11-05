@@ -2,9 +2,8 @@ import { type ImportResult } from '@ixfwms/domain';
 import { Upload } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, Navigate } from 'react-router';
+import { Link } from 'react-router';
 import { api } from '../api/client';
-import { useSession } from '../auth/session';
 import { Button, Card, ErrorBox, PageHeader } from '../components/ui';
 import { guessColumns, mapRows, type Columns } from '../lib/import-map';
 import { parseDelimited, readTable, type Table } from '../lib/table';
@@ -18,7 +17,6 @@ const EXAMPLE = '/samples/ixfwms-import-example.csv';
 
 export function ImportPage() {
   const { t } = useTranslation();
-  const { user, checking } = useSession();
   const fileInput = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState('');
   const [table, setTable] = useState<Table | null>(null);
@@ -39,8 +37,6 @@ export function ImportPage() {
     [table, headerRow, columns],
   );
   const good = mapped.filter((m) => m.row);
-
-  if (!checking && !user) return <Navigate to="/login?next=/import" replace />;
 
   const load = async (name: string, read: () => Promise<Table>) => {
     setError(null);

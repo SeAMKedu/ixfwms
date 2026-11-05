@@ -1,7 +1,7 @@
 import { Download } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, Navigate } from 'react-router';
+import { Link } from 'react-router';
 import { download } from '../api/client';
 import { useNetwork } from '../api/units';
 import { useSession } from '../auth/session';
@@ -10,10 +10,9 @@ import { Button, CodeLabel, Empty, ErrorBox, Loading, PageHeader } from '../comp
 /** The lab's network list, made from the units' network details (logged-in users only). */
 export function NetworkPage() {
   const { t } = useTranslation();
-  const { user, checking } = useSession();
+  const { user } = useSession();
   const list = useNetwork(!!user);
   const [error, setError] = useState<unknown>(null);
-  if (!checking && !user) return <Navigate to="/login?next=/network" replace />;
   return (
     <>
       <PageHeader

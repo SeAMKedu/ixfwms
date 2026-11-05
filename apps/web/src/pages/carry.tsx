@@ -2,7 +2,7 @@ import { normalizeCode } from '@ixfwms/domain';
 import { ScanLine } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { useCarry, useDrop } from '../api/carry';
 import { useLocation } from '../api/locations';
 import { useSession } from '../auth/session';
@@ -56,7 +56,7 @@ function Destination({
 export function CarryPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { user, checking } = useSession();
+  const { user } = useSession();
   const [params, setParams] = useSearchParams();
   const to = params.get('to');
   const carry = useCarry(!!user);
@@ -64,7 +64,6 @@ export function CarryPage() {
   const [unticked, setUnticked] = useState<Set<string>>(new Set());
   const [typed, setTyped] = useState('');
 
-  if (!checking && !user) return <Navigate to="/login?next=/carry" replace />;
   if (carry.isPending) return <Loading />;
   if (!carry.data) return <ErrorBox error={carry.error} />;
   const items = carry.data.items;

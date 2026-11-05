@@ -27,6 +27,7 @@ import { Link, NavLink, Outlet, useLocation, useMatch } from 'react-router';
 import { useCarry } from '../api/carry';
 import { useParts } from '../api/parts';
 import { useReports } from '../api/reports';
+import { RequireLogin } from '../auth/require-login';
 import { useSession } from '../auth/session';
 import { useShortcutRegistry } from '../lib/shortcuts';
 import { GlobalShortcuts } from './global-shortcuts';
@@ -325,7 +326,9 @@ export function Layout() {
         <main
           className={`mx-auto flex w-full ${wide ? 'max-w-7xl' : 'max-w-5xl'} flex-1 flex-col gap-5 px-4 py-5 pb-28 md:px-8 md:py-8 md:pb-10`}
         >
-          <Outlet />
+          <RequireLogin>
+            <Outlet />
+          </RequireLogin>
         </main>
         <CarryIndicator className="md:hidden fixed bottom-24 left-1/2 z-10 -translate-x-1/2" />
         <nav
