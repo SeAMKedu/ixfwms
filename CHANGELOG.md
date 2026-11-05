@@ -1,6 +1,59 @@
 # Changelog
 
 All notable changes to ixfwms.
+## 0.18.0 (2026-11-05)
+
+### Features
+- items say what they come in
+- minimum stock in the container's unit
+- people without an account see less by default
+- starter drawings show the places inside each place
+- a front page that answers where things are
+- a Home tab for people without an account
+- a calmer "Map of this place" card
+- **web:** search the map library instead of a dropdown
+
+### Fixes
+- a temporary place's contact shows without a login
+- label preview shows a rename right after saving
+- close the gaps a security audit found
+- **deps:** update glob and minimatch under @fastify/static
+- **server:** close the gaps from the post-refactor security review
+- **web:** logging out on a login-only page goes home
+- **web:** no go-to shortcuts for guests to login-only pages
+- **server:** history and the Inbox lists need a login
+- **web:** say once what guests never see, then what each view adds
+
+### Documentation
+- where Replace map is on the new map card
+- a module layout for server, domain and web code
+- how a split service stays one object, and the module paths
+- what guests see now leaves out the history and the Inbox
+
+### Maintenance
+- keep tareOf inside the amount form
+- audit patch releases too, and require the image scan
+- no npm in the image, and scan for what can be fixed
+- **server:** loans as the first module
+- **server:** places as a module, with a store other modules depend on
+- **server:** every service in a feature module
+- **server:** routes and MCP tools in their modules
+- **server:** parts, units and maps split into reads and changes
+- **domain:** request schemas and API shapes per feature
+- **web:** API hooks per feature
+- **web:** split the components over the size limits
+- **mcp:** the oldest tools take the domain schemas
+
+### Upgrading
+- Database migrations 0026_containers: applied when the server starts, after a backup. Going back to an older version means restoring that backup.
+- API tokens with a scope above their owner's role now act at
+the role's level (say an admin token of a member). Give the owner the
+role or make a new token if that's not what you want.
+- Without a login, the history, the loans list, everyone's carry lists, the Inbox's lists and saved import mappings are refused (401) instead of shown without names. Scripts reading them need a token.
+- Blank-label batches and their unused-codes CSV need a login with the inventory scope.
+- An admin resetting someone's password now also revokes that person's API tokens. Changing your own password keeps yours.
+- Attachment links take only http and https. Saved links with any other scheme show as empty.
+- Failed logins are also limited per client address. Behind a proxy, set IXF_TRUST_PROXY so each client is told apart.
 ## 0.17.0 (2026-11-03)
 
 ### Features
