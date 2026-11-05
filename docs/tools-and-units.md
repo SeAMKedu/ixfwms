@@ -68,7 +68,7 @@ Anyone on the lab network can look things up and **report a problem** with a uni
 
 Never without an account: lending, pallets, editing or deleting.
 
-What they see is set there too. People's names (who moved, reported or is responsible for something, whose carry list), why something is lent out, network details and prices always need a login, and so do the history, the loans list and the Inbox's lists. By default notes, log entry texts, problem report texts, serial numbers and firmware versions need one as well; **Everything but people and network details** shows those to anyone on the lab network. A temporary place's contact always shows: it's who to ask when something can't be found.
+What they see is set there too. People's names (who moved, reported or is responsible for something, whose carry list), why something is lent out, network details and prices always need a login, and so do the history, the loans list and the Inbox's lists. By default notes, log entry texts, problem report texts, serial numbers and firmware versions need one as well; **Notes and serial numbers too** shows those to anyone on the lab network. A temporary place's contact always shows: it's who to ask when something can't be found.
 
 ## Asking an assistant
 

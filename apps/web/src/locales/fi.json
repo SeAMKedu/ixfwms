@@ -942,13 +942,14 @@
     },
     "guestsNever": "Ei koskaan ilman tunnusta: lainaaminen, lavat, muokkaus tai poistaminen.",
     "guestsView": "Mitä he näkevät",
+    "guestsViewAlways": "Kummassakin ihmisten nimet, lainojen syyt, verkkotiedot, hinnat, historia ja Saapuneet vaativat kirjautumisen. Väliaikaisten paikkojen yhteyshenkilöt näkyvät aina: heiltä voi kysyä.",
     "guestViews": {
-      "limited": "Ei sarjanumeroita, muistiinpanoja eikä laiteohjelmistoja",
-      "full": "Kaiken paitsi ihmiset ja verkkotiedot"
+      "limited": "Tavarat ja paikat, ilman muistiinpanoja ja sarjanumeroita",
+      "full": "Myös muistiinpanot ja sarjanumerot"
     },
     "guestViewHints": {
       "limited": "Tavaroiden ja paikkojen kuvaukset näkyvät. Muistiinpanot, lokimerkinnät, vikailmoitusten tekstit, sarjanumerot ja laiteohjelmistoversiot vaativat kirjautumisen.",
-      "full": "Nimet, lainojen syyt, verkkotiedot, hinnat, historia ja Saapuneet vaativat aina kirjautumisen. Väliaikaisten paikkojen yhteyshenkilöt näkyvät aina."
+      "full": "Muistiinpanot, lokimerkinnät, vikailmoitusten tekstit, sarjanumerot ja laiteohjelmistoversiot näkyvät kaikille labran verkossa."
     },
     "workstation": "Työpiste",
     "levels": "Saldotasot",

@@ -42,6 +42,7 @@ export function GuestsSection() {
         {settings.data && (
           <fieldset className="flex flex-col gap-2" disabled={!can('admin')}>
             <legend className="mb-1 text-sm font-medium">{t('settings.guestsView')}</legend>
+            <p className="max-w-prose text-[13px] text-muted">{t('settings.guestsViewAlways')}</p>
             {ANONYMOUS_VIEWS.map((view) => (
               <label key={view} className="flex items-start gap-2 text-sm">
                 <input

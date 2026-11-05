@@ -942,13 +942,14 @@
     },
     "guestsNever": "Never without an account: lending, pallets, editing or deleting.",
     "guestsView": "What they see",
+    "guestsViewAlways": "Either way, people's names, loan reasons, network details, prices, the history and the Inbox need a login. Contacts of temporary places always show: they are who to ask.",
     "guestViews": {
-      "limited": "Leave out serial numbers, notes and firmware",
-      "full": "Everything but people and network details"
+      "limited": "Items and places, without notes or serial numbers",
+      "full": "Notes and serial numbers too"
     },
     "guestViewHints": {
-      "limited": "Item and place descriptions stay. Notes, log entries, problem report texts, serial numbers and firmware versions need a login.",
-      "full": "Names, loan reasons, network details, prices, the history and the Inbox always need a login. Contacts of temporary places always show."
+      "limited": "Item and place descriptions show. Notes, log entries, problem report texts, serial numbers and firmware versions need a login.",
+      "full": "Notes, log entries, problem report texts, serial numbers and firmware versions show to anyone on the lab network."
     },
     "workstation": "Workstation",
     "levels": "Stock levels",
