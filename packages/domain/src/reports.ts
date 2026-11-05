@@ -13,6 +13,11 @@ export const ReportInput = z.object({
 });
 export type ReportInput = z.infer<typeof ReportInput>;
 
+export const ResolveReportInput = z.object({
+  resolution: z.string().trim().max(2000).nullish().describe('What was done'),
+});
+export type ResolveReportInput = z.infer<typeof ResolveReportInput>;
+
 export interface ReportView {
   id: string;
   owner: 'unit' | 'part' | 'location';

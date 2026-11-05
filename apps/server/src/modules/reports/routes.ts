@@ -1,4 +1,4 @@
-import { ReportInput } from '@ixfwms/domain';
+import { ReportInput, ResolveReportInput } from '@ixfwms/domain';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { OPEN, parse, QueryBool, type AppDeps } from '../../http/context.js';
@@ -19,10 +19,7 @@ export function reportsRoutes(app: FastifyInstance, { services }: AppDeps): void
 
   app.post('/api/reports/:id/resolve', async (request) => {
     const { id } = parse(z.object({ id: z.string() }), request.params);
-    const { resolution } = parse(
-      z.object({ resolution: z.string().trim().max(2000).nullish() }),
-      request.body,
-    );
+    const { resolution } = parse(ResolveReportInput, request.body);
     return reports.resolve(id, resolution ?? null, request.actor);
   });
 }

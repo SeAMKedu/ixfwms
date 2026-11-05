@@ -79,7 +79,9 @@ export const UnitLogInput = z.object({
     .max(200)
     .nullish()
     .describe('For firmware entries: the version now installed, e.g. "V4.6"'),
-  nextCheckAt: DateSchema.nullish().describe('Maintenance entries can set the next check date'),
+  nextCheckAt: DateSchema.nullish().describe(
+    'YYYY-MM-DD; maintenance entries can set the next check date',
+  ),
 });
 export type UnitLogInput = z.infer<typeof UnitLogInput>;
 

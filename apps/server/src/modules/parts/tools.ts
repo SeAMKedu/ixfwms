@@ -1,12 +1,8 @@
 import {
-  ContainerInput,
-  AttributeFilter,
   CreatePartInput,
-  IdentifierInput,
-  PART_KINDS,
-  SEARCH_KINDS,
-  PART_STATUSES,
-  TRACKING_MODES,
+  PartSearchInput,
+  SimilarPartsInput,
+  UpdatePartInput,
 } from '@ixfwms/domain';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
@@ -32,34 +28,11 @@ export function partsTools(server: McpServer, { services, actor, links }: ToolCo
       title: 'Search parts',
       description:
         'Search the inventory by text (name, description, manufacturer, order number, code) and filters. Each result is one thing to open: a bulk item, or one unit of a tool or device (only the units the text names, if it names any). `limit`, `offset` and `total` count results; `items` are their parts. `builds` are builds (things made from parts) the text matches, on the first page and without item filters; kind "build" lists the builds still standing. Stock in a build has `place.inBuild` set: it is built in, not free.',
-      inputSchema: {
-        q: z
-          .string()
-          .optional()
-          .describe(
-            'Free text, e.g. "suction cup 30", "6ES7214" or "impact drill" (aliases, unit names and serial numbers match too)',
-          ),
-        kind: z.enum(SEARCH_KINDS).optional().describe('part, tool, device, or build'),
-        category: z.string().optional().describe('Category path prefix, e.g. "Pneumatics/Vacuum"'),
-        tags: z.array(z.string()).optional().describe('Tag or project names, all of them'),
-        status: z.enum(PART_STATUSES).optional(),
-        location: z.string().optional().describe('Only parts stored in this place or below it'),
-        inStock: z.boolean().optional(),
-        lowStock: z.boolean().optional().describe('Below minimum stock, or marked low/empty'),
-        uncounted: z.boolean().optional().describe('Has stock nobody has counted yet'),
-        attributes: z
-          .array(AttributeFilter)
-          .optional()
-          .describe(
-            'Filters on category fields (see get_category_fields), e.g. {key:"thread",op:"eq",value:"M4"}',
-          ),
-        limit: z.number().int().min(1).max(200).optional(),
-        offset: z.number().int().min(0).optional(),
-      },
+      inputSchema: PartSearchInput.omit({ byUnit: true }).shape,
       annotations: read,
     },
     tool(async (a) => {
-      const r = await parts.search({ ...a, limit: a.limit ?? 50, offset: a.offset ?? 0 });
+      const r = await parts.search(a);
       const byId = new Map(r.items.map((p) => [p.id, p]));
       const buildCode = new Map(r.builds.map((b) => [b.id, b.code]));
       const results = r.rows.map((row) => {
@@ -96,13 +69,10 @@ export function partsTools(server: McpServer, { services, actor, links }: ToolCo
       title: 'Find similar parts',
       description:
         'Check for existing parts (including Inbox drafts) before creating one. Matches identical order numbers first, then similar names.',
-      inputSchema: {
-        name: z.string().optional(),
-        identifiers: z.array(z.string()).optional().describe('Order numbers / MPNs to match'),
-      },
+      inputSchema: SimilarPartsInput.shape,
       annotations: read,
     },
-    tool(async ({ name, identifiers }) => parts.findSimilar(name ?? null, identifiers ?? [])),
+    tool(async ({ name, identifiers }) => parts.findSimilar(name ?? null, identifiers)),
   );
 
   server.registerTool(
@@ -152,30 +122,7 @@ export function partsTools(server: McpServer, { services, actor, links }: ToolCo
     {
       title: 'Update part',
       description: 'Change fields of a part, add identifiers or tags. Attributes are merged.',
-      inputSchema: {
-        ref: z.string(),
-        name: z.string().optional(),
-        description: z.string().optional(),
-        category: z.string().optional(),
-        manufacturer: z.string().optional(),
-        kind: z.enum(PART_KINDS).optional(),
-        tracking: z
-          .enum(TRACKING_MODES)
-          .optional()
-          .describe(
-            'individual = units with codes and serials; only while it has no stock amounts',
-          ),
-        aliases: z.array(z.string()).optional().describe('Replaces the other names people use'),
-        unitMassG: z.number().positive().optional(),
-        container: ContainerInput.nullable().optional(),
-        minStock: CreatePartInput.shape.minStock,
-        attributes: z.record(z.string(), z.unknown()).optional(),
-        notes: z.string().optional(),
-        source: z.string().optional(),
-        addIdentifiers: z.array(IdentifierInput).optional(),
-        addTags: z.array(z.string()).optional(),
-        removeTags: z.array(z.string()).optional(),
-      },
+      inputSchema: { ref: z.string().describe('Part code or id'), ...UpdatePartInput.shape },
       annotations: write,
     },
     tool(async ({ ref, ...patch }) => {

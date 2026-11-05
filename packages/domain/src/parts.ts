@@ -98,8 +98,15 @@ export const UpdatePartInput = CreatePartInput.omit({
   .extend({
     // No defaults here: a partial schema would otherwise fill them in and overwrite the item's values.
     kind: z.enum(PART_KINDS).optional(),
-    tracking: z.enum(TRACKING_MODES).optional(),
-    aliases: z.array(z.string().trim().min(1).max(100)).max(20).optional(),
+    tracking: z
+      .enum(TRACKING_MODES)
+      .optional()
+      .describe('individual = units with codes and serials; only while it has no stock amounts'),
+    aliases: z
+      .array(z.string().trim().min(1).max(100))
+      .max(20)
+      .optional()
+      .describe('Replaces the other names people use'),
     attributes: z.record(z.string(), z.unknown()).optional(),
     addIdentifiers: z.array(IdentifierInput).max(20).optional(),
     removeIdentifiers: z
@@ -112,11 +119,38 @@ export const UpdatePartInput = CreatePartInput.omit({
   });
 export type UpdatePartInput = z.infer<typeof UpdatePartInput>;
 
+/** What to look for duplicates by, before a new item is made. */
+export const SimilarPartsInput = z.object({
+  name: z.string().trim().max(300).nullish(),
+  identifiers: z
+    .array(z.string().trim().max(200))
+    .max(20)
+    .default([])
+    .describe('Order numbers / MPNs to match'),
+});
+export type SimilarPartsInput = z.infer<typeof SimilarPartsInput>;
+
 export const PartSearchInput = z.object({
-  q: z.string().trim().max(200).optional(),
+  q: z
+    .string()
+    .trim()
+    .max(200)
+    .optional()
+    .describe(
+      'Free text, e.g. "suction cup 30", "6ES7214" or "impact drill" (aliases, unit names and serial numbers match too)',
+    ),
   kind: z.enum(SEARCH_KINDS).optional().describe('part, tool, device, or build (only builds)'),
-  category: z.string().trim().max(300).optional(),
-  tags: z.array(z.string().trim().max(60)).max(10).optional().describe('All of these tags'),
+  category: z
+    .string()
+    .trim()
+    .max(300)
+    .optional()
+    .describe('Category path prefix, e.g. "Pneumatics/Vacuum"'),
+  tags: z
+    .array(z.string().trim().max(60))
+    .max(10)
+    .optional()
+    .describe('Tag or project names, all of them'),
   status: z.enum(PART_STATUSES).optional(),
   location: RefSchema.optional().describe(
     'Only things in this location or below it, or units that belong there',
@@ -128,7 +162,9 @@ export const PartSearchInput = z.object({
     .array(AttributeFilter)
     .max(10)
     .optional()
-    .describe('Filters on category fields, e.g. thread = M4, lengthMm >= 10'),
+    .describe(
+      'Filters on category fields (their keys: get_category_fields), e.g. {key:"thread",op:"eq",value:"M4"}',
+    ),
   /** One result per unit of a tool or device (the search page), or one per part (Inbox, counts). */
   byUnit: z.boolean().default(true),
   limit: z.number().int().min(1).max(200).default(50),

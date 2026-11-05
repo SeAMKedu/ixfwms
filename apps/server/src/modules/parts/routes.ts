@@ -4,6 +4,7 @@ import {
   PartSearchInput,
   UpdatePartInput,
   parseAttributeFilter,
+  SimilarPartsInput,
 } from '@ixfwms/domain';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
@@ -56,10 +57,7 @@ export function partsRoutes(app: FastifyInstance, { services }: AppDeps): void {
   });
 
   app.post('/api/parts/similar', OPEN, async (request) => {
-    const body = parse(
-      z.object({ name: z.string().nullish(), identifiers: z.array(z.string()).default([]) }),
-      request.body,
-    );
+    const body = parse(SimilarPartsInput, request.body);
     return parts.findSimilar(body.name ?? null, body.identifiers);
   });
 

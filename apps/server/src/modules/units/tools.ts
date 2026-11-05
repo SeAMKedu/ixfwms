@@ -1,4 +1,4 @@
-import { AddUnitsInput, UNIT_LOG_KINDS, UpdateUnitInput } from '@ixfwms/domain';
+import { AddUnitsInput, UpdateUnitInput, UnitLogInput } from '@ixfwms/domain';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { read, tool, write, type ToolContext } from '../../mcp/tool.js';
@@ -73,13 +73,7 @@ export function unitsTools(server: McpServer, { services, actor, links }: ToolCo
       title: "Write in a unit's log",
       description:
         'Note, maintenance, firmware (value = version now installed), problem or repaired. Maintenance can set the next check date; problem and repaired change the status.',
-      inputSchema: {
-        ref: z.string(),
-        kind: z.enum(UNIT_LOG_KINDS),
-        text: z.string().optional(),
-        value: z.string().optional(),
-        nextCheckAt: z.string().optional().describe('YYYY-MM-DD'),
-      },
+      inputSchema: { ref: z.string().describe('Unit code or id'), ...UnitLogInput.shape },
       annotations: write,
     },
     tool(async ({ ref, ...entry }) => withUnitLink(await units.log(ref, entry, actor))),

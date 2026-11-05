@@ -44,7 +44,7 @@ A split service stays one object. The reads become a class in `views.ts`, or in 
 - **Dependencies between modules.** Depend on the narrowest piece: another module's store, views or `rules.ts` when that's all you use, not its whole service. Import types with `import type`. A value import goes to `store.ts` or `rules.ts`, and never forms a cycle.
 - **Wiring.** `modules/index.ts` builds the services (`createServices`) and lists every module's routes and tools. `http/app.ts` and `mcp/server.ts` only walk those lists. A new module is a folder plus its lines in `modules/index.ts`.
 - **Shared plumbing.** Who is asking and the audit log are in `lib/context.ts`, next to errors and ids in `lib/`. The database is in `db/`. `db/schema.ts` stays one file, because drizzle-kit and the data model drawing read it.
-- **MCP tools.** Tools are thin: parse, call the service, add links (`ctx.links`). A new tool's input is the domain schema (`...SomeInput.shape`), with the field descriptions in the schema (`.describe()`), so the route and the tool take the same input. Some older tools still spell out their fields inline; move those to the schema when you touch them.
+- **MCP tools.** Tools are thin: parse, call the service, add links (`ctx.links`). A new tool's input is the domain schema (`...SomeInput.shape`), with the field descriptions in the schema (`.describe()`), so the route and the tool take the same input. The build and place tools still spell out some fields inline; move those to the schema when you touch them. A single `ref` or id that the route takes from the path stays in the tool.
 
 ### Domain package
 

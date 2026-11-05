@@ -8,12 +8,25 @@ import type { StockAmount } from './quantity.js';
 /* Stock amounts: adding and moving lots. */
 
 export const AddStockInput = z.object({
-  part: RefSchema,
-  location: RefSchema.nullish(),
+  part: RefSchema.describe('Part code or id'),
+  location: RefSchema.nullish().describe('Place code; omit for the Inbox'),
   amount: AmountInput,
   note: z.string().trim().max(1000).nullish(),
 });
 export type AddStockInput = z.infer<typeof AddStockInput>;
+
+/** Some taken from a lot, or (stock tracked as a level) its new level. */
+export const TakeStockInput = z.object({
+  quantity: z.number().positive().nullish(),
+  level: z
+    .string()
+    .trim()
+    .min(1)
+    .max(60)
+    .nullish()
+    .describe("New level, its key or name (the lab's stock levels)"),
+});
+export type TakeStockInput = z.infer<typeof TakeStockInput>;
 
 /** Moving a unit or stock by someone who may not have an account. */
 /** How much of a lot to move: all of it, an amount in its own unit, a count of pieces, or a cut. */
