@@ -58,7 +58,7 @@ describe('one code namespace', () => {
     await locations.create({ name: 'Box', type: 'box', code: first! }, env.admin);
     expect(await labels.lookup(first!)).toMatchObject({ assigned: 'location', reserved: false });
     expect(await labels.lookup(second!)).toMatchObject({ assigned: null, reserved: true });
-    const [batch] = await labels.batches();
+    const [batch] = await labels.batches(env.admin);
     expect(batch).toMatchObject({ used: 1, retired: 0, unused: [second] });
   });
 });

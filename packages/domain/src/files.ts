@@ -10,7 +10,11 @@ export const AttachInput = z
     ref: RefSchema,
     kind: z.enum(ATTACHMENT_KINDS).default('other'),
     fileId: z.string().trim().min(1).max(64).nullish(),
-    url: z.url().max(2000).nullish(),
+    // Only web links: a javascript: or data: link would run on the part page when clicked.
+    url: z
+      .url({ protocol: /^https?$/ })
+      .max(2000)
+      .nullish(),
     title: z.string().trim().max(300).nullish(),
   })
   .refine((a) => (a.fileId == null) !== (a.url == null), { message: 'give either fileId or url' });

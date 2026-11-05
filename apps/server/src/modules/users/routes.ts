@@ -140,7 +140,7 @@ export function sessionRoutes(app: FastifyInstance, { services }: AppDeps): void
       z.object({ name: z.string().trim().min(1).max(100), password: z.string().min(1).max(500) }),
       request.body,
     );
-    return reply.status(201).send(await services.auth.login(body.name, body.password));
+    return reply.status(201).send(await services.auth.login(body.name, body.password, request.ip));
   });
 
   app.get('/api/session', async (request) => {

@@ -16,6 +16,7 @@ import { apiTokens, loans, locations, stockLots, units, users } from '../../db/s
 import { conflict, fail, invalid, notFound } from '../../lib/errors.js';
 import { newId, nowIso } from '../../lib/ids.js';
 import { audit, type Actor } from '../../lib/context.js';
+import { LoginLimit } from './login-limit.js';
 import { checkPassword, hashPassword, unknownUserHash, weakHash } from './passwords.js';
 import { eraseUser, REMOVED_USER_ID, REMOVED_USER_NAME, USER_REFERENCES } from './user-erase.js';
 
@@ -23,8 +24,6 @@ const TOKEN_PREFIX = 'ixf_';
 const LAST_USED_RESOLUTION_MS = 60_000;
 const SESSION_DAYS = 30;
 const MIN_PASSWORD_LENGTH = 8;
-const MAX_FAILED_LOGINS = 10;
-const FAILED_LOGIN_WINDOW_MS = 10 * 60_000;
 
 /** Web logins get scopes from the user's role. */
 const ROLE_SCOPES: Record<UserRole, Scope[]> = {
@@ -39,15 +38,20 @@ function hashToken(token: string): string {
 
 /** Users and API tokens. Tokens are shown once at creation and stored only as hashes. */
 export class AuthService {
-  private readonly failedLogins = new Map<string, number[]>();
+  private readonly loginLimit = new LoginLimit();
 
   constructor(private readonly db: Db) {}
 
   /**
-   * Sets a password and ends the user's web sessions, so a browser that had the old one is
-   * logged out (`keepSession`: the one doing the change). API tokens stay; they don't use it.
+   * Sets a password and ends the user's web sessions and API tokens, so a browser or a config
+   * file that had the old access is shut out (an admin reset after a laptop went missing).
+   * `keep`: a person changing their own password keeps the session doing it and their tokens.
    */
-  async setPassword(userName: string, password: string, keepSession?: string): Promise<void> {
+  async setPassword(
+    userName: string,
+    password: string,
+    keep?: { session?: string; apiTokens?: boolean },
+  ): Promise<void> {
     if (password.length < MIN_PASSWORD_LENGTH)
       throw invalid('auth.passwordTooShort', { min: MIN_PASSWORD_LENGTH });
     const user = await this.byName(userName);
@@ -61,32 +65,31 @@ export class AuthService {
       .where(
         and(
           eq(apiTokens.userId, user.id),
-          eq(apiTokens.kind, 'session'),
+          keep?.apiTokens ? eq(apiTokens.kind, 'session') : undefined,
           isNull(apiTokens.revokedAt),
-          keepSession ? ne(apiTokens.tokenHash, hashToken(keepSession)) : undefined,
+          keep?.session ? ne(apiTokens.tokenHash, hashToken(keep.session)) : undefined,
         ),
       );
   }
 
-  /** Web login: checks the password and issues a session token that expires. */
-  async login(userName: string, password: string): Promise<LoginResult> {
-    const key = userName.toLowerCase();
+  /**
+   * Web login: checks the password and issues a session token that expires. `client` (the
+   * request's address) has its own budget of failed tries, beside the name's.
+   */
+  async login(userName: string, password: string, client = 'local'): Promise<LoginResult> {
     const now = Date.now();
-    const recent = (this.failedLogins.get(key) ?? []).filter(
-      (t) => now - t < FAILED_LOGIN_WINDOW_MS,
-    );
-    if (recent.length >= MAX_FAILED_LOGINS) {
-      throw fail('forbidden', 'auth.tooManyLogins');
-    }
-    const user = await one(this.db.select().from(users).where(eq(users.name, userName)));
-    // An unknown name runs scrypt too, so the time taken doesn't tell which names exist.
-    const ok = await checkPassword(password, user?.passwordHash ?? (await unknownUserHash()));
+    const { user, ok } = await this.loginLimit.attempt(userName, client, async () => {
+      const user = await one(this.db.select().from(users).where(eq(users.name, userName)));
+      // An unknown name runs scrypt too, so the time taken doesn't tell which names exist.
+      const ok = await checkPassword(password, user?.passwordHash ?? (await unknownUserHash()));
+      return { user, ok };
+    });
     if (!user?.passwordHash || !ok) {
-      this.failedLogins.set(key, [...recent, now]);
+      this.loginLimit.failedFor(userName, client);
       throw fail('unauthorized', 'auth.wrongLogin');
     }
     if (user.disabledAt) throw fail('forbidden', 'auth.accountOff');
-    this.failedLogins.delete(key);
+    this.loginLimit.succeededFor(userName);
     if (weakHash(user.passwordHash))
       await this.db
         .update(users)
@@ -257,7 +260,7 @@ export class AuthService {
 
   /**
    * Lets a logged-in person change their own password (they must know the current one).
-   * Their other browsers are logged out; `session` (the one asking) stays.
+   * Their other browsers are logged out; `session` (the one asking) and their API tokens stay.
    */
   async changeOwnPassword(
     userId: string,
@@ -269,7 +272,7 @@ export class AuthService {
     if (!user?.passwordHash || !(await checkPassword(current, user.passwordHash))) {
       throw fail('forbidden', 'auth.wrongPassword');
     }
-    await this.setPassword(user.name, next, session);
+    await this.setPassword(user.name, next, { session, apiTokens: true });
   }
 
   async revokeToken(id: string): Promise<void> {

@@ -1,9 +1,6 @@
 import {
-  AddToBuildInput,
   CreateLocationInput,
-  DismantleInput,
   DuplicateLocationInput,
-  MakeBuildInput,
   LocationTypeInput,
   UpdateLocationInput,
   buildCodeUrl,
@@ -16,7 +13,7 @@ import { baseUrl, parse, QueryBool, type AppDeps } from '../../http/context.js';
 const RefParams = z.object({ ref: z.string() });
 
 export function locationsRoutes(app: FastifyInstance, { config, services }: AppDeps): void {
-  const { builds, locations, locationViews, maps, placeTypes } = services;
+  const { locations, locationViews, maps, placeTypes } = services;
 
   app.get('/api/locations', async (request) => {
     const q = parse(
@@ -82,35 +79,6 @@ export function locationsRoutes(app: FastifyInstance, { config, services }: AppD
     const created = await locations.create(parse(CreateLocationInput, request.body), request.actor);
     return reply.status(201).send(created);
   });
-
-  /** A build made from a parts list: the parts are moved in from free stock. */
-  app.post('/api/builds', async (request, reply) =>
-    reply.status(201).send(await builds.make(parse(MakeBuildInput, request.body), request.actor)),
-  );
-
-  /** The Builds page: standing builds, or the dismantled ones. */
-  app.get('/api/builds', async (request) => {
-    const { dismantled } = parse(z.object({ dismantled: QueryBool.optional() }), request.query);
-    return builds.list(dismantled ?? false);
-  });
-
-  /** Puts an item into a build from free stock. */
-  app.post('/api/builds/:ref/parts', async (request) =>
-    builds.addParts(
-      parse(RefParams, request.params).ref,
-      parse(AddToBuildInput, request.body),
-      request.actor,
-    ),
-  );
-
-  /** Takes a build apart: back where everything came from, or onto `to`. */
-  app.post('/api/locations/:ref/dismantle', async (request) =>
-    builds.dismantle(
-      parse(RefParams, request.params).ref,
-      parse(DismantleInput, request.body ?? {}),
-      request.actor,
-    ),
-  );
 
   /** Deletes an empty place or build made by mistake. */
   app.delete('/api/locations/:ref', async (request, reply) => {

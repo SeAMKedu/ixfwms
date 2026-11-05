@@ -94,8 +94,12 @@ export class LabelService {
     return codes.map((code) => blankLabel(code, baseUrl));
   }
 
-  /** Reserved-label batches, newest first, with the codes not stuck on anything yet. */
-  async batches(): Promise<LabelBatch[]> {
+  /**
+   * Reserved-label batches, newest first, with the codes not stuck on anything yet. Inventory
+   * scope: an unused code on a printed sheet could otherwise be claimed before it is stuck on.
+   */
+  async batches(actor: Actor | null): Promise<LabelBatch[]> {
+    requireScope(actor, 'inventory');
     const rows = await many(
       this.db
         .select({ r: codes, user: users.name })
@@ -124,8 +128,12 @@ export class LabelService {
   }
 
   /** Labels of a batch again (e.g. the printout got lost): only the codes still unused. */
-  async batchLabels(batchId: string | null, baseUrl: string): Promise<LabelData[]> {
-    const batch = (await this.batches()).find((b) => b.id === batchId);
+  async batchLabels(
+    batchId: string | null,
+    actor: Actor | null,
+    baseUrl: string,
+  ): Promise<LabelData[]> {
+    const batch = (await this.batches(actor)).find((b) => b.id === batchId);
     return (batch?.unused ?? []).map((code) => blankLabel(code, baseUrl));
   }
 

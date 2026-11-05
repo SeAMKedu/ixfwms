@@ -111,16 +111,16 @@ describe('managing labels', () => {
     await locations.create({ name: 'Box', type: 'box', code: first[0]!.code }, env.inventory);
     await labels.retire([first[1]!.code], env.inventory);
 
-    const [batch] = await labels.batches();
+    const [batch] = await labels.batches(env.inventory);
     expect(batch).toMatchObject({
       unused: [first[2]!.code],
       used: 1,
       retired: 1,
       createdBy: 'assistant',
     });
-    expect((await labels.batchLabels(batch!.id, 'https://ixf.local')).map((l) => l.code)).toEqual([
-      first[2]!.code,
-    ]);
+    expect(
+      (await labels.batchLabels(batch!.id, env.inventory, 'https://ixf.local')).map((l) => l.code),
+    ).toEqual([first[2]!.code]);
 
     expect(await labels.lookup(first[1]!.code)).toMatchObject({
       reserved: false,
@@ -159,7 +159,9 @@ describe('managing labels', () => {
     expect(fresh).not.toBe(part.code);
     expect((await parts.get(fresh)).name).toBe('Cup');
     // A retired code is never handed out again, and its labels aren't "blank labels".
-    expect((await labels.batches()).every((b) => !b.unused.includes(part.code))).toBe(true);
+    expect((await labels.batches(env.inventory)).every((b) => !b.unused.includes(part.code))).toBe(
+      true,
+    );
   });
 
   it('swaps the codes of two places whose stickers got switched', async () => {

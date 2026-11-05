@@ -445,7 +445,14 @@ describe('label management over HTTP', () => {
       headers: { authorization: `Bearer ${env.adminToken}` },
     });
     const [batch] = await req<{ id: string; unused: string[] }[]>('GET', '/api/labels/batches');
-    const csv = await env.app.inject({ url: `/api/labels/batches/${batch!.id}/labels.csv` });
+    // Unused codes are for people who may stick them on, not for anyone on the LAN.
+    expect((await env.app.inject({ url: '/api/labels/batches' })).statusCode).toBe(401);
+    const csvUrl = `/api/labels/batches/${batch!.id}/labels.csv`;
+    expect((await env.app.inject({ url: csvUrl })).statusCode).toBe(401);
+    const csv = await env.app.inject({
+      url: csvUrl,
+      headers: { authorization: `Bearer ${env.adminToken}` },
+    });
     expect(csv.body.split('\r\n').filter(Boolean)).toHaveLength(3);
     expect(await req('POST', '/api/labels/retire', { codes: [batch!.unused[0]] })).toEqual({
       retired: 1,

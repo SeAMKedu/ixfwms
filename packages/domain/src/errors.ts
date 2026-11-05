@@ -32,6 +32,7 @@ export const ERROR_MESSAGES = {
   'auth.notLoggedIn': 'Not logged in',
   'auth.passwordTooShort': 'Passwords need at least {{min}} characters',
   'auth.tooManyLogins': 'Too many failed logins, try again in a few minutes',
+  'auth.loginsBusy': 'Too many logins at once, try again in a moment',
   'auth.wrongLogin': 'Wrong name or password',
   'auth.accountOff': 'This account is turned off',
   'auth.wrongPassword': 'The current password is wrong',

@@ -1164,6 +1164,7 @@
       "notLoggedIn": "Et ole kirjautunut",
       "passwordTooShort": "Salasanassa on oltava vähintään {{min}} merkkiä",
       "tooManyLogins": "Liian monta epäonnistunutta kirjautumista, yritä muutaman minuutin päästä",
+      "loginsBusy": "Liian monta kirjautumista yhtä aikaa, yritä hetken päästä",
       "wrongLogin": "Väärä nimi tai salasana",
       "accountOff": "Tämä tili on poistettu käytöstä",
       "wrongPassword": "Nykyinen salasana on väärä",

@@ -134,7 +134,12 @@ export class FileService {
       id: a.id,
       kind: a.kind,
       title: a.title,
-      href: f ? `/api/files/${f.id}/${encodeURIComponent(f.filename)}` : (a.url ?? ''),
+      // Links saved before only http(s) was allowed come out empty rather than clickable.
+      href: f
+        ? `/api/files/${f.id}/${encodeURIComponent(f.filename)}`
+        : a.url && /^https?:/i.test(a.url)
+          ? a.url
+          : '',
       file: f ? { id: f.id, filename: f.filename, mime: f.mime, size: f.size } : null,
     }));
   }

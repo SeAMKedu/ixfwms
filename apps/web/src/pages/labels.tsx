@@ -48,13 +48,18 @@ function Batches() {
                 </span>
                 <span className="flex gap-3 text-[13px]">
                   {b.unused.length > 0 && (
-                    <a
-                      href={`/api/labels/batches/${key}/labels.csv`}
-                      download
+                    <button
+                      type="button"
                       className="text-link hover:underline"
+                      onClick={() =>
+                        void download(
+                          `/api/labels/batches/${key}/labels.csv`,
+                          'ixfwms-unused-labels.csv',
+                        )
+                      }
                     >
                       {t('labels.downloadUnused')}
-                    </a>
+                    </button>
                   )}
                   {b.unused.length > 0 && (
                     <button

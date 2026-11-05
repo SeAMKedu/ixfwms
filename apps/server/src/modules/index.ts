@@ -11,6 +11,7 @@ import { BomService } from './bom/bom.js';
 import { bomRoutes } from './bom/routes.js';
 import { bomTools } from './bom/tools.js';
 import { BuildService } from './builds/builds.js';
+import { buildsRoutes } from './builds/routes.js';
 import { buildsTools } from './builds/tools.js';
 import { CarryService } from './carry/carry.js';
 import { carryRoutes } from './carry/routes.js';
@@ -76,6 +77,7 @@ export const ROUTES: Routes[] = [
   systemRoutes,
   sessionRoutes,
   locationsRoutes,
+  buildsRoutes,
   partsRoutes,
   categoriesRoutes,
   stockRoutes,

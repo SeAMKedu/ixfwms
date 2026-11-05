@@ -57,12 +57,16 @@ export function labelsRoutes(app: FastifyInstance, { config, services }: AppDeps
       .send(labelsCsv(result));
   });
 
-  app.get('/api/labels/batches', () => labels.batches());
+  app.get('/api/labels/batches', (request) => labels.batches(request.actor));
 
   /** A lost printout: the batch's still-unused codes as CSV again ("none" = codes from before batches). */
   app.get('/api/labels/batches/:id/labels.csv', async (request, reply) => {
     const { id } = parse(z.object({ id: z.string() }), request.params);
-    const rows = await labels.batchLabels(id === 'none' ? null : id, baseUrl(config, request));
+    const rows = await labels.batchLabels(
+      id === 'none' ? null : id,
+      request.actor,
+      baseUrl(config, request),
+    );
     return reply
       .type('text/csv; charset=utf-8')
       .header('content-disposition', 'attachment; filename="ixfwms-unused-labels.csv"')

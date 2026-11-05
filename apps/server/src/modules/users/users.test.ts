@@ -155,9 +155,32 @@ describe('when someone’s access changes', () => {
     expect(await auth.verify(phone)).toBeNull();
     expect(await auth.verify(script)).not.toBeNull();
 
-    // An admin resetting it logs out every browser.
+    // An admin resetting it (a laptop went missing) shuts out every browser and token.
     await auth.setPassword('pat', 'reset by admin');
     expect(await auth.verify(laptop)).toBeNull();
+    expect(await auth.verify(script)).toBeNull();
+  });
+
+  it('limits failed logins per client address, not only per name', async () => {
+    const { auth } = env.services;
+    for (let i = 0; i < 30; i++)
+      await expect(auth.login(`guess${i}`, 'wrong password', '10.0.0.9')).rejects.toThrow(/wrong/i);
+    await expect(auth.login('guess99', 'wrong password', '10.0.0.9')).rejects.toThrow(/too many/i);
+    await auth.createUser('pat', 'member');
+    await auth.setPassword('pat', 'long enough');
+    expect((await auth.login('pat', 'long enough', '10.0.0.10')).user.name).toBe('pat');
+  });
+
+  it('runs only a few password checks at once', async () => {
+    const { auth } = env.services;
+    const tries = Array.from({ length: 6 }, (_, i) =>
+      auth.login(`busy${i}`, 'wrong password', `10.0.1.${i % 3}`).then(
+        () => '',
+        (e: Error) => e.message,
+      ),
+    );
+    const messages = await Promise.all(tries);
+    expect(messages.filter((m) => /at once/.test(m)).length).toBeGreaterThan(0);
   });
 
   it('a new role takes effect at once, for web sessions and API tokens alike', async () => {

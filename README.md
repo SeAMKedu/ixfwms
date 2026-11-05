@@ -42,7 +42,7 @@ Then either:
 - **Use it:** `npm run build && npm start`. Everything is at <http://localhost:3000>.
 - **Develop it:** `npm run dev` (API on :3000) plus `npm run dev:web` (web app with hot reload on <http://localhost:5173>, proxying the API).
 
-Log in with the admin you created. Other people, and accounts for scripts or AI assistants, are added under **More › Settings › Users**. Everyone makes their own API tokens on their account page. Roles: `viewer` (read only), `member` (add, move, edit, confirm drafts), `admin` (everything, including what people without an account may do). A token can't do more than its owner's role, and a new role or password takes effect at once: a demoted person's tokens shrink with them, and a new password logs out their other browsers.
+Log in with the admin you created. Other people, and accounts for scripts or AI assistants, are added under **More › Settings › Users**. Everyone makes their own API tokens on their account page. Roles: `viewer` (read only), `member` (add, move, edit, confirm drafts), `admin` (everything, including what people without an account may do). A token can't do more than its owner's role, and a new role or password takes effect at once: a demoted person's tokens shrink with them, a new password you set yourself logs out your other browsers, and an admin's reset also revokes that person's API tokens. Failed logins are limited per name and per client address.
 
 Reading is open to anyone who can reach the port, which on a lab network is the point. On a laptop or a host others can reach, put it behind a firewall or bind it to `127.0.0.1` (`IXF_HOST`). Attached files (datasheets, manuals) are readable without a login too, so keep invoices out of attachments.
 
