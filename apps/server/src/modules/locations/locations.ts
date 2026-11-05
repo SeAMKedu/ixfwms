@@ -11,7 +11,7 @@ import { many, one, type Executor } from '../../db/client.js';
 import { locationMoves, locations, locationTypes } from '../../db/schema.js';
 import { invalid } from '../../lib/errors.js';
 import { newId, nowIso } from '../../lib/ids.js';
-import { allocateCode, claimCode } from '../../services/codes.js';
+import { allocateCode, claimCode } from '../../lib/codes.js';
 import { checkAddressStart, checkShortName } from './place-addresses.js';
 import { audit, requireScope, type Actor } from '../../lib/context.js';
 import { checkNotLent } from '../loans/rules.js';

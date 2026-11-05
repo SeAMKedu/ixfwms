@@ -56,10 +56,9 @@ export default tseslint.config(
     files: [
       'apps/server/src/db/schema.ts',
       'apps/server/src/mcp/core-tools.ts',
-      'apps/server/src/services/maps.ts',
-      'apps/server/src/services/parts.ts',
-      'apps/server/src/services/stock.ts',
-      'apps/server/src/services/units.ts',
+      'apps/server/src/modules/maps/maps.ts',
+      'apps/server/src/modules/parts/parts.ts',
+      'apps/server/src/modules/units/units.ts',
       'apps/web/src/api/queries.ts',
       'apps/web/src/components/model-map.tsx',
       'apps/web/src/components/place-picker.tsx',

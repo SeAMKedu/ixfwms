@@ -7,7 +7,7 @@ import { viewAs } from '../lib/context.js';
 import { registerMcp } from '../mcp/http.js';
 import { ROUTES } from '../modules/index.js';
 import type { AppDeps } from './context.js';
-import { registerPageRoutes } from './routes/pages.js';
+import { registerPageRoutes } from './pages.js';
 import { defaultWebDir, registerWebApp } from './web.js';
 
 const CHANGES = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
