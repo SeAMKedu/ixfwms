@@ -1,3 +1,4 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ApiError as ApiErrorBody, ErrorKey, ErrorParams } from '@ixfwms/domain';
 
 const TOKEN_KEY = 'ixfwms.token';
@@ -112,4 +113,14 @@ export function saveBlob(blob: Blob, filename: string): void {
   a.download = filename;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/**
+ * Every change can affect lists, counts and pages elsewhere; with a small inventory it is
+ * simplest and always correct to refetch whatever is on screen.
+ */
+/** A change: on success every query is fetched again. */
+export function useChange<I, O>(fn: (input: I) => Promise<O>) {
+  const client = useQueryClient();
+  return useMutation({ mutationFn: fn, onSuccess: () => client.invalidateQueries() });
 }

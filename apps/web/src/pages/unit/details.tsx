@@ -4,7 +4,7 @@ import { useState, type FormEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
 import { useDelete } from '../../api/builds';
-import { useUpdateUnit } from '../../api/queries';
+import { useUpdateUnit } from '../../api/units';
 import { useWriteOffs } from '../../api/write-offs';
 import { useSession } from '../../auth/session';
 import { DeleteButton } from '../../components/delete-button';

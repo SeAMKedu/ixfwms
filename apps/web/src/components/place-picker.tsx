@@ -2,7 +2,7 @@ import { isValidCode, normalizeCode, type PlaceOption } from '@ixfwms/domain';
 import { ChevronRight, X } from 'lucide-react';
 import { useId, useMemo, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { usePlaces } from '../api/queries';
+import { usePlaces } from '../api/locations';
 import { matchPlaces, placeLabel } from '../lib/places';
 import { PlaceTag } from './ui';
 

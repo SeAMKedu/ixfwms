@@ -20,7 +20,7 @@ import {
   useUpdateUser,
   useUser,
   useUsers,
-} from '../api/queries';
+} from '../api/users';
 import { useSession } from '../auth/session';
 import { ApiTokens } from '../components/api-tokens';
 import { PlacePicker } from '../components/place-picker';

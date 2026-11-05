@@ -1,7 +1,6 @@
 import type { Scope, SessionUser, TokenInfo, UserLanguage } from '@ixfwms/domain';
 import { useQuery } from '@tanstack/react-query';
-import { api } from './client';
-import { useChange } from './queries';
+import { api, useChange } from './client';
 
 /** Your own account: default location, language and API tokens. */
 export const useSaveSettings = () =>
@@ -23,3 +22,8 @@ export const useCreateMyToken = () =>
 
 export const useRevokeMyToken = () =>
   useChange((id: string) => api(`/api/session/tokens/${id}`, { method: 'DELETE' }));
+
+export const useChangePassword = () =>
+  useChange((input: { current: string; next: string }) =>
+    api('/api/session/password', { body: input }),
+  );

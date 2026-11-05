@@ -1,7 +1,7 @@
 import { REPORT_KINDS, type ReportKind, type UnitDetail } from '@ixfwms/domain';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useReport, useResolveReport } from '../../api/queries';
+import { useReport, useResolveReport } from '../../api/reports';
 import { useSession } from '../../auth/session';
 import { Button, Card, ErrorBox, Field, Select, TextArea, TextInput } from '../../components/ui';
 import { GuestName } from '../../components/units';

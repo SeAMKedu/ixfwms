@@ -8,7 +8,7 @@ import {
   useCategoryFields,
   useSeedCategories,
   useSetCategoryFields,
-} from '../api/queries';
+} from '../api/categories';
 import { useSession } from '../auth/session';
 import {
   Button,

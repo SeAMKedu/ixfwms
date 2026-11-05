@@ -1,9 +1,8 @@
 import { normalizeCode } from '@ixfwms/domain';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { download } from '../api/client';
-import { qs } from '../api/client';
-import { useLabelBatches, useRetireCodes } from '../api/queries';
+import { download, qs } from '../api/client';
+import { useLabelBatches, useRetireCodes } from '../api/labels';
 import { useSession } from '../auth/session';
 import { formatDate } from '../lib/format';
 import { PlacePicker } from '../components/place-picker';

@@ -1,6 +1,6 @@
 import { type LocationDetail } from '@ixfwms/domain';
 import { useTranslation } from 'react-i18next';
-import { useStillNeeded } from '../../api/queries';
+import { useStillNeeded } from '../../api/locations';
 import { formatDate } from '../../lib/format';
 import { Button, ErrorBox } from '../../components/ui';
 

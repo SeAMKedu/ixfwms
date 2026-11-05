@@ -2,7 +2,7 @@ import { normalizeCode, type LocationDetail } from '@ixfwms/domain';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLendPlace, useReturnPlace } from '../../api/loans';
-import { useLocation } from '../../api/queries';
+import { useLocation } from '../../api/locations';
 import { emptyLend, LendFields, lendInput } from '../../components/loans';
 import { PlacePicker } from '../../components/place-picker';
 import { Button, ErrorBox, Field } from '../../components/ui';

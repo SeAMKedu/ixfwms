@@ -12,7 +12,8 @@ import { X } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAddToBuild } from '../../api/builds';
-import { useAddStock, usePart } from '../../api/queries';
+import { usePart } from '../../api/parts';
+import { useAddStock } from '../../api/stock';
 import { AmountFields, toAmountInput, useAmountState } from '../../components/amount-fields';
 import { Button, CodeLabel, ErrorBox, Field, Select, TextInput } from '../../components/ui';
 

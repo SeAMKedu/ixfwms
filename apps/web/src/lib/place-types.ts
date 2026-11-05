@@ -1,6 +1,6 @@
 import { DEFAULT_LOCATION_TYPES } from '@ixfwms/domain';
 import { useTranslation } from 'react-i18next';
-import { useLocationTypes } from '../api/queries';
+import { useLocationTypes } from '../api/locations';
 
 /**
  * Display names for place types. The built-in names are translated; a type renamed or added in

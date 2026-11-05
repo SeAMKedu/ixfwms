@@ -1,6 +1,6 @@
 import { DEFAULT_STOCK_LEVELS, type StockLevelDef } from '@ixfwms/domain';
 import { useTranslation } from 'react-i18next';
-import { useLabSettings } from '../api/queries';
+import { useLabSettings } from '../api/system';
 
 /**
  * The lab's stock levels, best first, with display names: the built-in ones are translated

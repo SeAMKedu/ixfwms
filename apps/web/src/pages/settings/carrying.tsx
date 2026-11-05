@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLabSettings, useUpdateSettings } from '../../api/queries';
+import { useLabSettings, useUpdateSettings } from '../../api/system';
 import { useSession } from '../../auth/session';
 import { Card, ErrorBox, Field, Loading, PageHeader, TextInput } from '../../components/ui';
 

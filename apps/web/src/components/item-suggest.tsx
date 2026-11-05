@@ -1,7 +1,7 @@
 import type { PartSummary } from '@ixfwms/domain';
 import { useEffect, useId, useState, type KeyboardEvent, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useParts } from '../api/queries';
+import { useParts } from '../api/parts';
 import { CodeLabel, TextInput } from './ui';
 
 const MIN_CHARS = 2;

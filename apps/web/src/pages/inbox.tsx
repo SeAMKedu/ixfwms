@@ -2,19 +2,13 @@ import { normalizeCode, type LocationContentItem } from '@ixfwms/domain';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
-import {
-  useEveryoneCarrying,
-  useInfo,
-  useLocation,
-  useMoveStock,
-  useParts,
-  useSetStatus,
-  useLabSettings,
-  useOverdue,
-  useReports,
-  useResolveReport,
-  useUnitAttention,
-} from '../api/queries';
+import { useEveryoneCarrying } from '../api/carry';
+import { useLocation, useOverdue } from '../api/locations';
+import { useParts, useSetStatus } from '../api/parts';
+import { useReports, useResolveReport } from '../api/reports';
+import { useMoveStock } from '../api/stock';
+import { useInfo, useLabSettings } from '../api/system';
+import { useUnitAttention } from '../api/units';
 import { useLoans } from '../api/loans';
 import { UnitStatusPill, UnitWhere } from '../components/units';
 import { useSession } from '../auth/session';

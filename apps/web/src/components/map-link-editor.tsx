@@ -3,7 +3,7 @@ import { Link2, Unlink } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
-import { useSetMapLink } from '../api/queries';
+import { useSetMapLink } from '../api/maps';
 import { PlacePicker } from './place-picker';
 import { MapView } from './svg-map';
 import { Button, CodeLabel, ErrorBox, Field } from './ui';

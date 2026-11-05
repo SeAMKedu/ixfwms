@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate } from 'react-router';
 import { download } from '../api/client';
-import { useBackupNow, useBackups } from '../api/queries';
+import { useBackupNow, useBackups } from '../api/system';
 import { useSession } from '../auth/session';
 import { Button, Card, Empty, ErrorBox, Loading, PageHeader } from '../components/ui';
 import { formatBytes } from '../lib/format';

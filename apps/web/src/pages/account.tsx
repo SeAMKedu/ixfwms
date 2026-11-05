@@ -2,8 +2,13 @@ import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, Navigate } from 'react-router';
 import { hasScope, SCOPES } from '@ixfwms/domain';
-import { useCreateMyToken, useMyTokens, useRevokeMyToken, useSaveSettings } from '../api/account';
-import { useChangePassword } from '../api/queries';
+import {
+  useCreateMyToken,
+  useMyTokens,
+  useRevokeMyToken,
+  useSaveSettings,
+  useChangePassword,
+} from '../api/account';
 import { useSession } from '../auth/session';
 import { ApiTokens } from '../components/api-tokens';
 import { LanguageSwitch } from '../components/language-switch';

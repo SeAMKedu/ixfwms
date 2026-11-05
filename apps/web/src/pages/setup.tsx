@@ -1,6 +1,6 @@
 import { CheckCircle2, Download, ShieldAlert } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useInfo, useSetup } from '../api/queries';
+import { useInfo, useSetup } from '../api/system';
 import { Card, CodeLabel, Loading, PageHeader } from '../components/ui';
 
 /** How to get the phone camera working (HTTPS + trusting the lab's certificate), and how to connect AI tools. */

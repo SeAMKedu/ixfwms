@@ -5,7 +5,7 @@ import { Map as MapIcon, Maximize2, Minimize2, X } from 'lucide-react';
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
-import { useMapLayers } from '../api/queries';
+import { useMapLayers } from '../api/maps';
 import { Button, ErrorBox, Loading } from './ui';
 
 /** three.js is large, so the 3D viewer loads only when a 3D map is shown. */

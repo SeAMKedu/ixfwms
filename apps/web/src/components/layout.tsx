@@ -24,7 +24,9 @@ import {
 import { useEffect, useState, type ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, NavLink, Outlet, useLocation, useMatch } from 'react-router';
-import { useCarry, useParts, useReports } from '../api/queries';
+import { useCarry } from '../api/carry';
+import { useParts } from '../api/parts';
+import { useReports } from '../api/reports';
 import { useSession } from '../auth/session';
 import { useShortcutRegistry } from '../lib/shortcuts';
 import { GlobalShortcuts } from './global-shortcuts';

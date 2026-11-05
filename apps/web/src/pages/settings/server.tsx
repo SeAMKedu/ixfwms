@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useSystemInfo } from '../../api/queries';
+import { useSystemInfo } from '../../api/system';
 import { useSession } from '../../auth/session';
 import { Card, CodeLabel, ErrorBox, Loading, PageHeader } from '../../components/ui';
 

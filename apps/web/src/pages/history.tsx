@@ -2,7 +2,7 @@ import type { HistoryEntry } from '@ixfwms/domain';
 import { Undo2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
-import { useHistory, useUndo } from '../api/queries';
+import { useHistory, useUndo } from '../api/history';
 import { useSession } from '../auth/session';
 import { Button, Card, CodeLabel, Empty, ErrorBox, Loading, PageHeader } from '../components/ui';
 import { formatDate } from '../lib/format';

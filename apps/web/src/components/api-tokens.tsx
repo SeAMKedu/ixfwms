@@ -2,7 +2,7 @@ import { type Scope, type TokenInfo } from '@ixfwms/domain';
 import { Copy, Trash2 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useInfo } from '../api/queries';
+import { useInfo } from '../api/system';
 import { formatDate } from '../lib/format';
 import { Button, Card, ErrorBox, Field, Pill, TextInput } from './ui';
 

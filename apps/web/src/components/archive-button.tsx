@@ -1,6 +1,6 @@
 import { Archive, ArchiveRestore } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useChange } from '../api/queries';
+import { useChange } from '../api/client';
 import { Button, ErrorBox } from './ui';
 
 /**

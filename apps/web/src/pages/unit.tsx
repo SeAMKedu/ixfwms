@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
-import { useUnit } from '../api/queries';
+import { useUnit } from '../api/units';
 import { useSession } from '../auth/session';
 import { LabelPanel } from '../components/label-panel';
 import {

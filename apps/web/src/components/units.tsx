@@ -9,7 +9,9 @@ import {
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
-import { getGuestName, setGuestName, useLabSettings, usePlaces } from '../api/queries';
+import { usePlaces } from '../api/locations';
+import { getGuestName, setGuestName } from '../api/open';
+import { useLabSettings } from '../api/system';
 import { useSession } from '../auth/session';
 import { formatDay } from '../lib/format';
 import { placeLabel } from '../lib/places';

@@ -13,6 +13,7 @@ import {
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
+import { useUpload } from '../api/files';
 import {
   useAttachMap,
   useCopyMapLinks,
@@ -22,8 +23,7 @@ import {
   useReplaceDrawing,
   useSetMap,
   useSetMapLink,
-  useUpload,
-} from '../api/queries';
+} from '../api/maps';
 import { LinkEditor } from './map-link-editor';
 import { Button, Card, CodeLabel, ErrorBox, Field, Pill, Select } from './ui';
 

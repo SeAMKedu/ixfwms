@@ -1,7 +1,7 @@
 import { isValidCode, normalizeCode } from '@ixfwms/domain';
 import { useTranslation } from 'react-i18next';
 import { Navigate } from 'react-router';
-import { useCodeInfo } from '../api/queries';
+import { useCodeInfo } from '../api/labels';
 import { CodeLabel, PageHeader } from '../components/ui';
 import { formatDate } from '../lib/format';
 

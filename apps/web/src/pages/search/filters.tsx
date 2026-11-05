@@ -1,6 +1,7 @@
 import { SEARCH_KINDS, type PartStatus, type SearchKind, type SessionUser } from '@ixfwms/domain';
 import { useTranslation } from 'react-i18next';
-import { useCategories, useTags } from '../../api/queries';
+import { useCategories } from '../../api/categories';
+import { useTags } from '../../api/parts';
 import { useSession } from '../../auth/session';
 import { FilterPicker } from '../../components/filter-picker';
 import { PlacePicker } from '../../components/place-picker';

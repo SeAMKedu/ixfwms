@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, Navigate } from 'react-router';
 import { download } from '../api/client';
-import { useNetwork } from '../api/queries';
+import { useNetwork } from '../api/units';
 import { useSession } from '../auth/session';
 import { Button, CodeLabel, Empty, ErrorBox, Loading, PageHeader } from '../components/ui';
 

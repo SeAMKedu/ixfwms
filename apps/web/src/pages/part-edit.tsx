@@ -12,15 +12,9 @@ import { Trash2 } from 'lucide-react';
 import { useDeferredValue, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router';
-import {
-  useAddUnits,
-  useCategories,
-  useCategoryFields,
-  useCreatePart,
-  usePart,
-  useTags,
-  useUpdatePart,
-} from '../api/queries';
+import { useCategories, useCategoryFields } from '../api/categories';
+import { useCreatePart, usePart, useTags, useUpdatePart } from '../api/parts';
+import { useAddUnits } from '../api/units';
 import { useSession } from '../auth/session';
 import { PlacePicker } from '../components/place-picker';
 import { AmountFields, toAmountInput, useAmountState } from '../components/amount-fields';

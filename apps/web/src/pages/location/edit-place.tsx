@@ -9,7 +9,7 @@ import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { archivePlace, useDelete } from '../../api/builds';
-import { useMoveLocation, useUpdateLocation } from '../../api/queries';
+import { useMoveLocation, useUpdateLocation } from '../../api/locations';
 import { useSession } from '../../auth/session';
 import { ArchiveButton } from '../../components/archive-button';
 import { DeleteButton } from '../../components/delete-button';

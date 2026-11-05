@@ -3,7 +3,7 @@ import { unitLabel } from '@ixfwms/domain';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
 import { useShortcut } from '../lib/shortcuts';
-import { usePart } from '../api/queries';
+import { usePart } from '../api/parts';
 import { useSession } from '../auth/session';
 import { AttributeList } from '../components/attribute-fields';
 import { LabelPanel } from '../components/label-panel';

@@ -1,7 +1,6 @@
 import type { LendInput, LoanView, ReturnPlaceInput, UnitDetail } from '@ixfwms/domain';
 import { useQuery } from '@tanstack/react-query';
-import { api } from './client';
-import { useChange } from './queries';
+import { api, useChange } from './client';
 
 /** Lending units and whole containers out of the lab, and getting them back. */
 export const useLoans = () =>

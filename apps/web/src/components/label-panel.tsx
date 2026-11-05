@@ -2,7 +2,7 @@ import { Download } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { saveBlob } from '../api/client';
-import { useLabSettings } from '../api/queries';
+import { useLabSettings } from '../api/system';
 import { LabelFix } from './label-fix';
 import { Button, Card, ErrorBox, Segmented } from './ui';
 

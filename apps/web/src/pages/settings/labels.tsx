@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
-import { useLabSettings, useUpdateSettings } from '../../api/queries';
+import { useLabSettings, useUpdateSettings } from '../../api/system';
 import { useSession } from '../../auth/session';
 import { Card, ErrorBox, Loading, PageHeader, Segmented } from '../../components/ui';
 

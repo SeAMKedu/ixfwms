@@ -3,7 +3,7 @@ import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
-import { useLocationTree } from '../api/queries';
+import { useLocationTree } from '../api/locations';
 import { useSession } from '../auth/session';
 import { Button, Card, Empty, ErrorBox, Loading, PageHeader, PlaceTag } from '../components/ui';
 import { MapLayers } from '../components/svg-map';

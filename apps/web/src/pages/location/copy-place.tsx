@@ -2,7 +2,7 @@ import { nextName, normalizeCode, type LocationDetail } from '@ixfwms/domain';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
-import { useDuplicateLocation } from '../../api/queries';
+import { useDuplicateLocation } from '../../api/locations';
 import { PlacePicker } from '../../components/place-picker';
 import { Button, ErrorBox, Field, TextInput } from '../../components/ui';
 

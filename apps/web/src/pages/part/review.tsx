@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { useShortcut } from '../../lib/shortcuts';
-import { useMergePart, useSetStatus } from '../../api/queries';
+import { useMergePart, useSetStatus } from '../../api/parts';
 import { useDelete } from '../../api/builds';
 import { ArchiveButton } from '../../components/archive-button';
 import { DeleteButton } from '../../components/delete-button';

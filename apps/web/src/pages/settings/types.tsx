@@ -7,7 +7,7 @@ import {
   useDeleteLocationType,
   useLocationTypes,
   useUpdateLocationType,
-} from '../../api/queries';
+} from '../../api/locations';
 import { useSession } from '../../auth/session';
 import { Button, Card, ErrorBox, Field, Loading, PageHeader, TextInput } from '../../components/ui';
 import { useTypeName } from '../../lib/place-types';

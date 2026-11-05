@@ -9,14 +9,9 @@ import { Map as MapIcon, Undo2 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useShortcut } from '../../lib/shortcuts';
-import {
-  useMoveStock,
-  useOpenMoveLot,
-  usePick,
-  usePutBackLot,
-  useStocktake,
-  useTakeStock,
-} from '../../api/queries';
+import { usePick } from '../../api/carry';
+import { useOpenMoveLot, usePutBackLot } from '../../api/open';
+import { useMoveStock, useStocktake, useTakeStock } from '../../api/stock';
 import { PlacePicker } from '../../components/place-picker';
 import { MapLayers } from '../../components/svg-map';
 import {

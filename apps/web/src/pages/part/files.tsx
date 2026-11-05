@@ -2,7 +2,7 @@ import { ATTACHMENT_KINDS, type AttachmentKind, type PartDetail } from '@ixfwms/
 import { ExternalLink, FileText, Upload } from 'lucide-react';
 import { useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAttach, useUpload } from '../../api/queries';
+import { useAttach, useUpload } from '../../api/files';
 import { Button, Card, ErrorBox, Field, Pill, Select, TextInput } from '../../components/ui';
 import { formatBytes } from '../../lib/format';
 

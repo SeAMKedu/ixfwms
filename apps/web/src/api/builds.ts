@@ -8,8 +8,8 @@ import type {
   UnitDetail,
 } from '@ixfwms/domain';
 import { useQuery } from '@tanstack/react-query';
-import { api } from './client';
-import { getGuestName, useChange } from './queries';
+import { api, useChange } from './client';
+import { getGuestName } from './open';
 
 /** Makes a build from a parts list, moving the parts in from free stock. */
 export const useMakeBuild = () =>

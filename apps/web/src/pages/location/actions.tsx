@@ -1,7 +1,7 @@
 import type { LocationDetail } from '@ixfwms/domain';
 import { Copy, Hand, Pencil, Plus, Undo2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import type { usePick } from '../../api/queries';
+import type { usePick } from '../../api/carry';
 import { Button, ButtonLink } from '../../components/ui';
 
 export type Panel = 'new' | 'edit' | 'move' | 'copy' | 'lend' | 'return' | null;

@@ -1,7 +1,7 @@
 import type { CategoryInfo } from '@ixfwms/domain';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useDeleteCategory, useMoveCategory } from '../../api/queries';
+import { useDeleteCategory, useMoveCategory } from '../../api/categories';
 import { Button, Card, ErrorBox, Field, TextInput } from '../../components/ui';
 
 /**

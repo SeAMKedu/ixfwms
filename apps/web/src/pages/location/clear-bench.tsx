@@ -2,7 +2,7 @@ import { type LocationDetail } from '@ixfwms/domain';
 import { Eraser } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useClearBench } from '../../api/queries';
+import { useClearBench } from '../../api/open';
 import { Button, Card, ErrorBox, PlaceTag } from '../../components/ui';
 import { GuestName, useOpenActions } from '../../components/units';
 

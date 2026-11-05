@@ -1,6 +1,6 @@
 import { Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useDeleteImportMapping, useImportMappings } from '../../api/queries';
+import { useDeleteImportMapping, useImportMappings } from '../../api/import';
 import { useSession } from '../../auth/session';
 import { Button, Card, Empty, ErrorBox, Loading, PageHeader } from '../../components/ui';
 

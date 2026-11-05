@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { CSS2DObject, CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
-import { usePlaces } from '../api/queries';
+import { usePlaces } from '../api/locations';
 import type { MapEditing } from './svg-map';
 import { ErrorBox } from './ui';
 

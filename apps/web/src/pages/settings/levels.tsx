@@ -2,7 +2,7 @@ import { LEVEL_STATES, levelKey, type LevelState, type StockLevelDef } from '@ix
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLabSettings, useUpdateSettings } from '../../api/queries';
+import { useLabSettings, useUpdateSettings } from '../../api/system';
 import { useSession } from '../../auth/session';
 import {
   Button,

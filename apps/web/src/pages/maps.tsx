@@ -2,14 +2,14 @@ import type { MapDrawingInfo } from '@ixfwms/domain';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
+import { useUpload } from '../api/files';
 import {
   useCreateDrawing,
   useDeleteDrawing,
   useMapDrawings,
   useRenameDrawing,
   useReplaceDrawing,
-  useUpload,
-} from '../api/queries';
+} from '../api/maps';
 import { useSession } from '../auth/session';
 import { UploadButton } from '../components/map-manager';
 import { Button, Card, Empty, ErrorBox, Loading, PageHeader, TextInput } from '../components/ui';
