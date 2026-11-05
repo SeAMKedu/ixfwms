@@ -1,4 +1,9 @@
-import { BUILT_IN_LOCATION_TYPES, LocationTypeInput, type LocationTypeInfo } from '@ixfwms/domain';
+import {
+  BUILT_IN_LOCATION_TYPES,
+  LocationTypeInput,
+  LocationTypePatch,
+  type LocationTypeInfo,
+} from '@ixfwms/domain';
 import { asc, eq, sql } from 'drizzle-orm';
 import { many, one, type Db } from '../../db/client.js';
 import { locations, locationTypes } from '../../db/schema.js';
@@ -57,16 +62,12 @@ export class PlaceTypeService {
 
   async updateType(
     key: string,
-    input: Partial<LocationTypeInput>,
+    input: LocationTypePatch,
     actor: Actor | null,
   ): Promise<LocationTypeInfo> {
     const who = requireScope(actor, 'write');
     const type = await this.editableType(key);
-    // Only the fields given: a partial schema would fill the others with their defaults.
-    const parsed = LocationTypeInput.partial().parse(input);
-    const patch = Object.fromEntries(
-      Object.entries(parsed).filter(([k]) => k in input),
-    ) as typeof parsed;
+    const patch = LocationTypePatch.parse(input);
     await this.db
       .update(locationTypes)
       .set({

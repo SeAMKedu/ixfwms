@@ -490,3 +490,29 @@ describe('label management over HTTP', () => {
     });
   });
 });
+
+describe('PATCH keeps what it was not given', () => {
+  it('moving a place type in the list leaves its checkboxes and stay alone', async () => {
+    const t = await req<{ key: string }>('POST', '/api/location-types', {
+      name: 'Pallet spot',
+      movable: true,
+      workstation: true,
+      build: true,
+      stayDays: 14,
+    });
+    const moved = await req<Json>('PATCH', `/api/location-types/${t.key}`, { sort: 0 });
+    expect(moved).toMatchObject({
+      sort: 0,
+      movable: true,
+      workstation: true,
+      build: true,
+      stayDays: 14,
+    });
+  });
+
+  it('changing one lab setting leaves the others alone', async () => {
+    await req('PATCH', '/api/settings', { anonymousView: 'full', labelTape: '24' });
+    const after = await req<Json>('PATCH', '/api/settings', { labelTape: '9' });
+    expect(after).toMatchObject({ labelTape: '9', anonymousView: 'full' });
+  });
+});

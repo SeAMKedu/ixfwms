@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { AddressRootSchema, ShortNameSchema } from './addresses.js';
-import { RefSchema, StayDaysSchema } from './common.js';
+import { patchOf, RefSchema, StayDaysSchema } from './common.js';
 import { HintSchema, NumberFromSchema } from './directions.js';
 import type { LocationKind, NumberFrom, PartStatus } from './enums.js';
 import type { AttachmentView } from './files.js';
@@ -77,6 +77,10 @@ export const LocationTypeInput = z.object({
   sort: z.number().int().min(0).max(1000).optional(),
 });
 export type LocationTypeInput = z.input<typeof LocationTypeInput>;
+
+/** Changing a place type: only the fields given (moving it in the list sends just `sort`). */
+export const LocationTypePatch = patchOf(LocationTypeInput);
+export type LocationTypePatch = z.infer<typeof LocationTypePatch>;
 
 export interface LocationSummary {
   id: string;

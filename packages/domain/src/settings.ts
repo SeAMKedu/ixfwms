@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { patchOf } from './common.js';
 import { ANONYMOUS_ACTIONS, ANONYMOUS_VIEWS, type Scope } from './enums.js';
 import { DEFAULT_STOCK_LEVELS, LEVEL_STATES } from './quantity.js';
 
@@ -41,6 +42,10 @@ export const LabSettings = z.object({
     .default(DEFAULT_STOCK_LEVELS),
 });
 export type LabSettings = z.infer<typeof LabSettings>;
+
+/** Changing lab settings: only the ones given; the rest keep their stored values. */
+export const LabSettingsPatch = patchOf(LabSettings);
+export type LabSettingsPatch = z.infer<typeof LabSettingsPatch>;
 
 /** Server settings from the environment, shown read-only to admins. */
 export interface SystemInfo {

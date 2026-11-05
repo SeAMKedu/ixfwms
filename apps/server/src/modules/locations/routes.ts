@@ -2,6 +2,7 @@ import {
   CreateLocationInput,
   DuplicateLocationInput,
   LocationTypeInput,
+  LocationTypePatch,
   UpdateLocationInput,
   buildCodeUrl,
 } from '@ixfwms/domain';
@@ -41,11 +42,7 @@ export function locationsRoutes(app: FastifyInstance, { config, services }: AppD
 
   app.patch('/api/location-types/:key', async (request) => {
     const { key } = parse(z.object({ key: z.string() }), request.params);
-    return placeTypes.updateType(
-      key,
-      parse(LocationTypeInput.partial(), request.body),
-      request.actor,
-    );
+    return placeTypes.updateType(key, parse(LocationTypePatch, request.body), request.actor);
   });
 
   app.delete('/api/location-types/:key', async (request, reply) => {

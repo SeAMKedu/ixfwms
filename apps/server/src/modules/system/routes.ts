@@ -6,7 +6,7 @@ import { fail } from '../../lib/errors.js';
 import { requireScope } from '../../lib/context.js';
 import { baseUrl, parse, type AppDeps } from '../../http/context.js';
 
-import { LabSettings, type ServerInfo, type SystemInfo } from '@ixfwms/domain';
+import { LabSettingsPatch, type ServerInfo, type SystemInfo } from '@ixfwms/domain';
 
 export function systemRoutes(app: FastifyInstance, { config, services, version }: AppDeps): void {
   app.get('/healthz', () => ({ ok: true, version }));
@@ -26,7 +26,7 @@ export function systemRoutes(app: FastifyInstance, { config, services, version }
   app.get('/api/settings', () => services.settings.get());
 
   app.patch('/api/settings', async (request) =>
-    services.settings.update(parse(LabSettings.partial(), request.body), request.actor),
+    services.settings.update(parse(LabSettingsPatch, request.body), request.actor),
   );
 
   /** Server settings from the environment, read-only (admins). */

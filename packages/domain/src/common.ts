@@ -16,6 +16,20 @@ export const StayDaysSchema = z
   .nullish()
   .describe('Temporary place: expected stay in days; 0 = not temporary, null = as its type says');
 
+/**
+ * A schema for changing some fields: each is optional, and a field left out stays out. Zod's own
+ * `.partial()` still fills in defaults, so a PATCH of one field would reset the others to theirs.
+ */
+export function patchOf<S extends z.ZodRawShape>(schema: z.ZodObject<S>) {
+  const shape = Object.fromEntries(
+    Object.entries(schema.shape).map(([key, field]) => [
+      key,
+      z.optional(field instanceof z.ZodDefault ? field.unwrap() : field),
+    ]),
+  ) as { [K in keyof S]: z.ZodOptional<S[K] extends z.ZodDefault<infer T> ? T : S[K]> };
+  return z.object(shape);
+}
+
 /** A calendar date, "2026-11-30". */
 export const DateSchema = z.iso.date();
 

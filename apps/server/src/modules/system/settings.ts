@@ -1,4 +1,4 @@
-import { LabSettings } from '@ixfwms/domain';
+import { LabSettings, LabSettingsPatch } from '@ixfwms/domain';
 import { and, eq, inArray } from 'drizzle-orm';
 import { many, type Db } from '../../db/client.js';
 import { settings, stockLots } from '../../db/schema.js';
@@ -22,15 +22,14 @@ export class SettingsService {
     return out;
   }
 
-  async update(patch: Partial<LabSettings>, actor: Actor | null): Promise<LabSettings> {
+  async update(patch: LabSettingsPatch, actor: Actor | null): Promise<LabSettings> {
     // What people without an account may do and see is security policy, so it's for admins.
     const policy = 'anonymousActions' in patch || 'anonymousView' in patch;
     const who = requireScope(actor, policy ? 'admin' : 'write');
-    const valid = LabSettings.partial().parse(patch);
+    const valid = LabSettingsPatch.parse(patch);
     if ('stockLevels' in patch && valid.stockLevels) await this.checkLevelsInUse(valid.stockLevels);
     for (const [key, value] of Object.entries(valid)) {
-      // A partial schema fills missing keys with their defaults; store only what was given.
-      if (value === undefined || !(key in patch)) continue;
+      if (value === undefined) continue;
       await this.db
         .insert(settings)
         .values({ key, value, updatedBy: who.userId })
