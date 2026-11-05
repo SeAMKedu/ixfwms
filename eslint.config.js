@@ -55,10 +55,6 @@ export default tseslint.config(
     // them in a refactor commit of their own (CONTRIBUTING.md, Code layout) and take them off.
     files: [
       'apps/server/src/db/schema.ts',
-      'apps/server/src/mcp/core-tools.ts',
-      'apps/server/src/modules/maps/maps.ts',
-      'apps/server/src/modules/parts/parts.ts',
-      'apps/server/src/modules/units/units.ts',
       'apps/web/src/api/queries.ts',
       'apps/web/src/components/model-map.tsx',
       'apps/web/src/components/place-picker.tsx',

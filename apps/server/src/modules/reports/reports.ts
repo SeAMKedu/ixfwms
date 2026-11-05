@@ -13,7 +13,7 @@ import {
   type Actor,
 } from '../../lib/context.js';
 import type { PlaceStore } from '../locations/store.js';
-import type { PartResolver } from '../parts/parts.js';
+import type { PartResolver } from '../parts/store.js';
 import type { UnitService } from '../units/units.js';
 
 type ReportRow = typeof reports.$inferSelect;

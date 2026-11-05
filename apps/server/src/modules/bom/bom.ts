@@ -18,9 +18,10 @@ import { many, one, type Db } from '../../db/client.js';
 import { partIdentifiers, parts } from '../../db/schema.js';
 import { invalid } from '../../lib/errors.js';
 import { requireScope, type Actor } from '../../lib/context.js';
-import type { PartRow, PartService } from '../parts/parts.js';
+import type { PartService } from '../parts/parts.js';
+import type { PartRow } from '../parts/store.js';
 import type { StockService } from '../stock/stock.js';
-import type { UnitService } from '../units/units.js';
+import type { UnitViews } from '../units/views.js';
 
 const MAX_LINES = 1000;
 const NAME_MATCH_SCORE = 0.75;
@@ -31,7 +32,7 @@ export class BomService {
     private readonly db: Db,
     private readonly parts: PartService,
     private readonly stock: StockService,
-    private readonly units: UnitService,
+    private readonly units: UnitViews,
   ) {}
 
   async check(lines: BomLine[]): Promise<BomCheck> {

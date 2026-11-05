@@ -6,17 +6,17 @@ import type { BuildService } from '../builds/builds.js';
 import type { FileService } from '../files/files.js';
 import type { LoanService } from '../loans/loans.js';
 import type { PlaceStore } from './store.js';
-import type { PartService } from '../parts/parts.js';
-import type { UnitService } from '../units/units.js';
+import type { PartViews } from '../parts/views.js';
+import type { UnitViews } from '../units/views.js';
 
 /** Read model for a location page: path, sub-locations and what's stored there. */
 export class LocationViews {
   constructor(
     private readonly db: Db,
     private readonly locations: PlaceStore,
-    private readonly parts: PartService,
+    private readonly parts: PartViews,
     private readonly files: FileService,
-    private readonly units: UnitService,
+    private readonly units: UnitViews,
     private readonly builds: BuildService,
     private readonly loans: LoanService,
   ) {}

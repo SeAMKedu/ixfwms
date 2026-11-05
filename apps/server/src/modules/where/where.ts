@@ -7,7 +7,7 @@ import type {
   WhereIsAnswer,
 } from '@ixfwms/domain';
 import type { PlaceStore } from '../locations/store.js';
-import type { PartService } from '../parts/parts.js';
+import type { PartViews } from '../parts/views.js';
 import type { StockService } from '../stock/stock.js';
 
 const STATUS_TEXT: Record<string, string> = {
@@ -28,7 +28,7 @@ const at = (p: LocationSummary) => (p.inBuild ? `built into ${p.inBuild.name}` :
  */
 export class WhereService {
   constructor(
-    private readonly parts: PartService,
+    private readonly parts: PartViews,
     private readonly stock: StockService,
     private readonly locations: PlaceStore,
   ) {}

@@ -17,9 +17,9 @@ import { retireCode } from '../../lib/codes.js';
 import { audit, requireScope, type Actor } from '../../lib/context.js';
 import { checkNotLent } from '../loans/rules.js';
 import type { LocationService } from '../locations/locations.js';
-import type { PartResolver } from '../parts/parts.js';
+import type { PartResolver } from '../parts/store.js';
 import type { StockService } from '../stock/stock.js';
-import type { UnitService } from '../units/units.js';
+import type { UnitViews } from '../units/views.js';
 
 /**
  * Deleting completely: the thing, its stock, files and history. Only while it isn't in use
@@ -33,7 +33,7 @@ export class DeleteService {
     private readonly resolver: PartResolver,
     private readonly locations: LocationService,
     private readonly stock: StockService,
-    private readonly units: UnitService,
+    private readonly units: UnitViews,
   ) {}
 
   /**

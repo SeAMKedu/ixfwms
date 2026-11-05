@@ -24,7 +24,7 @@ import { PieceMoves } from './piece-moves.js';
 import { detail, requireScope, type Actor } from '../../lib/context.js';
 import type { LocationService } from '../locations/locations.js';
 import type { LocationRow } from '../locations/store.js';
-import type { PartResolver } from '../parts/parts.js';
+import type { PartResolver } from '../parts/store.js';
 import type { SettingsService } from '../system/settings.js';
 
 export type LotRow = typeof stockLots.$inferSelect;

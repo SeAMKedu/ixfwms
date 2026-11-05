@@ -12,7 +12,7 @@ import { invalid, notFound } from '../../lib/errors.js';
 import { newId } from '../../lib/ids.js';
 import { audit, requireScope, type Actor } from '../../lib/context.js';
 import type { PlaceStore } from '../locations/store.js';
-import type { PartResolver } from '../parts/parts.js';
+import type { PartResolver } from '../parts/store.js';
 
 export type FileRow = typeof files.$inferSelect;
 

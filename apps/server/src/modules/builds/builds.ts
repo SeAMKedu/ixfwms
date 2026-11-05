@@ -27,7 +27,7 @@ import { audit, requireScope, type Actor } from '../../lib/context.js';
 import type { LocationService } from '../locations/locations.js';
 import type { LocationRow } from '../locations/store.js';
 import type { OpenActionService } from '../open/open.js';
-import type { PartResolver } from '../parts/parts.js';
+import type { PartResolver } from '../parts/store.js';
 import type { StockService } from '../stock/stock.js';
 import type { UnitService } from '../units/units.js';
 import { countAmount, cutAmount } from '../stock/amounts.js';
