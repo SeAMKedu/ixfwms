@@ -9,7 +9,7 @@ export function carryRoutes(app: FastifyInstance, { services }: AppDeps): void {
   app.get('/api/carry', (request) => carry.state(request.actor));
 
   /** Open to everyone: who is carrying what, and since when. */
-  app.get('/api/carry/all', () => carry.everyone());
+  app.get('/api/carry/all', (request) => carry.everyone(request.actor));
 
   app.post('/api/carry/pick', async (request) => {
     const body = parse(

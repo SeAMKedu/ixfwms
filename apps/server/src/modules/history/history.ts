@@ -50,7 +50,9 @@ export class HistoryService {
     private readonly stock: StockService,
   ) {}
 
-  async recent(limit = 100): Promise<HistoryEntry[]> {
+  /** Who did what: for people with an account, not for guests. */
+  async recent(actor: Actor | null, limit = 100): Promise<HistoryEntry[]> {
+    requireScope(actor, 'read');
     const moves = await many(
       this.db.select().from(stockMovements).orderBy(desc(stockMovements.at)).limit(limit),
     );

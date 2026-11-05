@@ -102,7 +102,9 @@ describe('units of individually tracked items', () => {
     );
     expect(lent.location.kind).toBe('away');
     expect(lent.loan).toMatchObject({ responsible: 'teacher', overdue: true });
-    expect((await env.services.loans.list(true)).map((l) => l.unit?.code)).toEqual([unit.code]);
+    expect((await env.services.loans.list(true, env.admin)).map((l) => l.unit?.code)).toEqual([
+      unit.code,
+    ]);
     await expect(units.move(unit.code, shelf.code, env.admin)).rejects.toThrow(/return it/);
     await expect(
       env.services.loans.lendUnit(
@@ -115,7 +117,7 @@ describe('units of individually tracked items', () => {
     const back = await env.services.loans.returnUnit(unit.code, null, env.admin);
     expect(back).toMatchObject({ atHome: true, loan: null });
     expect(back.events.map((e) => e.kind).slice(0, 2)).toEqual(['returned', 'lent']);
-    expect(await env.services.loans.list(true)).toHaveLength(0);
+    expect(await env.services.loans.list(true, env.admin)).toHaveLength(0);
   });
 
   it('keeps a log with firmware versions and the next check date', async () => {
@@ -129,7 +131,7 @@ describe('units of individually tracked items', () => {
     );
     expect(after.firmware?.version).toBe('V4.6');
     expect(after.checkDue).toBe(true);
-    expect((await units.attention()).map((a) => [a.unit.code, a.reason])).toEqual([
+    expect((await units.attention(env.admin)).map((a) => [a.unit.code, a.reason])).toEqual([
       [unit.code, 'check_due'],
     ]);
     await expect(units.log(unit.code, { kind: 'firmware' }, env.admin)).rejects.toThrow(/version/);

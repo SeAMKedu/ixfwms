@@ -248,8 +248,9 @@ export class UnitViews {
     }));
   }
 
-  /** Units that are broken, reported, in repair, or due for a check. */
-  async attention(): Promise<UnitAttention[]> {
+  /** Units that are broken, reported, in repair, or due for a check: the Inbox's list. */
+  async attention(actor: Actor | null): Promise<UnitAttention[]> {
+    requireScope(actor, 'read');
     const rows = await many(
       this.db
         .select({ u: units, code: parts.code, name: parts.name })

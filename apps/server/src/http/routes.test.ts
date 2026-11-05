@@ -436,6 +436,26 @@ describe('users, setup and backups over HTTP', () => {
   });
 });
 
+describe('member-only reads', () => {
+  it('are refused to guests: who did what, who has what, and the Inbox lists', async () => {
+    for (const url of [
+      '/api/history',
+      '/api/loans',
+      '/api/carry/all',
+      '/api/units/attention',
+      '/api/locations/overdue',
+      '/api/import/mappings',
+    ]) {
+      expect((await env.app.inject({ url })).statusCode, url).toBe(401);
+      expect(
+        (await env.app.inject({ url, headers: { authorization: `Bearer ${env.adminToken}` } }))
+          .statusCode,
+        url,
+      ).toBe(200);
+    }
+  });
+});
+
 describe('label management over HTTP', () => {
   it('lists batches, downloads unused codes, retires, changes and swaps codes', async () => {
     await env.app.inject({

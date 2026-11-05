@@ -17,7 +17,7 @@ export function importRoutes(app: FastifyInstance, { services }: AppDeps): void 
     return services.import.importParts(body.rows, body.options, request.actor, body.dryRun);
   });
 
-  app.get('/api/import/mappings', () => services.import.listMappings());
+  app.get('/api/import/mappings', (request) => services.import.listMappings(request.actor));
 
   app.delete('/api/import/mappings/:name', async (request, reply) => {
     const { name } = parse(z.object({ name: z.string().min(1) }), request.params);

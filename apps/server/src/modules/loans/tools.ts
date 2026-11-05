@@ -64,6 +64,6 @@ export function loansTools(server: McpServer, { services, actor, links }: ToolCo
       inputSchema: { open: z.boolean().optional().describe('Default true') },
       annotations: read,
     },
-    tool(async ({ open }) => loans.list(open ?? true)),
+    tool(async ({ open }) => loans.list(open ?? true, actor)),
   );
 }

@@ -9,7 +9,7 @@ export function historyRoutes(app: FastifyInstance, { services }: AppDeps): void
       z.object({ limit: z.coerce.number().int().min(1).max(500).default(100) }),
       request.query,
     );
-    return services.history.recent(limit);
+    return services.history.recent(request.actor, limit);
   });
 
   app.post('/api/history/undo', async (request, reply) => {

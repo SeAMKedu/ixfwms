@@ -25,7 +25,7 @@ describe('turning users off and removing them', () => {
     expect(await auth.verify(token)).toBeNull();
     await expect(auth.login('pekka', 'long enough')).rejects.toThrow(/turned off/);
     await expect(auth.createToken('pekka', 'again', ['read'])).rejects.toThrow(/turned off/);
-    const history = await env.services.history.recent();
+    const history = await env.services.history.recent(env.admin);
     expect(history.find((h) => h.action === 'create')?.user).toBe('pekka');
 
     await auth.reactivate('pekka');

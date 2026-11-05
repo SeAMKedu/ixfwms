@@ -152,7 +152,9 @@ export class LoanService {
     return this.view(id);
   }
 
-  async list(open: boolean): Promise<LoanView[]> {
+  /** Who has what out: names of the people responsible, so not for guests. */
+  async list(open: boolean, actor: Actor | null): Promise<LoanView[]> {
+    requireScope(actor, 'read');
     const rows = await many(
       this.db
         .select()

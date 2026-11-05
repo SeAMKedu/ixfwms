@@ -81,7 +81,7 @@ describe('stock nobody has counted', () => {
       env.admin,
     );
     await stock.move(counted.id, box.code, null, env.admin);
-    const move = (await history.recent()).find((e) => e.kind === 'stock' && e.undoable)!;
+    const move = (await history.recent(env.admin)).find((e) => e.kind === 'stock' && e.undoable)!;
     const joined = await stock.add(
       { part: screw.code, location: box.code, amount: { mode: 'count', uncounted: true } },
       env.admin,

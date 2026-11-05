@@ -23,7 +23,7 @@ export function unitsRoutes(app: FastifyInstance, { services }: AppDeps): void {
   );
 
   /** Broken, reported, in repair, or due for a check. */
-  app.get('/api/units/attention', () => units.attention());
+  app.get('/api/units/attention', (request) => units.attention(request.actor));
 
   app.get('/api/units/:ref', async (request) =>
     units.detail(parse(RefParams, request.params).ref, request.actor),

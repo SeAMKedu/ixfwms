@@ -7,7 +7,7 @@ import {
 } from '@ixfwms/domain';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { placeName } from '../../lib/context.js';
+import { placeName, requireScope } from '../../lib/context.js';
 import { baseUrl, parse, QueryBool, type AppDeps } from '../../http/context.js';
 
 const RefParams = z.object({ ref: z.string() });
@@ -54,8 +54,14 @@ export function locationsRoutes(app: FastifyInstance, { config, services }: AppD
     return reply.status(204).send();
   });
 
-  /** Temporary places left untouched longer than expected. */
-  app.get('/api/locations/overdue', async () => locations.overdue());
+  /**
+   * Temporary places left untouched longer than expected: the Inbox's list, for people with an
+   * account. Checked here, as the map views use overdue() for anyone.
+   */
+  app.get('/api/locations/overdue', async (request) => {
+    requireScope(request.actor, 'read');
+    return locations.overdue();
+  });
 
   app.post('/api/locations/:ref/still-needed', async (request) =>
     locations.stillNeeded(parse(RefParams, request.params).ref, request.actor),

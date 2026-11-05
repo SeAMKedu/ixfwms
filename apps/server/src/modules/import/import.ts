@@ -200,7 +200,8 @@ export class ImportService {
     return map;
   }
 
-  async listMappings(): Promise<{ name: string; mapping: ImportMapping }[]> {
+  async listMappings(actor: Actor | null): Promise<{ name: string; mapping: ImportMapping }[]> {
+    requireScope(actor, 'read');
     const rows = await many(
       this.db.select().from(importMappings).orderBy(asc(importMappings.name)),
     );

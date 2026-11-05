@@ -27,7 +27,7 @@ describe('history and undo', () => {
     await stock.move(cup.lots[0]!.id, cell.code, 4, env.admin);
     await locations.move(box.code, cell.code, env.admin);
 
-    const feed = await history.recent(20);
+    const feed = await history.recent(env.admin, 20);
     expect(feed[0]).toMatchObject({
       kind: 'location',
       action: 'move',
@@ -61,7 +61,9 @@ describe('history and undo', () => {
 
     // Carry reminder lists people with something picked up.
     await carry.pick({ location: box.code }, env.admin);
-    expect(await carry.everyone()).toEqual([expect.objectContaining({ user: 'admin', count: 1 })]);
+    expect(await carry.everyone(env.admin)).toEqual([
+      expect.objectContaining({ user: 'admin', count: 1 }),
+    ]);
   });
 });
 
@@ -85,7 +87,7 @@ describe('units in the history', () => {
       env.admin,
     );
 
-    const feed = await history.recent(20);
+    const feed = await history.recent(env.admin, 20);
     expect(feed[0]).toMatchObject({
       kind: 'unit',
       action: 'firmware',
@@ -111,7 +113,7 @@ describe('category changes in the history', () => {
     await categories.setFields('Pneumatcs', [], env.admin);
     await categories.move('Pneumatcs', 'Pneumatics', env.admin);
     await categories.remove('Pneumatics', null, env.admin);
-    const feed = await history.recent(5);
+    const feed = await history.recent(env.admin, 5);
     const deleted = feed.find((e) => e.action === 'delete');
     const moved = feed.find((e) => e.action === 'move');
     expect(deleted).toMatchObject({

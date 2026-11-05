@@ -109,7 +109,7 @@ describe('where stock came from', () => {
     const onBench = await stock.move(lot3.id, bench.code, 10, env.admin);
     const inBox = await stock.move(onBench.id, box.code, null, env.admin);
     expect(inBox.origin).toBeNull();
-    const last = (await history.recent()).find((e) => e.kind === 'stock' && e.undoable)!;
+    const last = (await history.recent(env.admin)).find((e) => e.kind === 'stock' && e.undoable)!;
     expect(last.to?.name).toBe('Box');
     await history.undo('stock', last.id, env.admin);
     expect(await lotsOf(screw.code)).toEqual([

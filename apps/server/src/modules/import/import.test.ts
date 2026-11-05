@@ -82,7 +82,7 @@ describe('spreadsheet import', () => {
       { ...mapping, headerRow: 2 },
       env.inventory,
     );
-    expect(await env.services.import.listMappings()).toEqual([
+    expect(await env.services.import.listMappings(env.admin)).toEqual([
       { name: 'Festo order export', mapping: { ...mapping, headerRow: 2 } },
     ]);
     await expect(

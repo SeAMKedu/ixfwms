@@ -87,7 +87,7 @@ export function unitsTools(server: McpServer, { services, actor, links }: ToolCo
       inputSchema: {},
       annotations: read,
     },
-    tool(async () => units.attention()),
+    tool(async () => units.attention(actor)),
   );
 
   // Lost units are marked lost with update_unit (status lost); this is for when one turns up.

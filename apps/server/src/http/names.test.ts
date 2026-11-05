@@ -46,14 +46,12 @@ const get = (url: string, token?: string) =>
 describe('names for readers without a login', () => {
   it('keeps what happened but leaves out who', async () => {
     const { unit, box } = await named();
+    // History, the loans list and everyone's carry lists need a login (routes.test.ts).
     const urls = [
-      '/api/loans',
       '/api/reports',
-      '/api/history',
       `/api/units/${unit.code}`,
       '/api/locations',
       `/api/locations/${box.code}`,
-      '/api/carry/all',
     ];
     for (const url of urls) {
       const anon = await get(url);
@@ -63,8 +61,6 @@ describe('names for readers without a login', () => {
       expect(read.body, url).toMatch(/Ulla|Pekka/);
     }
 
-    const [loan] = (await get('/api/loans')).json<Record<string, unknown>[]>();
-    expect(loan).toMatchObject({ responsible: null, description: null, overdue: false });
     const [report] = (await get('/api/reports')).json<Record<string, unknown>[]>();
     // What was wrong needs a login too, unless the lab shows readers everything.
     expect(report).toMatchObject({ by: null, kind: 'broken', note: null });
@@ -75,9 +71,6 @@ describe('names for readers without a login', () => {
     expect(detail.loan).toMatchObject({ responsible: null, description: null });
     expect(detail.events.map((e) => e.kind)).toContain('lent');
     expect(detail.events.every((e) => e.by === null)).toBe(true);
-    const history = (await get('/api/history')).json<{ user: string | null }[]>();
-    expect(history.length).toBeGreaterThan(0);
-    expect(history.every((e) => e.user === null)).toBe(true);
 
     const carried = (await get('/api/locations')).json<{ kind: string; name: string }[]>();
     expect(carried.find((l) => l.kind === 'in_transit')).toMatchObject({ name: 'Being carried' });

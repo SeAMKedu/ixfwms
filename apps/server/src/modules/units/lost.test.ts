@@ -29,7 +29,7 @@ describe('lost units', () => {
     const { drill, unit } = await lab();
     const { units, bom, where } = env.services;
     await units.update(unit.code, { status: 'lost' }, env.admin);
-    expect((await units.attention()).map((a) => [a.unit.name, a.unit.status])).toEqual([
+    expect((await units.attention(env.admin)).map((a) => [a.unit.name, a.unit.status])).toEqual([
       ['Drill 2', 'lost'],
     ]);
     expect((await bom.check([{ ref: drill.code, quantity: 1 }])).lines[0]!.available).toBe(0);

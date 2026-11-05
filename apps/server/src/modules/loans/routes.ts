@@ -11,7 +11,7 @@ export function loansRoutes(app: FastifyInstance, { services }: AppDeps): void {
 
   app.get('/api/loans', async (request) => {
     const q = parse(z.object({ open: QueryBool.optional() }), request.query);
-    return loans.list(q.open ?? true);
+    return loans.list(q.open ?? true, request.actor);
   });
 
   app.post('/api/units/:ref/lend', async (request) =>

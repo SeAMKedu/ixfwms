@@ -80,7 +80,8 @@ export class CarryService {
   }
 
   /** Everyone's non-empty carry lists, oldest first: things that may have been forgotten "in transit". */
-  async everyone(): Promise<CarrySummary[]> {
+  async everyone(actor: Actor | null): Promise<CarrySummary[]> {
+    requireScope(actor, 'read');
     const carries = await many(
       this.db
         .select({ loc: locations, user: users.name })

@@ -23,7 +23,7 @@ export function GlobalShortcuts() {
   useShortcut('g s', t('shortcuts.goScan'), go('/scan'));
   useShortcut('g c', t('shortcuts.goCarry'), go('/carry'), !!user);
   useShortcut('g h', t('shortcuts.goHistory'), go('/history'), !!user);
-  useShortcut('g b', t('shortcuts.goBom'), go('/bom'), !!user);
+  useShortcut('g b', t('shortcuts.goBom'), go('/bom'));
   useShortcut('n', t('shortcuts.newPart'), go('/parts/new'), can('inventory'));
   return null;
 }

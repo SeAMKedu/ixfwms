@@ -54,7 +54,7 @@ describe('erasing a person', () => {
     expect(names).not.toContain('Ulla');
     expect(names).not.toContain('Removed user');
 
-    const recent = await history.recent();
+    const recent = await history.recent(env.admin);
     expect(recent.some((h) => h.user === 'Removed user')).toBe(true);
     const detail = await units.detail(unit.code, env.admin);
     expect(detail.loans[0]).toMatchObject({

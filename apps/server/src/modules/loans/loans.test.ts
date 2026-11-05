@@ -67,7 +67,7 @@ describe('lending a whole container', () => {
     const out = await env.services.locationViews.detail(box.code);
     expect(out).toMatchObject({ outOfLab: true, loan: { id: loan.id } });
     expect(out.path[0]!.kind).toBe('away');
-    expect((await loans.list(true)).map((l) => l.place?.code)).toEqual([box.code]);
+    expect((await loans.list(true, env.admin)).map((l) => l.place?.code)).toEqual([box.code]);
 
     const drone1 = await units.detail(aircraft.code, env.admin);
     expect(drone1.loan).toMatchObject({ id: loan.id, place: { name: 'Drone case' } });
@@ -119,7 +119,7 @@ describe('lending a whole container', () => {
     const here = await env.services.locationViews.detail(box.code);
     expect(here).toMatchObject({ outOfLab: false, loan: null });
     expect(here.path.map((p) => p.code).slice(-2)).toEqual([shelf.code, box.code]);
-    expect(await loans.list(true)).toHaveLength(0);
+    expect(await loans.list(true, env.admin)).toHaveLength(0);
 
     const lost = await units.detail(batteries[2]!.code, env.admin);
     expect(lost).toMatchObject({ status: 'lost', loan: null });

@@ -85,7 +85,7 @@ const routes = [
       },
       { path: '/categories', element: <Redirect to="/settings/categories" /> },
       { path: '/import', element: <ImportPage />, handle: LOGIN_ONLY },
-      { path: '/bom', element: <BomPage />, handle: LOGIN_ONLY },
+      { path: '/bom', element: <BomPage /> },
       { path: '/history', element: <HistoryPage />, handle: LOGIN_ONLY },
       { path: '/write-offs', element: <WriteOffsPage />, handle: LOGIN_ONLY },
       { path: '/network', element: <NetworkPage />, handle: LOGIN_ONLY },
