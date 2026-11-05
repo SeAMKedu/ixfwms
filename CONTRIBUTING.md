@@ -18,6 +18,46 @@ feat: drawers numbered by short name
 Upgrade: Give drawers short names 1, 2, 3… where they're named after their contents.
 ```
 
+## Code layout
+
+Code is grouped by feature, so a new feature is mostly new files in a folder of its own rather than a few more lines in every shared file.
+
+### Server modules
+
+`apps/server/src/modules/<feature>/` has one folder for each thing the lab does: places, parts, units, stock, loans, builds, maps and so on. Each module has these files, when it needs them:
+
+| File            | Holds                                                                                 |
+| --------------- | ------------------------------------------------------------------------------------- |
+| `<feature>.ts`  | the service: the changes (create, update, move…) and anything not big enough to split |
+| `store.ts`      | row types, `resolve()`, summaries: the read-only access other modules need            |
+| `views.ts`      | what the API and MCP read: detail pages, lists, projections                           |
+| `rules.ts`      | checks other modules make before they change something, e.g. `checkNotLent`           |
+| `routes.ts`     | HTTP routes, `export function <feature>Routes(app: FastifyInstance, deps: AppDeps)`   |
+| `tools.ts`      | MCP tools, `export function <feature>Tools(server: McpServer, ctx: ToolContext)`      |
+| `<sub-part>.ts` | a part that is a feature of its own inside the module, named for it (`place-copy.ts`) |
+| `*.test.ts`     | tests, next to what they test                                                         |
+
+A module starts with `<feature>.ts`, `routes.ts` and `tools.ts`. When `<feature>.ts` gets near the size limit, split it into the roles above, not by whatever part is closest to hand.
+
+- **Dependencies between modules.** Depend on the narrowest piece: another module's `store.ts` or `rules.ts` when that's all you use, not its whole service. Import types with `import type`. A value import goes to `store.ts` or `rules.ts`, and never forms a cycle.
+- **Wiring.** `modules/index.ts` builds the services (`createServices`) and lists every module's routes and tools. `http/app.ts` and `mcp/server.ts` only walk those lists. A new module is a folder plus its lines in `modules/index.ts`.
+- **Shared plumbing.** Who is asking and the audit log are in `lib/context.ts`, next to errors and ids in `lib/`. The database is in `db/`. `db/schema.ts` stays one file, because drizzle-kit and the data model drawing read it.
+- **MCP tools.** Tools are thin: parse, call the service, add links (`ctx.links`). Their input is the domain schema (`...SomeInput.shape`), with the field descriptions in the schema (`.describe()`), so the route and the tool take the same input.
+
+### Domain package
+
+`packages/domain/src/<feature>.ts` holds a feature's request schemas (zod) and response types, and is re-exported from `index.ts`. Shared building blocks (amounts, codes, enums, errors) have files of their own.
+
+### Web app
+
+- `apps/web/src/api/<feature>.ts` holds a feature's query and mutation hooks. `api/client.ts` has the fetch wrapper and `useChange`.
+- `pages/<page>.tsx` lays out a page, and its sections are in `pages/<page>/`.
+- `components/` has what more than one page uses.
+
+### Size limits
+
+ESLint fails a file over 400 lines and a function over 200 (blank lines and comments not counted). Files that were over when the limits came in are listed in `eslint.config.js` as warnings. Split them in a refactor commit of their own, never inside a feature, and take them off the list.
+
 ## Checks
 
 Every check is an npm script, so it works the same on macOS, Windows, Linux and in any future CI.
