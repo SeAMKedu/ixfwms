@@ -10,6 +10,7 @@ interface FilterOption {
 }
 
 interface Props {
+  id?: string;
   /** Accessible name of the field. */
   label: string;
   placeholder: string;
@@ -25,7 +26,15 @@ interface Props {
  * the field as chips; Backspace in the empty field takes the last one off. Nothing new is created,
  * and text left unchosen is dropped on leaving the field.
  */
-export function FilterPicker({ label, placeholder, options, values, onChange, multiple }: Props) {
+export function FilterPicker({
+  id,
+  label,
+  placeholder,
+  options,
+  values,
+  onChange,
+  multiple,
+}: Props) {
   const { t } = useTranslation();
   const listId = useId();
   const [text, setText] = useState('');
@@ -79,6 +88,7 @@ export function FilterPicker({ label, placeholder, options, values, onChange, mu
           </span>
         ))}
         <input
+          id={id}
           role="combobox"
           aria-label={label}
           aria-expanded={open}

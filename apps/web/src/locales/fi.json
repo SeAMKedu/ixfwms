@@ -676,6 +676,7 @@
     "copyLinks": "Kopioi yhteydet",
     "copyOverwrites": "Tämä korvaa täällä tehdyt yhteydet. Jatketaanko?",
     "useExisting": "Tai käytä kirjaston piirrosta",
+    "searchLibrary": "Hae karttoja nimellä…",
     "linkLike": "Yhdistetty kuten",
     "noLinks": "(ei vielä yhteyksiä)",
     "replacesOwn": "Paikalla on jo tämän tyyppinen kartta; käytetäänkö tätä sen sijaan?",

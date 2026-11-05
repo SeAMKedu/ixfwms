@@ -24,6 +24,7 @@ import {
   useSetMap,
   useSetMapLink,
 } from '../api/maps';
+import { FilterPicker } from './filter-picker';
 import { LinkEditor } from './map-link-editor';
 import { Button, Card, CodeLabel, ErrorBox, Field, Pill, Select } from './ui';
 
@@ -274,29 +275,34 @@ function UseExisting({ code, taken }: { code: string; taken: MapKind[] }) {
     (d) => !d.usages.some((u) => u.location.code === code),
   );
   const chosen = choices.find((d) => d.id === drawingId);
+  // What the search shows and matches; the kind tells a plan from a model of the same name.
+  const labels = new Map<string, string>();
+  for (const d of choices) {
+    const label = `${d.name} · ${t(`maps.kinds.${d.kind}`)}`;
+    const taken = [...labels.values()].filter((l) => l === label || l.startsWith(`${label} (`));
+    labels.set(d.id, taken.length ? `${label} (${taken.length + 1})` : label);
+  }
   if (choices.length === 0) return null;
   return (
     <div className="flex flex-wrap items-end gap-2">
-      <Field label={t('maps.useExisting')}>
-        {(id) => (
-          <Select
-            id={id}
-            value={drawingId}
-            onChange={(e) => {
-              setDrawingId(e.target.value);
-              const d = choices.find((x) => x.id === e.target.value);
-              setCopyFrom(d?.usages[0]?.location.code ?? '');
-            }}
-          >
-            <option value="">—</option>
-            {choices.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name} · {t(`maps.kinds.${d.kind}`)}
-              </option>
-            ))}
-          </Select>
-        )}
-      </Field>
+      <div className="w-72 max-w-full">
+        <Field label={t('maps.useExisting')}>
+          {(id) => (
+            <FilterPicker
+              id={id}
+              label={t('maps.useExisting')}
+              placeholder={t('maps.searchLibrary')}
+              options={choices.map((d) => ({ name: labels.get(d.id)!, count: d.usages.length }))}
+              values={chosen ? [labels.get(chosen.id)!] : []}
+              onChange={(values) => {
+                const d = choices.find((x) => labels.get(x.id) === values[0]);
+                setDrawingId(d?.id ?? '');
+                setCopyFrom(d?.usages[0]?.location.code ?? '');
+              }}
+            />
+          )}
+        </Field>
+      </div>
       {chosen && chosen.usages.length > 0 && (
         <Field label={t('maps.linkLike')}>
           {(id) => (

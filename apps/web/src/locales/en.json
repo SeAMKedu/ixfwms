@@ -676,6 +676,7 @@
     "copyLinks": "Copy links",
     "copyOverwrites": "This replaces the links made here. Continue?",
     "useExisting": "Or use a drawing from the library",
+    "searchLibrary": "Search maps by name…",
     "linkLike": "Linked like",
     "noLinks": "(no links yet)",
     "replacesOwn": "This place already has a map of that kind; use this one instead?",
