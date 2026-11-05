@@ -510,6 +510,22 @@ describe('PATCH keeps what it was not given', () => {
     });
   });
 
+  it('ticking a box or renaming a place type keeps its stay and other boxes', async () => {
+    const t = await req<{ key: string }>('POST', '/api/location-types', {
+      name: 'Hall spot',
+      movable: true,
+      stayDays: 14,
+    });
+    await req('PATCH', `/api/location-types/${t.key}`, { workstation: true });
+    const after = await req<Json>('PATCH', `/api/location-types/${t.key}`, { name: 'Hall spot 2' });
+    expect(after).toMatchObject({
+      name: 'Hall spot 2',
+      movable: true,
+      workstation: true,
+      stayDays: 14,
+    });
+  });
+
   it('changing one lab setting leaves the others alone', async () => {
     await req('PATCH', '/api/settings', { anonymousView: 'full', labelTape: '24' });
     const after = await req<Json>('PATCH', '/api/settings', { labelTape: '9' });
