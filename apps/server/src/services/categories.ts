@@ -11,7 +11,7 @@ import { many, one, type Db, type Executor } from '../db/client.js';
 import { categories, parts } from '../db/schema.js';
 import { conflict, invalid, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
-import { audit, requireScope, type Actor } from './context.js';
+import { audit, requireScope, type Actor } from '../lib/context.js';
 
 type CategoryRow = typeof categories.$inferSelect;
 

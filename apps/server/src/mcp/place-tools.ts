@@ -6,7 +6,7 @@ import {
   UpdateLocationInput,
 } from '@ixfwms/domain';
 import { z } from 'zod';
-import type { Actor, Services } from '../services/index.js';
+import type { Actor, Services } from '../modules/index.js';
 import { read, tool, write } from './tool.js';
 
 /**

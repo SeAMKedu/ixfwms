@@ -5,7 +5,7 @@ import { SCOPES, USER_ROLES, type Scope, type UserRole } from '@ixfwms/domain';
 import { loadConfig } from './config.js';
 import { openDatabase } from './db/client.js';
 import { AppError } from './lib/errors.js';
-import { createServices, prepareDatabase } from './services/index.js';
+import { createServices, prepareDatabase } from './modules/index.js';
 
 const HELP = `ixfwms admin CLI
 

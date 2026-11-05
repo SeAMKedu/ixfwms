@@ -1,7 +1,7 @@
 import type { FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { Config } from '../config.js';
-import type { Actor, Services } from '../services/index.js';
+import type { Actor, Services } from '../modules/index.js';
 
 declare module 'fastify' {
   interface FastifyRequest {

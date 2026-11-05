@@ -24,7 +24,7 @@ import {
 import { withinCategory, type CategoryService } from './categories.js';
 import type { LocationService } from './locations.js';
 import { belowMinimum } from './low-stock.js';
-import { detailsHidden } from './context.js';
+import { detailsHidden } from '../lib/context.js';
 import { contains, unitSearchText } from './search-text.js';
 import type { StockService } from './stock.js';
 

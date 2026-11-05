@@ -1,6 +1,5 @@
 import {
   AddUnitsInput,
-  LendInput,
   OpenMoveInput,
   ReportInput,
   UnitLogInput,
@@ -13,9 +12,9 @@ import { OPEN, parse, QueryBool, type AppDeps } from '../context.js';
 const RefParams = z.object({ ref: z.string() });
 const Guest = z.object({ name: z.string().trim().max(80).nullish() });
 
-/** Units, loans, problem reports, and the moves people may make without an account. */
+/** Units, problem reports, and the moves people may make without an account. */
 export function registerUnitRoutes(app: FastifyInstance, { services }: AppDeps): void {
-  const { units, loans, reports, open, where } = services;
+  const { units, reports, open, where } = services;
 
   /** A lost unit turned up: here (`to`), or back home. */
   app.post('/api/units/:ref/found', OPEN, async (request) => {
@@ -82,25 +81,7 @@ export function registerUnitRoutes(app: FastifyInstance, { services }: AppDeps):
     ),
   );
 
-  app.post('/api/units/:ref/lend', async (request) =>
-    loans.lendUnit(
-      parse(RefParams, request.params).ref,
-      parse(LendInput, request.body),
-      request.actor,
-    ),
-  );
-
-  app.post('/api/units/:ref/return', async (request) => {
-    const { to } = parse(z.object({ to: z.string().nullish() }), request.body);
-    return loans.returnUnit(parse(RefParams, request.params).ref, to ?? null, request.actor);
-  });
-
   app.get('/api/write-offs', async (request) => services.writeOffs.list(request.actor));
-
-  app.get('/api/loans', async (request) => {
-    const q = parse(z.object({ open: QueryBool.optional() }), request.query);
-    return loans.list(q.open ?? true);
-  });
 
   app.get('/api/network', async (request) => units.network(request.actor));
 

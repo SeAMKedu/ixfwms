@@ -15,7 +15,7 @@ import { many, one, type Db } from '../db/client.js';
 import { apiTokens, loans, locations, stockLots, units, users } from '../db/schema.js';
 import { conflict, fail, invalid, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
-import { audit, type Actor } from './context.js';
+import { audit, type Actor } from '../lib/context.js';
 import { checkPassword, hashPassword, unknownUserHash, weakHash } from './passwords.js';
 import { eraseUser, REMOVED_USER_ID, REMOVED_USER_NAME, USER_REFERENCES } from './user-erase.js';
 

@@ -17,7 +17,7 @@ import { eq, inArray } from 'drizzle-orm';
 import { many, one, type Db } from '../db/client.js';
 import { partIdentifiers, parts } from '../db/schema.js';
 import { invalid } from '../lib/errors.js';
-import { requireScope, type Actor } from './context.js';
+import { requireScope, type Actor } from '../lib/context.js';
 import type { PartRow, PartService } from './parts.js';
 import type { StockService } from './stock.js';
 import type { UnitService } from './units.js';

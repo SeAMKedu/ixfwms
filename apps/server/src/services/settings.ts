@@ -4,7 +4,7 @@ import { many, type Db } from '../db/client.js';
 import { settings, stockLots } from '../db/schema.js';
 import { invalid } from '../lib/errors.js';
 import { nowIso } from '../lib/ids.js';
-import { audit, requireScope, type Actor } from './context.js';
+import { audit, requireScope, type Actor } from '../lib/context.js';
 
 /** Lab-wide settings changed in the app, each stored under its own key, with defaults for the rest. */
 export class SettingsService {

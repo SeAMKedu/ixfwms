@@ -2,7 +2,7 @@ import { SCOPES, USER_ROLES, UserSettingsInput } from '@ixfwms/domain';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { fail, invalid } from '../../lib/errors.js';
-import { requireScope } from '../../services/context.js';
+import { requireScope } from '../../lib/context.js';
 import { parse, type AppDeps } from '../context.js';
 
 const NameParams = z.object({ name: z.string() });

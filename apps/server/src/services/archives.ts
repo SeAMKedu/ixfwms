@@ -4,7 +4,7 @@ import { one, type Db } from '../db/client.js';
 import { locations, locationTypes } from '../db/schema.js';
 import { invalid } from '../lib/errors.js';
 import { nowIso } from '../lib/ids.js';
-import { audit, requireScope, type Actor } from './context.js';
+import { audit, requireScope, type Actor } from '../lib/context.js';
 import { checkEmpty } from './deletes.js';
 import type { LocationService } from './locations.js';
 

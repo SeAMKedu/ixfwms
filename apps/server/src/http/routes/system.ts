@@ -1,6 +1,6 @@
 import { LabSettings, type ServerInfo, type SystemInfo } from '@ixfwms/domain';
 import type { FastifyInstance } from 'fastify';
-import { requireScope } from '../../services/context.js';
+import { requireScope } from '../../lib/context.js';
 import { baseUrl, parse, type AppDeps } from '../context.js';
 
 export function registerSystemRoutes(

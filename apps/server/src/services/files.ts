@@ -10,7 +10,7 @@ import { many, one, type Db, type Executor } from '../db/client.js';
 import { attachments, files } from '../db/schema.js';
 import { invalid, notFound } from '../lib/errors.js';
 import { newId } from '../lib/ids.js';
-import { audit, requireScope, type Actor } from './context.js';
+import { audit, requireScope, type Actor } from '../lib/context.js';
 import type { LocationService } from './locations.js';
 import type { PartResolver } from './parts.js';
 

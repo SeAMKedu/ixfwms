@@ -6,7 +6,7 @@ import {
   type UpdateUnitInput,
 } from '@ixfwms/domain';
 import type { unitEvents, units } from '../db/schema.js';
-import { detail, eventValue, loanReason, personName, type Actor } from './context.js';
+import { detail, eventValue, loanReason, personName, type Actor } from '../lib/context.js';
 
 export function eventView(
   e: typeof unitEvents.$inferSelect,

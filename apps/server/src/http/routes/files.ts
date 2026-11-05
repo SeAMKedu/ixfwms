@@ -3,7 +3,7 @@ import { AttachInput } from '@ixfwms/domain';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { fail } from '../../lib/errors.js';
-import { requireScope } from '../../services/context.js';
+import { requireScope } from '../../lib/context.js';
 import { parse, type AppDeps } from '../context.js';
 
 export function registerFileRoutes(app: FastifyInstance, { services }: AppDeps): void {

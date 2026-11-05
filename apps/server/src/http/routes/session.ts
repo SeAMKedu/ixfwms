@@ -2,7 +2,7 @@ import { hasScope, SCOPES, UserSettingsInput } from '@ixfwms/domain';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { fail } from '../../lib/errors.js';
-import { requireScope, type Actor } from '../../services/context.js';
+import { requireScope, type Actor } from '../../lib/context.js';
 import { OPEN, parse, type AppDeps } from '../context.js';
 import { saveUserSettings } from './users.js';
 

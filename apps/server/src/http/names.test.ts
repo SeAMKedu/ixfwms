@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { viewAs } from '../services/context.js';
+import { viewAs } from '../lib/context.js';
 import { createTestEnv, type TestEnv } from '../test/harness.js';
 
 let env: TestEnv;

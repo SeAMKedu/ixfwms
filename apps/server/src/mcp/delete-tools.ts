@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import type { Actor, Services } from '../services/index.js';
+import type { Actor, Services } from '../modules/index.js';
 import { tool } from './tool.js';
 
 const destructive = { readOnlyHint: false, destructiveHint: true, openWorldHint: false } as const;

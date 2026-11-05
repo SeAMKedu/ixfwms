@@ -11,7 +11,7 @@ import { many, one, type Db, type Executor } from '../db/client.js';
 import { locations, parts, stockLots, units } from '../db/schema.js';
 import { nowIso } from '../lib/ids.js';
 import { fail, invalid } from '../lib/errors.js';
-import { requireScope, type Actor } from './context.js';
+import { requireScope, type Actor } from '../lib/context.js';
 import type { LocationRow, LocationService } from './locations.js';
 import type { SettingsService } from './settings.js';
 import type { StockService } from './stock.js';

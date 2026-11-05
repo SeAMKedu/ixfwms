@@ -42,11 +42,19 @@ import {
 import { invalid, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
 import { allocateCode, claimCode } from './codes.js';
-import { audit, detail, detailsHidden, personName, requireScope, type Actor } from './context.js';
+import {
+  audit,
+  detail,
+  detailsHidden,
+  personName,
+  requireScope,
+  type Actor,
+} from '../lib/context.js';
 import type { LocationRow, LocationService } from './locations.js';
 import type { PartResolver } from './parts.js';
 import { unitSearchText } from './search-text.js';
-import { checkNotLent, loanViews, openLoan, placeLoans } from './loans.js';
+import { checkNotLent } from '../modules/loans/rules.js';
+import { loanViews, openLoan, placeLoans } from '../modules/loans/store.js';
 import { eventView, ipKey, purchaseFor, purchasePatch } from './unit-views.js';
 
 export type UnitRow = typeof units.$inferSelect;

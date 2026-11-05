@@ -2,7 +2,7 @@ import type { WriteOffRow } from '@ixfwms/domain';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import { many, type Db } from '../db/client.js';
 import { parts, unitEvents, units } from '../db/schema.js';
-import { requireScope, type Actor } from './context.js';
+import { requireScope, type Actor } from '../lib/context.js';
 import { purchaseOf } from './unit-views.js';
 
 const REMOVED = ['archived', 'lost'];

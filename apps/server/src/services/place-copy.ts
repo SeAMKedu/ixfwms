@@ -8,7 +8,7 @@ import { eq, isNull, like } from 'drizzle-orm';
 import { many, type Db, type Executor } from '../db/client.js';
 import { locations, locationTypes } from '../db/schema.js';
 import { invalid } from '../lib/errors.js';
-import { audit, requireScope, type Actor } from './context.js';
+import { audit, requireScope, type Actor } from '../lib/context.js';
 import type { LocationService } from './locations.js';
 
 /** Copying a place, with everything below it. Reached through LocationService.duplicate. */

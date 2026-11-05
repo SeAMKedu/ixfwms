@@ -3,7 +3,7 @@ import { basename, join } from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { fail } from '../../lib/errors.js';
-import { requireScope } from '../../services/context.js';
+import { requireScope } from '../../lib/context.js';
 import { baseUrl, parse, type AppDeps } from '../context.js';
 
 /** History with undo, HTTPS setup help, and backups. */

@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { loadConfig, type Config } from '../config.js';
 import { openDatabase, type Database } from '../db/client.js';
 import { buildApp } from '../http/app.js';
-import { createServices, prepareDatabase, type Actor, type Services } from '../services/index.js';
+import { createServices, prepareDatabase, type Actor, type Services } from '../modules/index.js';
 
 export interface TestEnv {
   config: Config;

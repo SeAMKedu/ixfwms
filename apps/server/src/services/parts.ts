@@ -35,7 +35,7 @@ import type { BuildService } from './builds.js';
 import type { CategoryService } from './categories.js';
 import { toAmount } from './amounts.js';
 import { allocateCode, retireCode } from './codes.js';
-import { audit, detail, placeName, requireScope, type Actor } from './context.js';
+import { audit, detail, placeName, requireScope, type Actor } from '../lib/context.js';
 import type { FileService } from './files.js';
 import type { LocationService } from './locations.js';
 import { PartSearch, type SearchInput } from './part-search.js';

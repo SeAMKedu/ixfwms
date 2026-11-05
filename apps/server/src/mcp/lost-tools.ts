@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import type { Actor, Services } from '../services/index.js';
+import type { Actor, Services } from '../modules/index.js';
 import { tool, write } from './tool.js';
 
 /** Lost units: marked lost with update_unit (status lost); this is for when one turns up. */

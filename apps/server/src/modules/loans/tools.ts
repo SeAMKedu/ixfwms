@@ -1,21 +1,12 @@
 import { LendInput, ReturnPlaceInput } from '@ixfwms/domain';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import type { Actor, Services } from '../services/index.js';
-import { read, tool, write } from './tool.js';
+import { read, tool, write, type ToolContext } from '../../mcp/tool.js';
 
-/** Lending units and whole containers out of the lab (LoanService). */
-export function registerLoanTools(
-  server: McpServer,
-  services: Services,
-  actor: Actor,
-  baseUrl: string,
-): void {
+/** Lending units and whole containers out of the lab. */
+export function loanTools(server: McpServer, { services, actor, links }: ToolContext): void {
   const { loans } = services;
-  const withUnitLink = <T extends { code: string }>(u: T) => ({
-    ...u,
-    url: `${baseUrl}/u/${u.code}`,
-  });
+  const withUnitLink = <T extends { code: string }>(u: T) => ({ ...u, url: links.unit(u.code) });
 
   server.registerTool(
     'lend_unit',

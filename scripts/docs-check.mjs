@@ -23,7 +23,7 @@ const readme = readFileSync('README.md', 'utf8');
 
 // MCP tools: the README's table lists every tool the server registers, and nothing else.
 const tools = new Set(
-  sourceFiles('apps/server/src/mcp').flatMap((src) =>
+  sourceFiles('apps/server/src').flatMap((src) =>
     [...src.matchAll(/registerTool\(\s*'([a-z_]+)'/g)].map((m) => m[1]),
   ),
 );
@@ -42,7 +42,7 @@ if (gone.length) problems.push(`README lists MCP tools that don't exist: ${gone.
 
 // REST API: every /api/<area> the server answers is mentioned in the README's API table.
 const areas = new Set(
-  sourceFiles('apps/server/src/http').flatMap((src) =>
+  sourceFiles('apps/server/src').flatMap((src) =>
     [...src.matchAll(/\.(?:get|post|put|patch|delete)\(\s*'(\/api\/[^/'?]+)/g)].map((m) => m[1]),
   ),
 );

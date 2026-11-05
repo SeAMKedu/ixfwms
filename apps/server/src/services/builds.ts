@@ -23,7 +23,7 @@ import {
 import { invalid } from '../lib/errors.js';
 
 import { nowIso } from '../lib/ids.js';
-import { audit, requireScope, type Actor } from './context.js';
+import { audit, requireScope, type Actor } from '../lib/context.js';
 import type { LocationRow, LocationService } from './locations.js';
 import type { OpenActionService } from './open.js';
 import type { PartResolver } from './parts.js';

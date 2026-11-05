@@ -4,7 +4,7 @@ import { many, one, type Db } from '../db/client.js';
 import { locations, locationTypes, parts, stockLots } from '../db/schema.js';
 import type { BuildService } from './builds.js';
 import type { FileService } from './files.js';
-import type { LoanService } from './loans.js';
+import type { LoanService } from '../modules/loans/loans.js';
 import type { LocationService } from './locations.js';
 import type { PartService } from './parts.js';
 import type { UnitService } from './units.js';

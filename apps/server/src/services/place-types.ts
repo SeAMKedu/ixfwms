@@ -4,7 +4,7 @@ import { many, one, type Db } from '../db/client.js';
 import { locations, locationTypes } from '../db/schema.js';
 import { invalid, notFound } from '../lib/errors.js';
 import { newId } from '../lib/ids.js';
-import { audit, requireScope, type Actor } from './context.js';
+import { audit, requireScope, type Actor } from '../lib/context.js';
 
 /** Place types (Settings › Place types): movable, temporary, workstation, build. */
 export class PlaceTypeService {

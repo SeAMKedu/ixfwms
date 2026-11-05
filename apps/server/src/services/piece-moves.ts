@@ -16,8 +16,8 @@ import { parts, stockLots } from '../db/schema.js';
 import { invalid } from '../lib/errors.js';
 import { nowIso } from '../lib/ids.js';
 import { absorb, amountOf, countAmount, cutAmount, piecesToUnit } from './amounts.js';
-import type { Actor } from './context.js';
-import { checkNotLent } from './loans.js';
+import type { Actor } from '../lib/context.js';
+import { checkNotLent } from '../modules/loans/rules.js';
 import type { LocationRow, LocationService } from './locations.js';
 import type { LotRow, StockService } from './stock.js';
 

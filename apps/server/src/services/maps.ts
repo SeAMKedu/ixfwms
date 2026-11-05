@@ -15,7 +15,7 @@ import { many, one, type Db, type Executor } from '../db/client.js';
 import { locations, mapDrawings, mapLinks, mapUsages } from '../db/schema.js';
 import { invalid, notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
-import { audit, requireScope, type Actor } from './context.js';
+import { audit, requireScope, type Actor } from '../lib/context.js';
 import type { FileService } from './files.js';
 import { starterSvg } from './map-starter.js';
 import type { LocationRow, LocationService } from './locations.js';

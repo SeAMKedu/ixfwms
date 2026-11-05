@@ -5,7 +5,7 @@ import { categories, codes, locations, parts, stockLots, units, users } from '..
 import { invalid } from '../lib/errors.js';
 import type { LabelData } from '../labels/render.js';
 import { allocateCode, claimCode, lookupCode, reserveCodes, retireCode } from './codes.js';
-import { audit, detail, personName, requireScope, type Actor } from './context.js';
+import { audit, detail, personName, requireScope, type Actor } from '../lib/context.js';
 import type { LocationRow, LocationService } from './locations.js';
 
 const MAX_BLANK = 500;

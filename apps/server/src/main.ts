@@ -2,7 +2,7 @@ import { mkdir } from 'node:fs/promises';
 import { loadConfig } from './config.js';
 import { openDatabase } from './db/client.js';
 import { buildApp } from './http/app.js';
-import { createServices, prepareDatabase } from './services/index.js';
+import { createServices, prepareDatabase } from './modules/index.js';
 import { readVersion } from './version.js';
 
 const config = loadConfig();

@@ -14,8 +14,8 @@ import {
 } from '../db/schema.js';
 import { invalid } from '../lib/errors.js';
 import { retireCode } from './codes.js';
-import { audit, requireScope, type Actor } from './context.js';
-import { checkNotLent } from './loans.js';
+import { audit, requireScope, type Actor } from '../lib/context.js';
+import { checkNotLent } from '../modules/loans/rules.js';
 import type { LocationService } from './locations.js';
 import type { PartResolver } from './parts.js';
 import type { StockService } from './stock.js';

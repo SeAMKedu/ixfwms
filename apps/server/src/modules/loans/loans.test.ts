@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { UnitDetail } from '@ixfwms/domain';
-import { createTestEnv, type TestEnv } from '../test/harness.js';
+import { createTestEnv, type TestEnv } from '../../test/harness.js';
 
 let env: TestEnv;
 beforeEach(async () => {

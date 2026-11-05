@@ -3,8 +3,8 @@ import type { Scope, UserRole } from '@ixfwms/domain';
 import { hasScope, UNIT_LOG_KINDS } from '@ixfwms/domain';
 import type { Executor } from '../db/client.js';
 import { auditLog } from '../db/schema.js';
-import { fail } from '../lib/errors.js';
-import { newId } from '../lib/ids.js';
+import { fail } from './errors.js';
+import { newId } from './ids.js';
 
 /** Who is doing something. `null` means anonymous (read-only access on the lab network). */
 export interface Actor {

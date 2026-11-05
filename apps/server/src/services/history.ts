@@ -21,7 +21,7 @@ import {
   placeName,
   requireScope,
   type Actor,
-} from './context.js';
+} from '../lib/context.js';
 import type { LocationService } from './locations.js';
 import type { StockService } from './stock.js';
 

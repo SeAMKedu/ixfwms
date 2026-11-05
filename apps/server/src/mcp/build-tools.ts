@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { LEFTOVERS, PieceSchema } from '@ixfwms/domain';
 import { z } from 'zod';
-import type { Actor, Services } from '../services/index.js';
+import type { Actor, Services } from '../modules/index.js';
 import { tool, write } from './tool.js';
 
 /** Builds: making one from a parts list and taking it apart. Finding them is search_parts. */
