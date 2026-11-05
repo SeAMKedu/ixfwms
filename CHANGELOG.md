@@ -1,6 +1,14 @@
 # Changelog
 
 All notable changes to ixfwms.
+## 0.18.1 (2026-11-05)
+
+### Fixes
+- **server:** changing one field no longer resets the others
+- **web:** place type stay field fits 365 and up
+
+### Maintenance
+- **server:** ticking a box or renaming a place type keeps the rest
 ## 0.18.0 (2026-11-05)
 
 ### Features
