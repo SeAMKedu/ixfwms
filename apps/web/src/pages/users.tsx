@@ -1,29 +1,10 @@
-import {
-  SCOPES,
-  USER_ROLES,
-  type UserDetail,
-  type UserLanguage,
-  type UserRole,
-} from '@ixfwms/domain';
-import { ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import { USER_ROLES, type UserRole } from '@ixfwms/domain';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, Navigate, useNavigate, useParams } from 'react-router';
-import {
-  useCreateToken,
-  useCreateUser,
-  useDeactivateUser,
-  useDeleteUser,
-  useEraseUser,
-  useReactivateUser,
-  useRevokeToken,
-  useUpdateUser,
-  useUser,
-  useUsers,
-} from '../api/users';
+import { useCreateUser, useUpdateUser, useUser, useUsers } from '../api/users';
 import { useSession } from '../auth/session';
-import { ApiTokens } from '../components/api-tokens';
-import { PlacePicker } from '../components/place-picker';
 import {
   Button,
   Card,
@@ -37,160 +18,9 @@ import {
   TextInput,
   isNotFound,
 } from '../components/ui';
-import { LANGUAGES } from '../i18n';
 import { formatDate } from '../lib/format';
-
-/** Their keys: an admin can delete any. Only accounts without a login get new ones from here. */
-function UserTokens({ user }: { user: UserDetail }) {
-  const { t } = useTranslation();
-  const create = useCreateToken();
-  const revoke = useRevokeToken();
-  return (
-    <ApiTokens
-      tokens={user.tokens}
-      hint={user.hasPassword ? t('users.tokensHint') : undefined}
-      create={
-        user.active && !user.hasPassword
-          ? {
-              scopes: SCOPES,
-              run: (input) => create.mutateAsync({ user: user.name, ...input }),
-              busy: create.isPending,
-            }
-          : undefined
-      }
-      revoke={revoke.mutate}
-      revoking={revoke.isPending}
-      error={create.error ?? revoke.error}
-    />
-  );
-}
-
-/** What this person has chosen for themselves, for an admin to change. */
-function UserSettings({ user }: { user: UserDetail }) {
-  const { t } = useTranslation();
-  const update = useUpdateUser();
-  return (
-    <Card title={t('users.settings')}>
-      <div className="grid gap-3 md:grid-cols-2">
-        <Field label={t('account.home')}>
-          {(id) => (
-            <PlacePicker
-              id={id}
-              value={user.home?.code ?? ''}
-              onChange={(code) => update.mutate({ name: user.name, home: code || null })}
-            />
-          )}
-        </Field>
-        <Field label={t('account.language')}>
-          {(id) => (
-            <Select
-              id={id}
-              value={user.language ?? ''}
-              onChange={(e) =>
-                update.mutate({
-                  name: user.name,
-                  language: (e.target.value || null) as UserLanguage | null,
-                })
-              }
-            >
-              <option value="">{t('users.languageBrowser')}</option>
-              {LANGUAGES.map((l) => (
-                <option key={l.code} value={l.code}>
-                  {l.name}
-                </option>
-              ))}
-            </Select>
-          )}
-        </Field>
-      </div>
-      <p className="text-[12px] text-muted">{t('users.settingsHint')}</p>
-      <ErrorBox error={update.error} />
-    </Card>
-  );
-}
-
-/** Turning a user off (or back on), removing one that has no history, or erasing one that has. */
-function Status({ user }: { user: UserDetail }) {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const off = useDeactivateUser();
-  const on = useReactivateUser();
-  const remove = useDeleteUser();
-  const erase = useEraseUser();
-  // No history: remove the account. History: erase the person, keep what they did.
-  const gone = user.canDelete ? remove : erase;
-  const [confirm, setConfirm] = useState(false);
-  const blocked = user.openLoans > 0 || user.carrying > 0;
-  return (
-    <Card title={t('users.status')}>
-      {user.active ? (
-        <>
-          <p className="max-w-prose text-sm text-muted">{t('users.offHint')}</p>
-          {user.openLoans > 0 && (
-            <p className="text-sm text-warn">{t('users.hasLoans', { count: user.openLoans })}</p>
-          )}
-          {user.carrying > 0 && (
-            <p className="text-sm text-warn">{t('users.isCarrying', { count: user.carrying })}</p>
-          )}
-          <Button
-            className="self-start"
-            disabled={blocked}
-            busy={off.isPending}
-            onClick={() => off.mutate(user.name)}
-          >
-            {t('users.turnOff')}
-          </Button>
-        </>
-      ) : (
-        <>
-          <p className="text-sm">
-            {t('users.offSince', { date: formatDate(user.disabledAt ?? user.createdAt) })}
-          </p>
-          <Button className="self-start" busy={on.isPending} onClick={() => on.mutate(user.name)}>
-            {t('users.turnOn')}
-          </Button>
-        </>
-      )}
-      <div className="flex flex-col gap-2 border-t border-line pt-3">
-        <p className="max-w-prose text-sm text-muted">
-          {user.canDelete ? t('users.removeHint') : t('users.cantRemove', { count: user.history })}
-        </p>
-        {!user.canDelete && (
-          <p className="max-w-prose text-sm text-muted">{t('users.eraseHint')}</p>
-        )}
-        {confirm ? (
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="primary"
-              className="!border-crit !bg-crit"
-              busy={gone.isPending}
-              onClick={() =>
-                void gone
-                  .mutateAsync(user.name)
-                  .then(() => navigate('/settings/users', { replace: true }))
-              }
-            >
-              {t(user.canDelete ? 'users.removeConfirm' : 'users.eraseConfirm', {
-                name: user.name,
-              })}
-            </Button>
-            <Button onClick={() => setConfirm(false)}>{t('common.cancel')}</Button>
-          </div>
-        ) : (
-          <Button
-            className="self-start"
-            disabled={!user.canDelete && blocked}
-            onClick={() => setConfirm(true)}
-          >
-            <Trash2 className="size-4" aria-hidden />
-            {t(user.canDelete ? 'users.remove' : 'users.erase')}
-          </Button>
-        )}
-      </div>
-      <ErrorBox error={off.error ?? on.error ?? gone.error} />
-    </Card>
-  );
-}
+import { UserTokens, UserSettings } from './users/settings';
+import { Status } from './users/status';
 
 /** One user: role, password, settings, tokens, and turning the account off or removing it. */
 export function UserPage() {

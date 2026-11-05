@@ -53,16 +53,7 @@ export default tseslint.config(
   {
     // Over the limits already: warnings, so a feature can land without a refactor in it. Split
     // them in a refactor commit of their own (CONTRIBUTING.md, Code layout) and take them off.
-    files: [
-      'apps/server/src/db/schema.ts',
-      'apps/web/src/components/model-map.tsx',
-      'apps/web/src/components/place-picker.tsx',
-      'apps/web/src/pages/bom.tsx',
-      'apps/web/src/pages/import.tsx',
-      'apps/web/src/pages/part-edit.tsx',
-      'apps/web/src/pages/part/lot-row.tsx',
-      'apps/web/src/pages/users.tsx',
-    ],
+    files: ['apps/server/src/db/schema.ts'],
     rules: {
       'max-lines': ['warn', { max: 400, skipBlankLines: true, skipComments: true }],
       'max-lines-per-function': ['warn', { max: 200, skipBlankLines: true, skipComments: true }],

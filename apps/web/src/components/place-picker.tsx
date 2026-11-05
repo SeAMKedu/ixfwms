@@ -1,10 +1,9 @@
 import { isValidCode, normalizeCode, type PlaceOption } from '@ixfwms/domain';
-import { ChevronRight, X } from 'lucide-react';
 import { useId, useMemo, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePlaces } from '../api/locations';
 import { matchPlaces, placeLabel } from '../lib/places';
-import { PlaceTag } from './ui';
+import { PlaceOptionRow, SelectedPlace } from './place-options';
 
 interface Props {
   id?: string;
@@ -137,27 +136,12 @@ export function PlacePicker({
 
   if (selected && !open && !text) {
     return (
-      <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-line bg-surface px-3 py-2">
-        <button
-          type="button"
-          id={id}
-          className="min-w-0 truncate text-left text-[15px]"
-          onClick={() => setOpen(true)}
-        >
-          {placeLabel(selected)}
-        </button>
-        <span className="flex shrink-0 items-center gap-1.5">
-          <PlaceTag place={selected} />
-          <button
-            type="button"
-            aria-label={t('picker.clear')}
-            className="text-muted"
-            onClick={() => onChange('')}
-          >
-            <X className="size-4" aria-hidden />
-          </button>
-        </span>
-      </div>
+      <SelectedPlace
+        id={id}
+        place={selected}
+        onOpen={() => setOpen(true)}
+        onClear={() => onChange('')}
+      />
     );
   }
 
@@ -212,49 +196,18 @@ export function PlacePicker({
                 {places.isPending ? t('common.loading') : t('picker.noMatch')}
               </li>
             ) : (
-              matches.map((p, i) => {
-                const children = childCount.get(p.code) ?? 0;
-                const shownPath = scope ? p.path.slice(scope.path.length, -1) : p.path.slice(0, -1);
-                return (
-                  <li
-                    key={p.id}
-                    role="option"
-                    aria-selected={i === active}
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      choose(p);
-                    }}
-                    onMouseEnter={() => setActive(i)}
-                    className={`flex cursor-pointer items-center justify-between gap-2 px-3 py-1.5 text-sm ${i === active ? 'bg-link-soft' : ''}`}
-                  >
-                    <span className="min-w-0">
-                      <span className="block truncate font-medium">{p.name}</span>
-                      {shownPath.length > 0 && (
-                        <span className="block truncate text-[12px] text-muted">
-                          {shownPath.join(' › ')}
-                        </span>
-                      )}
-                    </span>
-                    <span className="flex shrink-0 items-center gap-1.5">
-                      <PlaceTag place={p} />
-                      {children > 0 && (
-                        <button
-                          type="button"
-                          aria-label={t('picker.stepInto', { name: p.name })}
-                          className="grid size-6 place-items-center rounded text-muted hover:bg-surface-2"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            enter(p);
-                          }}
-                        >
-                          <ChevronRight className="size-4" aria-hidden />
-                        </button>
-                      )}
-                    </span>
-                  </li>
-                );
-              })
+              matches.map((p, i) => (
+                <PlaceOptionRow
+                  key={p.id}
+                  place={p}
+                  scope={scope}
+                  active={i === active}
+                  inside={childCount.get(p.code) ?? 0}
+                  onChoose={() => choose(p)}
+                  onHover={() => setActive(i)}
+                  onEnter={() => enter(p)}
+                />
+              ))
             )}
           </ul>
           <p className="border-t border-line bg-surface-2 px-3 py-1 text-[11.5px] text-muted">

@@ -1,14 +1,4 @@
-import {
-  IDENTIFIER_KINDS,
-  PART_KINDS,
-  normalizeCode,
-  type CutShape,
-  type IdentifierKind,
-  type PartDetail,
-  type PartKind,
-  type TrackingMode,
-} from '@ixfwms/domain';
-import { Trash2 } from 'lucide-react';
+import { normalizeCode, type PartDetail } from '@ixfwms/domain';
 import { useDeferredValue, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router';
@@ -16,21 +6,9 @@ import { useCategories, useCategoryFields } from '../api/categories';
 import { useCreatePart, usePart, useTags, useUpdatePart } from '../api/parts';
 import { useAddUnits } from '../api/units';
 import { useSession } from '../auth/session';
-import { PlacePicker } from '../components/place-picker';
-import { AmountFields, toAmountInput, useAmountState } from '../components/amount-fields';
-import {
-  ContainerFields,
-  containerDraft,
-  containerOf,
-  minStockHint,
-  type ContainerDraft,
-} from './part/container-fields';
-import {
-  AttributeInputs,
-  fromDraft,
-  toDraft,
-  type AttributeDraft,
-} from '../components/attribute-fields';
+import { toAmountInput, useAmountState } from '../components/amount-fields';
+import { ContainerFields, containerOf } from './part/container-fields';
+import { AttributeInputs, toDraft, type AttributeDraft } from '../components/attribute-fields';
 import {
   Button,
   Card,
@@ -38,55 +16,20 @@ import {
   Field,
   Loading,
   PageHeader,
-  Segmented,
-  Select,
   TextArea,
   TextInput,
 } from '../components/ui';
 import { parseNumber, splitList } from '../lib/format';
-
-interface IdentRow {
-  kind: IdentifierKind;
-  value: string;
-}
-
-interface FormState {
-  name: string;
-  kind: PartKind;
-  tracking: TrackingMode;
-  aliases: string;
-  category: string;
-  manufacturer: string;
-  description: string;
-  identifiers: IdentRow[];
-  tags: string;
-  unitMassG: string;
-  minStock: string;
-  cut: CutShape | '';
-  container: ContainerDraft;
-  notes: string;
-  source: string;
-}
-
-const fromPart = (p?: PartDetail, kind?: string | null): FormState => ({
-  name: p?.name ?? '',
-  kind: p?.kind ?? (PART_KINDS.find((k) => k === kind) || 'part'),
-  tracking: p?.tracking ?? (kind === 'device' || kind === 'tool' ? 'individual' : 'bulk'),
-  aliases: p?.aliases.join(', ') ?? '',
-  category: p?.category ?? '',
-  manufacturer: p?.manufacturer ?? '',
-  description: p?.description ?? '',
-  identifiers: p?.identifiers.map((i) => ({ kind: i.kind as IdentifierKind, value: i.value })) ?? [
-    { kind: 'order_no', value: '' },
-  ],
-  tags: p?.tags.join(', ') ?? '',
-  unitMassG: p?.unitMassG?.toString() ?? '',
-  minStock: p?.minStock?.toString() ?? '',
-  cut: p?.cut ?? '',
-  container: containerDraft(p?.container),
-  notes: p?.notes ?? '',
-  source: p?.source ?? '',
-});
+import {
+  commonFields,
+  fromPart,
+  IdentifierRows,
+  KindFields,
+  listChanges,
+  MeasureFields,
+  type FormState,
+} from './part/edit-fields';
+import { InitialStock, NewUnits } from './part/new-stock';
 
 /** Create a part (/parts/new) or edit one (/p/:code/edit). */
 export function PartEditPage() {
@@ -126,44 +69,13 @@ function PartForm({ part }: { part?: PartDetail }) {
     );
 
   const set = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
-  const setIdent = (i: number, patch: Partial<IdentRow>) =>
-    set({ identifiers: form.identifiers.map((row, j) => (j === i ? { ...row, ...patch } : row)) });
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     const idents = form.identifiers.filter((i) => i.value.trim());
-    const common = {
-      name: form.name,
-      kind: form.kind,
-      tracking: form.tracking,
-      aliases: splitList(form.aliases),
-      category: form.category || null,
-      manufacturer: form.manufacturer || null,
-      description: form.description || null,
-      unitMassG: parseNumber(form.unitMassG) ?? null,
-      minStock: parseNumber(form.minStock) ?? null,
-      cut: form.cut || null,
-      container: containerOf(form.container),
-      notes: form.notes || null,
-      source: form.source || null,
-      attributes: fromDraft(attrs, fields),
-    };
+    const common = commonFields(form, attrs, fields);
     if (part) {
-      const before = new Set(part.identifiers.map((i) => `${i.kind}:${i.value}`));
-      const after = new Set(idents.map((i) => `${i.kind}:${i.value.trim()}`));
-      const oldTags = new Set(part.tags);
-      const newTags = splitList(form.tags);
-      await update.mutateAsync({
-        ...common,
-        addIdentifiers: idents
-          .filter((i) => !before.has(`${i.kind}:${i.value.trim()}`))
-          .map((i) => ({ kind: i.kind, value: i.value.trim() })),
-        removeIdentifiers: part.identifiers
-          .filter((i) => !after.has(`${i.kind}:${i.value}`))
-          .map((i) => i.value),
-        addTags: newTags.filter((tg) => !oldTags.has(tg)),
-        removeTags: part.tags.filter((tg) => !newTags.includes(tg)),
-      });
+      await update.mutateAsync({ ...common, ...listChanges(part, form) });
       void navigate(`/p/${part.code}`);
     } else {
       const individual = form.tracking === 'individual';
@@ -205,42 +117,7 @@ function PartForm({ part }: { part?: PartDetail }) {
             />
           )}
         </Field>
-        <div className="grid gap-3 md:grid-cols-2">
-          <Field label={t('part.kind')}>
-            {(id) => (
-              <Select
-                id={id}
-                value={form.kind}
-                onChange={(e) => {
-                  const kind = e.target.value as PartKind;
-                  // New devices are almost always tracked one by one.
-                  set(!part && kind === 'device' ? { kind, tracking: 'individual' } : { kind });
-                }}
-              >
-                {PART_KINDS.map((k) => (
-                  <option key={k} value={k}>
-                    {t(`partKinds.${k}`)}
-                  </option>
-                ))}
-              </Select>
-            )}
-          </Field>
-          <div className="flex flex-col gap-1">
-            <span className="text-[13px] font-medium">{t('part.tracking')}</span>
-            <Segmented<TrackingMode>
-              label={t('part.tracking')}
-              value={form.tracking}
-              onChange={(tracking) => set({ tracking })}
-              options={[
-                { value: 'bulk', label: t('part.trackingBulk') },
-                { value: 'individual', label: t('part.trackingIndividual') },
-              ]}
-            />
-            <span className="text-[12px] text-muted">
-              {individual ? t('part.trackingIndividualHint') : t('part.trackingBulkHint')}
-            </span>
-          </div>
-        </div>
+        <KindFields form={form} set={set} isNew={!part} />
         <Field label={t('part.aliases')} hint={t('part.aliasesHint')}>
           {(id) => (
             <TextInput
@@ -279,46 +156,7 @@ function PartForm({ part }: { part?: PartDetail }) {
           </Field>
         </div>
         {fields.length > 0 && <AttributeInputs fields={fields} value={attrs} onChange={setAttrs} />}
-        <div className="flex flex-col gap-2">
-          <span className="text-[13px] font-medium">{t('part.identifiers')}</span>
-          {form.identifiers.map((row, i) => (
-            <div key={i} className="grid grid-cols-[8.5rem_minmax(0,1fr)_auto] gap-2">
-              <Select
-                aria-label={t('part.identifierKind')}
-                value={row.kind}
-                onChange={(e) => setIdent(i, { kind: e.target.value as IdentifierKind })}
-              >
-                {IDENTIFIER_KINDS.map((k) => (
-                  <option key={k} value={k}>
-                    {t(`identifierKinds.${k}`)}
-                  </option>
-                ))}
-              </Select>
-              <TextInput
-                aria-label={t('part.identifierValue')}
-                value={row.value}
-                onChange={(e) => setIdent(i, { value: e.target.value })}
-                className="font-mono"
-              />
-              <Button
-                variant="ghost"
-                aria-label={t('common.remove')}
-                onClick={() => set({ identifiers: form.identifiers.filter((_, j) => j !== i) })}
-              >
-                <Trash2 className="size-4" aria-hidden />
-              </Button>
-            </div>
-          ))}
-          <Button
-            small
-            className="self-start"
-            onClick={() =>
-              set({ identifiers: [...form.identifiers, { kind: 'order_no', value: '' }] })
-            }
-          >
-            {t('part.addIdentifier')}
-          </Button>
-        </div>
+        <IdentifierRows form={form} set={set} />
         <Field label={t('part.tags')} hint={t('part.tagsHint')}>
           {(id) => (
             <>
@@ -345,41 +183,7 @@ function PartForm({ part }: { part?: PartDetail }) {
             />
           )}
         </Field>
-        <div className="grid gap-3 md:grid-cols-2">
-          <Field label={t('part.unitMass')} hint={t('common.optional')}>
-            {(id) => (
-              <TextInput
-                id={id}
-                inputMode="decimal"
-                value={form.unitMassG}
-                onChange={(e) => set({ unitMassG: e.target.value })}
-              />
-            )}
-          </Field>
-          <Field label={t('part.minStock')} hint={minStockHint(form.container, t)}>
-            {(id) => (
-              <TextInput
-                id={id}
-                inputMode="decimal"
-                value={form.minStock}
-                onChange={(e) => set({ minStock: e.target.value })}
-              />
-            )}
-          </Field>
-          <Field label={t('cut.title')} hint={t('cut.titleHint')}>
-            {(id) => (
-              <Select
-                id={id}
-                value={form.cut}
-                onChange={(e) => set({ cut: e.target.value as CutShape | '' })}
-              >
-                <option value="">{t('cut.notCut')}</option>
-                <option value="length">{t('cut.length')}</option>
-                <option value="sheet">{t('cut.sheet')}</option>
-              </Select>
-            )}
-          </Field>
-        </div>
+        <MeasureFields form={form} set={set} />
         <ContainerFields value={form.container} onChange={(c) => set({ container: c })} />
         <Field label={t('part.notes')}>
           {(id) => (
@@ -398,51 +202,18 @@ function PartForm({ part }: { part?: PartDetail }) {
       </Card>
 
       {!part && individual && (
-        <Card title={t('units.title')}>
-          <div className="grid gap-3 md:grid-cols-[8rem_minmax(0,1fr)]">
-            <Field label={t('units.howMany')}>
-              {(id) => (
-                <TextInput
-                  id={id}
-                  inputMode="numeric"
-                  value={unitCount}
-                  onChange={(e) => setUnitCount(e.target.value)}
-                />
-              )}
-            </Field>
-            <Field label={t('units.home')} hint={t('units.homeHint')}>
-              {(id) => <PlacePicker id={id} value={location} onChange={setLocation} />}
-            </Field>
-          </div>
-          <p className="text-[12px] text-muted">{t('units.serialsLater')}</p>
-        </Card>
+        <NewUnits count={unitCount} onCount={setUnitCount} home={location} onHome={setLocation} />
       )}
       {!part && (!individual || can('write')) && (
-        <Card title={individual ? undefined : t('part.initialStock')}>
-          {!individual && (
-            <>
-              <Field label={t('part.location')} hint={t('part.initialStockHint')}>
-                {(id) => <PlacePicker id={id} value={location} onChange={setLocation} />}
-              </Field>
-              <AmountFields
-                value={amount}
-                onChange={setAmount}
-                cut={form.cut || null}
-                container={containerOf(form.container)}
-              />
-            </>
-          )}
-          {can('write') && (
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={reviewed}
-                onChange={(e) => setReviewed(e.target.checked)}
-              />
-              {t('part.markReviewed')}
-            </label>
-          )}
-        </Card>
+        <InitialStock
+          individual={individual}
+          location={location}
+          onLocation={setLocation}
+          amount={[amount, setAmount]}
+          cut={form.cut || null}
+          container={containerOf(form.container)}
+          reviewed={can('write') ? [reviewed, setReviewed] : undefined}
+        />
       )}
 
       <ErrorBox error={create.error ?? update.error ?? addUnits.error} />
