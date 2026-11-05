@@ -15,7 +15,7 @@ import { baseUrl, parse, QueryBool, type AppDeps } from '../../http/context.js';
 
 const RefParams = z.object({ ref: z.string() });
 
-export function locationRoutes(app: FastifyInstance, { config, services }: AppDeps): void {
+export function locationsRoutes(app: FastifyInstance, { config, services }: AppDeps): void {
   const { builds, locations, locationViews, maps, placeTypes } = services;
 
   app.get('/api/locations', async (request) => {

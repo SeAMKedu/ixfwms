@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { parse, type AppDeps } from '../../http/context.js';
 
-export function registerCarryRoutes(app: FastifyInstance, { services }: AppDeps): void {
+export function carryRoutes(app: FastifyInstance, { services }: AppDeps): void {
   const { carry } = services;
 
   app.get('/api/carry', (request) => carry.state(request.actor));

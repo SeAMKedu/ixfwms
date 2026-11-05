@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { parse, type AppDeps } from '../../http/context.js';
 
-export function registerImportRoutes(app: FastifyInstance, { services }: AppDeps): void {
+export function importRoutes(app: FastifyInstance, { services }: AppDeps): void {
   /** Rows already mapped to fields by the client. `dryRun: true` previews without changing anything. */
   app.post('/api/import/parts', async (request) => {
     const body = parse(

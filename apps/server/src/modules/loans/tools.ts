@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { read, tool, write, type ToolContext } from '../../mcp/tool.js';
 
 /** Lending units and whole containers out of the lab. */
-export function loanTools(server: McpServer, { services, actor, links }: ToolContext): void {
+export function loansTools(server: McpServer, { services, actor, links }: ToolContext): void {
   const { loans } = services;
   const withUnitLink = <T extends { code: string }>(u: T) => ({ ...u, url: links.unit(u.code) });
 

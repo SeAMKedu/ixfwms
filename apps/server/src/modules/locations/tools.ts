@@ -13,7 +13,7 @@ import { read, tool, write, type ToolContext } from '../../mcp/tool.js';
  * Items are archived with update_part (status archived), units with update_unit (status
  * archived); setting the status back brings them back.
  */
-export function locationTools(server: McpServer, { services, actor, links }: ToolContext): void {
+export function locationsTools(server: McpServer, { services, actor, links }: ToolContext): void {
   const { locations, locationViews } = services;
 
   server.registerTool(

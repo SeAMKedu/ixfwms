@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { OPEN, parse, type AppDeps } from '../../http/context.js';
 
-export function registerBomRoutes(app: FastifyInstance, { services }: AppDeps): void {
+export function bomRoutes(app: FastifyInstance, { services }: AppDeps): void {
   /** Open to anyone on the lab network: checking a list changes nothing. */
   app.post('/api/bom/check', OPEN, async (request) => {
     const { lines } = parse(z.object({ lines: z.array(BomLine) }), request.body);

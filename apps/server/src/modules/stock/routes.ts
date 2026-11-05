@@ -5,7 +5,7 @@ import { parse, type AppDeps } from '../../http/context.js';
 
 const LotParams = z.object({ lotId: z.string() });
 
-export function registerStockRoutes(app: FastifyInstance, { services }: AppDeps): void {
+export function stockRoutes(app: FastifyInstance, { services }: AppDeps): void {
   const { stock } = services;
 
   app.post('/api/stock', async (request, reply) => {

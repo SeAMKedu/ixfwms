@@ -11,7 +11,7 @@ const LabelQuery = z.object({
 });
 const Ecl = z.enum(['L', 'M', 'Q', 'H']);
 
-export function registerLabelRoutes(app: FastifyInstance, { config, services }: AppDeps): void {
+export function labelsRoutes(app: FastifyInstance, { config, services }: AppDeps): void {
   const { labels } = services;
 
   const collect = async (request: FastifyRequest) => {

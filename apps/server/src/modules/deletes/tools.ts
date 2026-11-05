@@ -1,12 +1,11 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import type { Actor, Services } from '../index.js';
-import { tool } from '../../mcp/tool.js';
+import { tool, type ToolContext } from '../../mcp/tool.js';
 
 const destructive = { readOnlyHint: false, destructiveHint: true, openWorldHint: false } as const;
 
 /** Deleting what was made by mistake. Ask the person first; archive or retire anything real. */
-export function registerDeleteTools(server: McpServer, services: Services, actor: Actor): void {
+export function deletesTools(server: McpServer, { services, actor }: ToolContext): void {
   const done = (what: string) => ({ deleted: what });
   server.registerTool(
     'delete_part',

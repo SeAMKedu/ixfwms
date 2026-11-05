@@ -6,7 +6,7 @@ import { parse, QueryBool, type AppDeps } from '../../http/context.js';
 const RefParams = z.object({ ref: z.string() });
 
 /** Lending units and whole containers out of the lab, and getting them back. */
-export function loanRoutes(app: FastifyInstance, { services }: AppDeps): void {
+export function loansRoutes(app: FastifyInstance, { services }: AppDeps): void {
   const { loans } = services;
 
   app.get('/api/loans', async (request) => {

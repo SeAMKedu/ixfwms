@@ -5,54 +5,64 @@ import type { Config } from '../config.js';
 import type { Database } from '../db/client.js';
 import { pendingMigrations, runMigrations } from '../db/migrate.js';
 import type { AppDeps } from '../http/context.js';
-import { registerAdminRoutes } from './system/admin-routes.js';
-import { registerBomRoutes } from './bom/routes.js';
-import { registerCarryRoutes } from './carry/routes.js';
-import { registerFileRoutes } from './files/routes.js';
-import { registerImportRoutes } from './import/routes.js';
-import { registerLabelRoutes } from './labels/routes.js';
-import { registerMapRoutes } from './maps/routes.js';
-import { registerPartRoutes } from './parts/routes.js';
-import { registerSessionRoutes } from './users/session-routes.js';
-import { registerStockRoutes } from './stock/routes.js';
-import { registerSystemRoutes } from './system/routes.js';
-import { registerUnitRoutes } from './units/routes.js';
-import { registerUserRoutes } from './users/routes.js';
-import { registerBuildTools } from './builds/tools.js';
-import { coreTools } from '../mcp/core-tools.js';
-import { registerDeleteTools } from './deletes/tools.js';
-import { registerLostTools } from './units/lost-tools.js';
 import type { ToolContext } from '../mcp/tool.js';
-import { LoanService } from './loans/loans.js';
-import { locationRoutes } from './locations/routes.js';
-import { locationTools } from './locations/tools.js';
-import { loanRoutes } from './loans/routes.js';
-import { loanTools } from './loans/tools.js';
 import { ArchiveService } from './archives/archives.js';
-import { AuthService } from './users/auth.js';
-import { BackupService } from './system/backup.js';
 import { BomService } from './bom/bom.js';
+import { bomRoutes } from './bom/routes.js';
+import { bomTools } from './bom/tools.js';
 import { BuildService } from './builds/builds.js';
+import { buildsTools } from './builds/tools.js';
 import { CarryService } from './carry/carry.js';
+import { carryRoutes } from './carry/routes.js';
 import { CategoryService } from './categories/categories.js';
+import { categoriesRoutes } from './categories/routes.js';
+import { categoriesTools } from './categories/tools.js';
 import { DeleteService } from './deletes/deletes.js';
-import { ExportService } from './system/export.js';
+import { deletesTools } from './deletes/tools.js';
 import { FileService } from './files/files.js';
+import { filesRoutes } from './files/routes.js';
+import { filesTools } from './files/tools.js';
 import { HistoryService } from './history/history.js';
+import { historyRoutes } from './history/routes.js';
 import { ImportService } from './import/import.js';
+import { importRoutes } from './import/routes.js';
 import { LabelService } from './labels/labels.js';
-import { LocationViews } from './locations/views.js';
+import { labelsRoutes } from './labels/routes.js';
+import { LoanService } from './loans/loans.js';
+import { loansRoutes } from './loans/routes.js';
+import { loansTools } from './loans/tools.js';
 import { LocationService } from './locations/locations.js';
-import { MapService } from './maps/maps.js';
-import { OpenActionService } from './open/open.js';
 import { PlaceTypeService } from './locations/place-types.js';
+import { locationsRoutes } from './locations/routes.js';
+import { locationsTools } from './locations/tools.js';
+import { LocationViews } from './locations/views.js';
+import { MapService } from './maps/maps.js';
+import { mapsRoutes } from './maps/routes.js';
+import { OpenActionService } from './open/open.js';
+import { openRoutes } from './open/routes.js';
 import { PartResolver, PartService } from './parts/parts.js';
-import { ReportService } from './reports/reports.js';
+import { partsRoutes } from './parts/routes.js';
 import { fillSearchText } from './parts/search-text.js';
-import { SettingsService } from './system/settings.js';
+import { partsTools } from './parts/tools.js';
+import { ReportService } from './reports/reports.js';
+import { reportsRoutes } from './reports/routes.js';
+import { reportsTools } from './reports/tools.js';
+import { stockRoutes } from './stock/routes.js';
 import { StockService } from './stock/stock.js';
+import { stockTools } from './stock/tools.js';
+import { BackupService } from './system/backup.js';
+import { ExportService } from './system/export.js';
+import { adminRoutes, systemRoutes } from './system/routes.js';
+import { SettingsService } from './system/settings.js';
+import { unitsRoutes } from './units/routes.js';
+import { unitsTools } from './units/tools.js';
 import { UnitService } from './units/units.js';
+import { AuthService } from './users/auth.js';
+import { sessionRoutes, usersRoutes } from './users/routes.js';
+import { whereRoutes } from './where/routes.js';
+import { whereTools } from './where/tools.js';
 import { WhereService } from './where/where.js';
+import { writeOffsRoutes } from './write-offs/routes.js';
 import { WriteOffService } from './write-offs/write-offs.js';
 
 export type { Actor } from '../lib/context.js';
@@ -62,31 +72,43 @@ type Tools = (server: McpServer, ctx: ToolContext) => void;
 
 /** Every module's HTTP routes; `http/app.ts` registers them in this order. */
 export const ROUTES: Routes[] = [
-  registerSystemRoutes,
-  registerSessionRoutes,
-  locationRoutes,
-  registerPartRoutes,
-  registerStockRoutes,
-  registerUnitRoutes,
-  loanRoutes,
-  registerFileRoutes,
-  registerLabelRoutes,
-  registerCarryRoutes,
-  registerImportRoutes,
-  registerBomRoutes,
-  registerMapRoutes,
-  registerUserRoutes,
-  registerAdminRoutes,
+  systemRoutes,
+  sessionRoutes,
+  locationsRoutes,
+  partsRoutes,
+  categoriesRoutes,
+  stockRoutes,
+  unitsRoutes,
+  openRoutes,
+  reportsRoutes,
+  whereRoutes,
+  writeOffsRoutes,
+  loansRoutes,
+  filesRoutes,
+  labelsRoutes,
+  carryRoutes,
+  importRoutes,
+  bomRoutes,
+  mapsRoutes,
+  usersRoutes,
+  historyRoutes,
+  adminRoutes,
 ];
 
 /** Every module's MCP tools; `mcp/server.ts` registers them in this order. */
 export const TOOLS: Tools[] = [
-  coreTools,
-  (server, c) => registerBuildTools(server, c.services, c.actor, c.baseUrl),
-  (server, c) => registerDeleteTools(server, c.services, c.actor),
-  loanTools,
-  (server, c) => registerLostTools(server, c.services, c.actor),
-  locationTools,
+  partsTools,
+  categoriesTools,
+  stockTools,
+  bomTools,
+  filesTools,
+  whereTools,
+  unitsTools,
+  reportsTools,
+  buildsTools,
+  deletesTools,
+  loansTools,
+  locationsTools,
 ];
 
 export interface Services {

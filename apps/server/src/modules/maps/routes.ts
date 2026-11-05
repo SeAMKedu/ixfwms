@@ -8,7 +8,7 @@ const IdParams = z.object({ id: z.string() });
 const KindQuery = z.object({ kind: z.enum(MAP_KINDS).default('svg_2d') });
 const FileBody = z.object({ fileId: z.string().min(1) });
 
-export function registerMapRoutes(app: FastifyInstance, { services }: AppDeps): void {
+export function mapsRoutes(app: FastifyInstance, { services }: AppDeps): void {
   const { maps } = services;
 
   /** The drawings to show for "where is it?", from the top level down. */

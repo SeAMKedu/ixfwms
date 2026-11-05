@@ -6,7 +6,7 @@ import { fail } from '../../lib/errors.js';
 import { requireScope } from '../../lib/context.js';
 import { parse, type AppDeps } from '../../http/context.js';
 
-export function registerFileRoutes(app: FastifyInstance, { services }: AppDeps): void {
+export function filesRoutes(app: FastifyInstance, { services }: AppDeps): void {
   const { files } = services;
 
   /** Multipart upload, field name "file". Identical content is stored once. */

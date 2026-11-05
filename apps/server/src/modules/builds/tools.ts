@@ -1,19 +1,13 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { LEFTOVERS, PieceSchema } from '@ixfwms/domain';
 import { z } from 'zod';
-import type { Actor, Services } from '../index.js';
-import { tool, write } from '../../mcp/tool.js';
+import { tool, write, type ToolContext } from '../../mcp/tool.js';
 
 /** Builds: making one from a parts list and taking it apart. Finding them is search_parts. */
-export function registerBuildTools(
-  server: McpServer,
-  services: Services,
-  actor: Actor,
-  baseUrl: string,
-): void {
+export function buildsTools(server: McpServer, { services, actor, links }: ToolContext): void {
   const withLink = <T extends { build: { code: string } }>(r: T) => ({
     ...r,
-    url: `${baseUrl}/l/${r.build.code}`,
+    url: links.place(r.build.code),
   });
 
   server.registerTool(
