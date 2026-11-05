@@ -16,13 +16,14 @@ export function GlobalShortcuts() {
     if (input) input.focus();
     else void navigate('/items?focus=1');
   });
+  // Pages people without an account can't use (LOGIN_ONLY in app.tsx) have no shortcut for them.
   useShortcut('g p', t('shortcuts.goParts'), go('/items'));
   useShortcut('g i', t('shortcuts.goInbox'), go('/inbox'), !!user);
   useShortcut('g l', t('shortcuts.goPlaces'), go('/places'));
   useShortcut('g s', t('shortcuts.goScan'), go('/scan'));
-  useShortcut('g c', t('shortcuts.goCarry'), go('/carry'));
-  useShortcut('g h', t('shortcuts.goHistory'), go('/history'));
-  useShortcut('g b', t('shortcuts.goBom'), go('/bom'));
+  useShortcut('g c', t('shortcuts.goCarry'), go('/carry'), !!user);
+  useShortcut('g h', t('shortcuts.goHistory'), go('/history'), !!user);
+  useShortcut('g b', t('shortcuts.goBom'), go('/bom'), !!user);
   useShortcut('n', t('shortcuts.newPart'), go('/parts/new'), can('inventory'));
   return null;
 }
