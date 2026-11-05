@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import type { ClearResult, LocationSummary } from './api.js';
+import type { ClearResult, LocationSummary } from './locations.js';
 import { LEFTOVERS } from './cut.js';
 import { PieceSchema } from './amount-input.js';
-import { RefSchema } from './schemas.js';
+import { RefSchema } from './common.js';
 
 /** A build as a search result: where it sits, who to ask, and how many things are in it. */
 export interface BuildBrief extends LocationSummary {

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { DateSchema, RefSchema } from './schemas.js';
+import { DateSchema, RefSchema } from './common.js';
 
 /** Lending a unit, or a whole container with everything in it, out of the lab. */
 export const LendInput = z.object({
@@ -28,3 +28,19 @@ export const ReturnPlaceInput = z.object({
     .describe('Codes of units inside that did not come back; they are marked lost'),
 });
 export type ReturnPlaceInput = z.infer<typeof ReturnPlaceInput>;
+
+/** A unit or a whole container (`place`, with everything in it) lent out of the lab. */
+export interface LoanView {
+  id: string;
+  unit: { code: string; name: string } | null;
+  place: { code: string; name: string } | null;
+  /** User name; null for readers without a login. */
+  responsible: string | null;
+  /** What for; null for readers without a login. */
+  description: string | null;
+  outAt: string;
+  dueAt: string | null;
+  overdue: boolean;
+  returnedAt: string | null;
+  returnedBy: string | null;
+}

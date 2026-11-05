@@ -1,5 +1,5 @@
 import { isValidCode, normalizeCode } from './codes.js';
-import type { LocationSummary } from './api.js';
+import type { LocationSummary } from './locations.js';
 
 /*
  * Lab maps are drawings made outside the app (Inkscape, Illustrator, Blender). An element whose id
