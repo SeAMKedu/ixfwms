@@ -39,10 +39,12 @@ Code is grouped by feature, so a new feature is mostly new files in a folder of 
 
 A module starts with `<feature>.ts`, `routes.ts` and `tools.ts`. When `<feature>.ts` gets near the size limit, split it into the roles above, not by whatever part is closest to hand.
 
-- **Dependencies between modules.** Depend on the narrowest piece: another module's `store.ts` or `rules.ts` when that's all you use, not its whole service. Import types with `import type`. A value import goes to `store.ts` or `rules.ts`, and never forms a cycle.
+A split service stays one object. The reads become a class in `views.ts`, or in `store.ts` when other modules mostly use them to look things up, and the service extends that class with the changes: `LocationService extends PlaceStore`, `PartService extends PartViews`, and likewise for units and maps. Routes and tools keep calling `services.parts`, and a module that only reads takes the narrower type (`PlaceStore`, `PartViews`, `UnitViews`).
+
+- **Dependencies between modules.** Depend on the narrowest piece: another module's store, views or `rules.ts` when that's all you use, not its whole service. Import types with `import type`. A value import goes to `store.ts` or `rules.ts`, and never forms a cycle.
 - **Wiring.** `modules/index.ts` builds the services (`createServices`) and lists every module's routes and tools. `http/app.ts` and `mcp/server.ts` only walk those lists. A new module is a folder plus its lines in `modules/index.ts`.
 - **Shared plumbing.** Who is asking and the audit log are in `lib/context.ts`, next to errors and ids in `lib/`. The database is in `db/`. `db/schema.ts` stays one file, because drizzle-kit and the data model drawing read it.
-- **MCP tools.** Tools are thin: parse, call the service, add links (`ctx.links`). Their input is the domain schema (`...SomeInput.shape`), with the field descriptions in the schema (`.describe()`), so the route and the tool take the same input.
+- **MCP tools.** Tools are thin: parse, call the service, add links (`ctx.links`). A new tool's input is the domain schema (`...SomeInput.shape`), with the field descriptions in the schema (`.describe()`), so the route and the tool take the same input. Some older tools still spell out their fields inline; move those to the schema when you touch them.
 
 ### Domain package
 
@@ -100,7 +102,7 @@ Edit `apps/server/src/db/schema.ts`, then run `npm run db:generate` and commit t
 
 ## Database portability
 
-SQLite now; Postgres should stay possible later. The goal is not a database-agnostic app but services free of SQLite-only APIs, so a port touches `db/schema.ts`, `db/dialect.ts`, `db/client.ts`, the migrations, the code triggers and `services/backup.ts`, and not the services.
+SQLite now; Postgres should stay possible later. The goal is not a database-agnostic app but services free of SQLite-only APIs, so a port touches `db/schema.ts`, `db/dialect.ts`, `db/client.ts`, the migrations, the code triggers and `modules/system/backup.ts`, and not the services.
 
 - Build queries with Drizzle and read rows through `one()` and `many()` from `db/client.ts`, never `.get()` or `.all()` (only the SQLite drivers have them).
 - Raw `sql` only for SQL both databases understand: `substr`, `||`, `coalesce`, `cast`, `exists`, `count`, `case`, `like … escape`. Not `lower()`: SQLite folds only A–Z, Postgres folds ä. Case-insensitive matching compares text folded in JavaScript (`fold()` in the domain package), e.g. the stored `search_text` columns.

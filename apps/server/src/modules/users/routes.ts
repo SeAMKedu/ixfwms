@@ -11,7 +11,7 @@ import { invalid } from '../../lib/errors.js';
 const NameParams = z.object({ name: z.string() });
 
 /** Saves what's given of someone's default location and language. */
-export async function saveUserSettings(
+async function saveUserSettings(
   services: AppDeps['services'],
   name: string,
   input: UserSettingsInput,

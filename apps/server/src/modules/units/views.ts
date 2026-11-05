@@ -46,7 +46,7 @@ export const ATTENTION: UnitStatus[] = ['needs_attention', 'broken', 'in_repair'
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-export function eventView(
+function eventView(
   e: typeof unitEvents.$inferSelect,
   user: string | null,
   places: Map<string, LocationSummary>,
@@ -79,10 +79,7 @@ export function purchaseOf(
 }
 
 /** Members see what things cost; nobody else does. */
-export function purchaseFor(
-  u: typeof units.$inferSelect,
-  actor: Actor | null,
-): UnitPurchase | null {
+function purchaseFor(u: typeof units.$inferSelect, actor: Actor | null): UnitPurchase | null {
   return actor && hasScope(actor.scopes, 'inventory') ? purchaseOf(u) : null;
 }
 
@@ -98,7 +95,7 @@ export function purchasePatch(input: UpdateUnitInput): Partial<typeof units.$inf
 }
 
 /** Sorts IPv4 addresses numerically ("10.0.0.9" before "10.0.0.10"); others after them, as text. */
-export function ipKey(ip: string | null): string {
+function ipKey(ip: string | null): string {
   if (!ip) return '~';
   const m = /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/.exec(ip.trim());
   return m
