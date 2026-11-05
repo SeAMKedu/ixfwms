@@ -1,8 +1,8 @@
 import type { LocationSummary, OverduePlace } from '@ixfwms/domain';
 import { eq } from 'drizzle-orm';
-import { many, type Db } from '../db/client.js';
-import { locations } from '../db/schema.js';
-import { audit, requireScope, type Actor } from '../lib/context.js';
+import { many, type Db } from '../../db/client.js';
+import { locations } from '../../db/schema.js';
+import { audit, requireScope, type Actor } from '../../lib/context.js';
 import type { LocationService } from './locations.js';
 
 /**

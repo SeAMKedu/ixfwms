@@ -6,22 +6,15 @@ import {
   UpdateLocationInput,
 } from '@ixfwms/domain';
 import { z } from 'zod';
-import type { Actor, Services } from '../modules/index.js';
-import { read, tool, write } from './tool.js';
+import { read, tool, write, type ToolContext } from '../../mcp/tool.js';
 
 /**
  * Places: the tree, its types, making, moving and copying places, and archiving old containers.
  * Items are archived with update_part (status archived), units with update_unit (status
  * archived); setting the status back brings them back.
  */
-export function registerPlaceTools(
-  server: McpServer,
-  services: Services,
-  actor: Actor,
-  baseUrl: string,
-): void {
+export function locationTools(server: McpServer, { services, actor, links }: ToolContext): void {
   const { locations, locationViews } = services;
-  const abs = (href: string) => (href.startsWith('/') ? `${baseUrl}${href}` : href);
 
   server.registerTool(
     'list_location_types',
@@ -77,8 +70,8 @@ export function registerPlaceTools(
       const d = await locationViews.detail(ref, { recursive: recursive ?? false });
       return {
         ...d,
-        url: `${baseUrl}/l/${d.code}`,
-        attachments: d.attachments.map((a) => ({ ...a, href: abs(a.href) })),
+        url: links.place(d.code),
+        attachments: d.attachments.map((a) => ({ ...a, href: links.abs(a.href) })),
       };
     }),
   );
@@ -141,7 +134,7 @@ export function registerPlaceTools(
         },
         actor,
       );
-      return { ...loc, url: `${baseUrl}/l/${loc.code}` };
+      return { ...loc, url: links.place(loc.code) };
     }),
   );
 

@@ -6,7 +6,7 @@ import { invalid } from '../lib/errors.js';
 import { nowIso } from '../lib/ids.js';
 import { audit, requireScope, type Actor } from '../lib/context.js';
 import { checkEmpty } from './deletes.js';
-import type { LocationService } from './locations.js';
+import type { PlaceStore } from '../modules/locations/store.js';
 
 /**
  * Putting an old container away, and bringing it back. Archived, it's left out of place lists
@@ -17,7 +17,7 @@ import type { LocationService } from './locations.js';
 export class ArchiveService {
   constructor(
     private readonly db: Db,
-    private readonly locations: LocationService,
+    private readonly locations: PlaceStore,
   ) {}
 
   async place(ref: string, actor: Actor | null): Promise<LocationSummary> {

@@ -5,7 +5,7 @@ import { locations, parts, reports, units, users } from '../db/schema.js';
 import { notFound } from '../lib/errors.js';
 import { newId, nowIso } from '../lib/ids.js';
 import { audit, detail, personName, placeName, requireScope, type Actor } from '../lib/context.js';
-import type { LocationService } from './locations.js';
+import type { PlaceStore } from '../modules/locations/store.js';
 import type { PartResolver } from './parts.js';
 import type { UnitService } from './units.js';
 
@@ -18,7 +18,7 @@ type ReportRow = typeof reports.$inferSelect;
 export class ReportService {
   constructor(
     private readonly db: Db,
-    private readonly locations: LocationService,
+    private readonly locations: PlaceStore,
     private readonly parts: PartResolver,
     private readonly units: UnitService,
   ) {}

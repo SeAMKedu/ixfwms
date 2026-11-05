@@ -12,7 +12,7 @@ import { locations, parts, stockLots, units } from '../db/schema.js';
 import { nowIso } from '../lib/ids.js';
 import { fail, invalid } from '../lib/errors.js';
 import { requireScope, type Actor } from '../lib/context.js';
-import type { LocationRow, LocationService } from './locations.js';
+import type { LocationRow, PlaceStore } from '../modules/locations/store.js';
 import type { SettingsService } from './settings.js';
 import type { StockService } from './stock.js';
 import type { UnitService } from './units.js';
@@ -25,7 +25,7 @@ import type { UnitService } from './units.js';
 export class OpenActionService {
   constructor(
     private readonly db: Db,
-    private readonly locations: LocationService,
+    private readonly locations: PlaceStore,
     private readonly stock: StockService,
     private readonly units: UnitService,
     private readonly settings: SettingsService,

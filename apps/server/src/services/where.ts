@@ -6,7 +6,7 @@ import type {
   UnitBrief,
   WhereIsAnswer,
 } from '@ixfwms/domain';
-import type { LocationService } from './locations.js';
+import type { PlaceStore } from '../modules/locations/store.js';
 import type { PartService } from './parts.js';
 import type { StockService } from './stock.js';
 
@@ -30,7 +30,7 @@ export class WhereService {
   constructor(
     private readonly parts: PartService,
     private readonly stock: StockService,
-    private readonly locations: LocationService,
+    private readonly locations: PlaceStore,
   ) {}
 
   async ask(query: string, limit = 5): Promise<WhereIsAnswer[]> {

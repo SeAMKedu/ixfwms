@@ -22,7 +22,7 @@ import {
   requireScope,
   type Actor,
 } from '../lib/context.js';
-import type { LocationService } from './locations.js';
+import type { LocationService } from '../modules/locations/locations.js';
 import type { StockService } from './stock.js';
 
 /** Edits that are interesting in the feed; the rest (stock and moves) come from their own tables. */

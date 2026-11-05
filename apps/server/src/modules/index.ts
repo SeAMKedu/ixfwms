@@ -11,7 +11,6 @@ import { registerCarryRoutes } from '../http/routes/carry.js';
 import { registerFileRoutes } from '../http/routes/files.js';
 import { registerImportRoutes } from '../http/routes/import.js';
 import { registerLabelRoutes } from '../http/routes/labels.js';
-import { registerLocationRoutes } from '../http/routes/locations.js';
 import { registerMapRoutes } from '../http/routes/maps.js';
 import { registerPartRoutes } from '../http/routes/parts.js';
 import { registerSessionRoutes } from '../http/routes/session.js';
@@ -23,9 +22,10 @@ import { registerBuildTools } from '../mcp/build-tools.js';
 import { coreTools } from '../mcp/core-tools.js';
 import { registerDeleteTools } from '../mcp/delete-tools.js';
 import { registerLostTools } from '../mcp/lost-tools.js';
-import { registerPlaceTools } from '../mcp/place-tools.js';
 import type { ToolContext } from '../mcp/tool.js';
 import { LoanService } from './loans/loans.js';
+import { locationRoutes } from './locations/routes.js';
+import { locationTools } from './locations/tools.js';
 import { loanRoutes } from './loans/routes.js';
 import { loanTools } from './loans/tools.js';
 import { ArchiveService } from '../services/archives.js';
@@ -41,11 +41,11 @@ import { FileService } from '../services/files.js';
 import { HistoryService } from '../services/history.js';
 import { ImportService } from '../services/import.js';
 import { LabelService } from '../services/labels.js';
-import { LocationViews } from '../services/location-views.js';
-import { LocationService } from '../services/locations.js';
+import { LocationViews } from './locations/views.js';
+import { LocationService } from './locations/locations.js';
 import { MapService } from '../services/maps.js';
 import { OpenActionService } from '../services/open.js';
-import { PlaceTypeService } from '../services/place-types.js';
+import { PlaceTypeService } from './locations/place-types.js';
 import { PartResolver, PartService } from '../services/parts.js';
 import { ReportService } from '../services/reports.js';
 import { fillSearchText } from '../services/search-text.js';
@@ -64,7 +64,7 @@ type Tools = (server: McpServer, ctx: ToolContext) => void;
 export const ROUTES: Routes[] = [
   registerSystemRoutes,
   registerSessionRoutes,
-  registerLocationRoutes,
+  locationRoutes,
   registerPartRoutes,
   registerStockRoutes,
   registerUnitRoutes,
@@ -86,7 +86,7 @@ export const TOOLS: Tools[] = [
   (server, c) => registerDeleteTools(server, c.services, c.actor),
   loanTools,
   (server, c) => registerLostTools(server, c.services, c.actor),
-  (server, c) => registerPlaceTools(server, c.services, c.actor, c.baseUrl),
+  locationTools,
 ];
 
 export interface Services {

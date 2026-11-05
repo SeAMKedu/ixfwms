@@ -22,7 +22,8 @@ import { checkNotLent } from '../modules/loans/rules.js';
 import { LotStore } from './lots.js';
 import { PieceMoves } from './piece-moves.js';
 import { detail, requireScope, type Actor } from '../lib/context.js';
-import type { LocationRow, LocationService } from './locations.js';
+import type { LocationService } from '../modules/locations/locations.js';
+import type { LocationRow } from '../modules/locations/store.js';
 import type { PartResolver } from './parts.js';
 import type { SettingsService } from './settings.js';
 

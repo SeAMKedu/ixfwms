@@ -2,7 +2,7 @@ import type { NumberFrom } from '@ixfwms/domain';
 import { and, asc, inArray, isNull } from 'drizzle-orm';
 import { many, type Executor } from '../db/client.js';
 import { locations } from '../db/schema.js';
-import type { LocationRow } from './locations.js';
+import type { LocationRow } from '../modules/locations/store.js';
 
 const byName = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
 

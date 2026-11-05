@@ -11,7 +11,7 @@ import { attachments, files } from '../db/schema.js';
 import { invalid, notFound } from '../lib/errors.js';
 import { newId } from '../lib/ids.js';
 import { audit, requireScope, type Actor } from '../lib/context.js';
-import type { LocationService } from './locations.js';
+import type { PlaceStore } from '../modules/locations/store.js';
 import type { PartResolver } from './parts.js';
 
 export type FileRow = typeof files.$inferSelect;
@@ -21,7 +21,7 @@ export class FileService {
   constructor(
     private readonly db: Db,
     private readonly filesDir: string,
-    private readonly locations: LocationService,
+    private readonly locations: PlaceStore,
     private readonly parts: PartResolver,
   ) {}
 

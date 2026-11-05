@@ -18,7 +18,8 @@ import { newId, nowIso } from '../lib/ids.js';
 import { audit, requireScope, type Actor } from '../lib/context.js';
 import type { FileService } from './files.js';
 import { starterSvg } from './map-starter.js';
-import type { LocationRow, LocationService } from './locations.js';
+import type { LocationService } from '../modules/locations/locations.js';
+import type { LocationRow } from '../modules/locations/store.js';
 
 const MAX_SVG_BYTES = 10 * 1024 * 1024;
 const MAX_MODEL_BYTES = 100 * 1024 * 1024;

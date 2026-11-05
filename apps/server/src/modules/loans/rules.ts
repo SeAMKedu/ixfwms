@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { one, type Executor } from '../../db/client.js';
 import { locations } from '../../db/schema.js';
 import { invalid } from '../../lib/errors.js';
-import type { LocationRow } from '../../services/locations.js';
+import type { LocationRow } from '../locations/store.js';
 
 /**
  * Refuses things going into or coming out of a container lent out of the lab (`row` is it, or

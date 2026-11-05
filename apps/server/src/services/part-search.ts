@@ -22,7 +22,7 @@ import {
   units,
 } from '../db/schema.js';
 import { withinCategory, type CategoryService } from './categories.js';
-import type { LocationService } from './locations.js';
+import type { PlaceStore } from '../modules/locations/store.js';
 import { belowMinimum } from './low-stock.js';
 import { detailsHidden } from '../lib/context.js';
 import { contains, unitSearchText } from './search-text.js';
@@ -48,7 +48,7 @@ type LiveUnit = Pick<
 export class PartSearch {
   constructor(
     private readonly db: Db,
-    private readonly locations: LocationService,
+    private readonly locations: PlaceStore,
     private readonly stock: StockService,
     private readonly categories: CategoryService,
   ) {}

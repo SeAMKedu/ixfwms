@@ -10,7 +10,7 @@ import { many, type Db } from '../db/client.js';
 import { locations, parts, stockLots, units, users } from '../db/schema.js';
 import { invalid } from '../lib/errors.js';
 import { personName, requireScope, type Actor } from '../lib/context.js';
-import type { LocationService } from './locations.js';
+import type { LocationService } from '../modules/locations/locations.js';
 import type { StockService } from './stock.js';
 import type { UnitService } from './units.js';
 

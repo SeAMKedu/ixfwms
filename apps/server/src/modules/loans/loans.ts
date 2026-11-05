@@ -11,7 +11,8 @@ import { loans, locations, units, users } from '../../db/schema.js';
 import { invalid } from '../../lib/errors.js';
 import { newId, nowIso } from '../../lib/ids.js';
 import { audit, requireScope, type Actor } from '../../lib/context.js';
-import type { LocationRow, LocationService } from '../../services/locations.js';
+import type { LocationService } from '../locations/locations.js';
+import type { LocationRow } from '../locations/store.js';
 import type { UnitService } from '../../services/units.js';
 
 import { loanViews, openLoan, placeLoans, type LoanRow } from './store.js';

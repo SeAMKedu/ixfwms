@@ -1,9 +1,9 @@
 import { autoShortName, type LocationSummary } from '@ixfwms/domain';
 import { eq, isNull, or } from 'drizzle-orm';
-import { many, type Executor } from '../db/client.js';
-import { locations } from '../db/schema.js';
-import { invalid } from '../lib/errors.js';
-import type { LocationRow, LocationService } from './locations.js';
+import { many, type Executor } from '../../db/client.js';
+import { locations } from '../../db/schema.js';
+import { invalid } from '../../lib/errors.js';
+import type { LocationRow, PlaceStore } from './store.js';
 
 /** The places addresses start at: address roots and everything at the top level. */
 const ADDRESS_START = or(eq(locations.addressRoot, true), isNull(locations.parentId))!;
@@ -17,7 +17,7 @@ const nextTo = (parentId: string | null) =>
  */
 export async function addressClashes(
   ex: Executor,
-  places: LocationService,
+  places: PlaceStore,
   loc: LocationRow,
 ): Promise<LocationSummary[]> {
   const rows = await many(
@@ -39,7 +39,7 @@ export async function addressClashes(
 /** An explicitly set short name must differ from the fixed places next to it. */
 export async function checkShortName(
   ex: Executor,
-  places: LocationService,
+  places: PlaceStore,
   parentId: string | null,
   shortName: string | null,
   selfId: string | null,
@@ -58,7 +58,7 @@ export async function checkShortName(
  */
 export async function checkAddressStart(
   ex: Executor,
-  places: LocationService,
+  places: PlaceStore,
   place: {
     id: string | null;
     name: string;

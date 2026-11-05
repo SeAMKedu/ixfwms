@@ -6,7 +6,7 @@ import { invalid } from '../lib/errors.js';
 import type { LabelData } from '../labels/render.js';
 import { allocateCode, claimCode, lookupCode, reserveCodes, retireCode } from './codes.js';
 import { audit, detail, personName, requireScope, type Actor } from '../lib/context.js';
-import type { LocationRow, LocationService } from './locations.js';
+import type { LocationRow, PlaceStore } from '../modules/locations/store.js';
 
 const MAX_BLANK = 500;
 
@@ -14,7 +14,7 @@ const MAX_BLANK = 500;
 export class LabelService {
   constructor(
     private readonly db: Db,
-    private readonly locations: LocationService,
+    private readonly locations: PlaceStore,
   ) {}
 
   /** What a scanned or typed code is: a place, a part, a blank label, or nothing yet. */

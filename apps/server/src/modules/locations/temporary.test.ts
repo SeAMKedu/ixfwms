@@ -1,6 +1,6 @@
 import { DEFAULT_STOCK_LEVELS } from '@ixfwms/domain';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createTestEnv, type TestEnv } from '../test/harness.js';
+import { createTestEnv, type TestEnv } from '../../test/harness.js';
 
 let env: TestEnv;
 beforeEach(async () => {

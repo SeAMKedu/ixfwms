@@ -18,7 +18,7 @@ import { nowIso } from '../lib/ids.js';
 import { absorb, amountOf, countAmount, cutAmount, piecesToUnit } from './amounts.js';
 import type { Actor } from '../lib/context.js';
 import { checkNotLent } from '../modules/loans/rules.js';
-import type { LocationRow, LocationService } from './locations.js';
+import type { LocationRow, PlaceStore } from '../modules/locations/store.js';
 import type { LotRow, StockService } from './stock.js';
 
 type Cut = NonNullable<MoveAmount['cut']>;
@@ -34,7 +34,7 @@ type Cut = NonNullable<MoveAmount['cut']>;
 export class PieceMoves {
   constructor(
     private readonly stock: StockService,
-    private readonly locations: LocationService,
+    private readonly locations: PlaceStore,
   ) {}
 
   /** A cut, a count of pieces, or an amount in the lot's own unit (all of it without one). */

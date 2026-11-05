@@ -15,7 +15,7 @@ import { importMappings, locations, partIdentifiers, parts } from '../db/schema.
 import { AppError, invalid } from '../lib/errors.js';
 import { nowIso } from '../lib/ids.js';
 import { audit, requireScope, type Actor } from '../lib/context.js';
-import type { LocationRow, LocationService } from './locations.js';
+import type { LocationRow, PlaceStore } from '../modules/locations/store.js';
 import type { PartService } from './parts.js';
 import type { StockService } from './stock.js';
 
@@ -38,7 +38,7 @@ interface Plan {
 export class ImportService {
   constructor(
     private readonly db: Db,
-    private readonly locations: LocationService,
+    private readonly locations: PlaceStore,
     private readonly parts: PartService,
     private readonly stock: StockService,
   ) {}

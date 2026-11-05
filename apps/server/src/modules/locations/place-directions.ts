@@ -1,9 +1,9 @@
 import type { PlaceStep } from '@ixfwms/domain';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
-import { many, type Executor } from '../db/client.js';
-import { locations, locationTypes } from '../db/schema.js';
-import { placeName } from '../lib/context.js';
-import type { LocationRow } from './locations.js';
+import { many, type Executor } from '../../db/client.js';
+import { locations, locationTypes } from '../../db/schema.js';
+import { placeName } from '../../lib/context.js';
+import type { LocationRow } from './store.js';
 
 const byName = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
 

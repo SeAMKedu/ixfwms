@@ -1,8 +1,8 @@
 import { BUILT_IN_LOCATION_TYPES, DEFAULT_LOCATION_TYPES } from '@ixfwms/domain';
 import { eq } from 'drizzle-orm';
-import { many, one, type Db } from '../db/client.js';
-import { locations, locationTypes } from '../db/schema.js';
-import { newId } from '../lib/ids.js';
+import { many, one, type Db } from '../../db/client.js';
+import { locations, locationTypes } from '../../db/schema.js';
+import { newId } from '../../lib/ids.js';
 import type { LocationService } from './locations.js';
 
 const INBOX_NAME = 'Inbox';

@@ -50,7 +50,8 @@ import {
   requireScope,
   type Actor,
 } from '../lib/context.js';
-import type { LocationRow, LocationService } from './locations.js';
+import type { LocationService } from '../modules/locations/locations.js';
+import type { LocationRow } from '../modules/locations/store.js';
 import type { PartResolver } from './parts.js';
 import { unitSearchText } from './search-text.js';
 import { checkNotLent } from '../modules/loans/rules.js';

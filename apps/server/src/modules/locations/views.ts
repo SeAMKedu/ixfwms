@@ -1,19 +1,19 @@
 import { formatAmount, type LocationDetail } from '@ixfwms/domain';
 import { and, asc, eq, inArray, isNotNull, like, sql } from 'drizzle-orm';
-import { many, one, type Db } from '../db/client.js';
-import { locations, locationTypes, parts, stockLots } from '../db/schema.js';
-import type { BuildService } from './builds.js';
-import type { FileService } from './files.js';
-import type { LoanService } from '../modules/loans/loans.js';
-import type { LocationService } from './locations.js';
-import type { PartService } from './parts.js';
-import type { UnitService } from './units.js';
+import { many, one, type Db } from '../../db/client.js';
+import { locations, locationTypes, parts, stockLots } from '../../db/schema.js';
+import type { BuildService } from '../../services/builds.js';
+import type { FileService } from '../../services/files.js';
+import type { LoanService } from '../loans/loans.js';
+import type { PlaceStore } from './store.js';
+import type { PartService } from '../../services/parts.js';
+import type { UnitService } from '../../services/units.js';
 
 /** Read model for a location page: path, sub-locations and what's stored there. */
 export class LocationViews {
   constructor(
     private readonly db: Db,
-    private readonly locations: LocationService,
+    private readonly locations: PlaceStore,
     private readonly parts: PartService,
     private readonly files: FileService,
     private readonly units: UnitService,

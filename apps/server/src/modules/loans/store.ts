@@ -3,7 +3,7 @@ import { and, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
 import { many, one, type Executor } from '../../db/client.js';
 import { loans, locations, parts, units, users } from '../../db/schema.js';
 import { loanReason, personName } from '../../lib/context.js';
-import type { LocationRow } from '../../services/locations.js';
+import type { LocationRow } from '../locations/store.js';
 
 export type LoanRow = typeof loans.$inferSelect;
 

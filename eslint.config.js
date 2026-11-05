@@ -56,7 +56,6 @@ export default tseslint.config(
     files: [
       'apps/server/src/db/schema.ts',
       'apps/server/src/mcp/core-tools.ts',
-      'apps/server/src/services/locations.ts',
       'apps/server/src/services/maps.ts',
       'apps/server/src/services/parts.ts',
       'apps/server/src/services/stock.ts',

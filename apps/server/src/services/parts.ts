@@ -37,7 +37,7 @@ import { toAmount } from './amounts.js';
 import { allocateCode, retireCode } from './codes.js';
 import { audit, detail, placeName, requireScope, type Actor } from '../lib/context.js';
 import type { FileService } from './files.js';
-import type { LocationService } from './locations.js';
+import type { PlaceStore } from '../modules/locations/store.js';
 import { PartSearch, type SearchInput } from './part-search.js';
 import { cleanAliases, contains, partSearchText } from './search-text.js';
 import type { StockService } from './stock.js';
@@ -66,7 +66,7 @@ export class PartService {
   constructor(
     private readonly db: Db,
     private readonly resolver: PartResolver,
-    private readonly locations: LocationService,
+    private readonly locations: PlaceStore,
     private readonly stock: StockService,
     private readonly files: FileService,
     private readonly units: UnitService,

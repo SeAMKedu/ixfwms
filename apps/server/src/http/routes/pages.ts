@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { AppError } from '../../lib/errors.js';
-import type { LocationSummary } from '../../services/locations.js';
+import type { LocationSummary } from '../../modules/locations/store.js';
 import { parse, type AppDeps } from '../context.js';
 
 /*
