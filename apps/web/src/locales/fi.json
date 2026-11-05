@@ -948,7 +948,7 @@
     },
     "guestViewHints": {
       "limited": "Tavaroiden ja paikkojen kuvaukset näkyvät. Muistiinpanot, lokimerkinnät, vikailmoitusten tekstit, sarjanumerot ja laiteohjelmistoversiot vaativat kirjautumisen.",
-      "full": "Nimet, lainojen syyt, verkkotiedot ja hinnat vaativat aina kirjautumisen. Väliaikaisten paikkojen yhteyshenkilöt näkyvät aina."
+      "full": "Nimet, lainojen syyt, verkkotiedot, hinnat, historia ja Saapuneet vaativat aina kirjautumisen. Väliaikaisten paikkojen yhteyshenkilöt näkyvät aina."
     },
     "workstation": "Työpiste",
     "levels": "Saldotasot",
