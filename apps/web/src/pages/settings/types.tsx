@@ -77,7 +77,7 @@ function TypeRow({
             aria-label={`${label}: ${t('settings.colStay')}`}
             value={stay}
             disabled={!canEdit}
-            className="!w-16 px-2 py-1 text-right"
+            className="!w-20 px-2 py-1 text-right"
             onChange={(e) => setStay(e.target.value)}
             onBlur={saveStay}
             onKeyDown={(e) => e.key === 'Enter' && saveStay()}
